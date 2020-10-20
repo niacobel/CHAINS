@@ -7,12 +7,13 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to CHAINS’s documentation! &mdash; CHAINS Beta documentation</title>
+  <title>Welcome to CHAINS’ documentation! &mdash; CHAINS Beta documentation</title>
   
 
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/my_theme.css" type="text/css" />
 
   
   
@@ -138,7 +139,7 @@
     
       <li><a href="#" class="icon icon-home"></a> &raquo;</li>
         
-      <li>Welcome to CHAINS’s documentation!</li>
+      <li>Welcome to CHAINS’ documentation!</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -157,11 +158,55 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-chains-s-documentation">
-<h1>Welcome to CHAINS’s documentation!<a class="headerlink" href="#welcome-to-chains-s-documentation" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="welcome-to-chains-documentation">
+<h1>Welcome to CHAINS’ documentation!<a class="headerlink" href="#welcome-to-chains-documentation" title="Permalink to this headline">¶</a></h1>
+<p>CHAINS is a group of scripts developed at the Spectroscopy, Quantum Chemistry and Atmospheric Remote Sensing (<a class="reference external" href="https://www2.ulb.ac.be/cpm/index.html">SQUARES</a>) service, at <em>Université Libre de Bruxelles</em> (<a class="reference external" href="https://www.ulb.be/">ULB</a>). Its use is to automate the scanning of multiple molecules, looking for the ones whose electrons can be easily controlled by laser.</p>
+<p>This includes two big steps: <strong>caracterisation</strong> and <strong>evaluation</strong>. The caracterisation step makes use of ab initio calculations performed by programs such as <a class="reference external" href="https://www.faccts.de/orca/">ORCA</a> and <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a>, in order to build an effective Hamiltonian describing our molecule. The evaluation step consists of applying the quantum optimal control theory through the <a class="reference external" href="https://gitlab.com/dynaq.cqp/QOCT-RA">QOCT-RA</a> scripts, also developed by SQUARES. All those calculations are performed using the different clusters provided by the <em>Consortium des Équipements de Calcul Intensif</em> (<a class="reference external" href="http://www.ceci-hpc.be/">CECI</a>).</p>
+<p>Although the global development has been aimed at a specific problematic, <strong>each individual script can easily be adapted</strong> to deal with other similar problems, programs and clusters, as it will be explained in each of the different sections of this documentation.</p>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<p>COMING SOON</p>
+</div>
+<div class="section" id="design-philosophy">
+<h2>Design Philosophy<a class="headerlink" href="#design-philosophy" title="Permalink to this headline">¶</a></h2>
+<p>COMING SOON</p>
+</div>
+<div class="section" id="global-overview">
+<h2>Global Overview<a class="headerlink" href="#global-overview" title="Permalink to this headline">¶</a></h2>
 <div class="align-center figure" id="id1">
 <a class="reference external image-reference" href="_images/chains_workflow.png"><img alt="CHAINS workflow" src="_images/chains_workflow.png" style="width: 940px; height: 696px;" /></a>
-<p class="caption"><span class="caption-text">CHAINS workflow</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text">Global overview of CHAINS’ workflow (click to enlarge)</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+<div class="section" id="caracterisation-step-abin-launcher">
+<h3>Caracterisation Step (ABIN LAUNCHER)<a class="headerlink" href="#caracterisation-step-abin-launcher" title="Permalink to this headline">¶</a></h3>
+<p>The first step consists to scan the molecule structure files and building the input files associated with the ab initio program you want to run. Once those files have been prepared, the corresponding calculations will be launched. This whole process is covered by the first main script of CHAINS, called ABIN LAUNCHER.</p>
+<p>This script is executed twice through CHAINS. The first time, it is used to perform the geometry optimization of our molecule through the <a class="reference external" href="https://www.faccts.de/orca/">ORCA</a> program. The second time, it is used to calculate the different properties we will need during the evaluation step, through the <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a> program.</p>
+<p><em>Note: The reason this caracterisation step is split in two phases is because the Q-CHEM_ program is locked by license on a single cluster, and we want to make the most use out of this cluster. Since the geometry optimization can be handled by another program, we have separated it from the rest in order to free some ressources and gain some time.</em></p>
+</div>
+<div class="section" id="evaluation-step-control-launcher">
+<h3>Evaluation Step (CONTROL LAUNCHER)<a class="headerlink" href="#evaluation-step-control-launcher" title="Permalink to this headline">¶</a></h3>
+<p>The second step consists to scan the output file of the caracterisation step and use it to build an effective Hamiltonian for our molecule. Once in possession of this effective Hamiltonian, we then perform a quantum control procedure through <a class="reference external" href="https://gitlab.com/dynaq.cqp/QOCT-RA">QOCT-RA</a>, consisting of populating each dark electronic state, from the ground state. This whole process is covered by the second main script of CHAINS, called CONTROL LAUNCHER. Each of those calculations yields a fidelity value, which reflects the efficiency of the control procedure and the controllability of the electrons in our molecule.</p>
+</div>
+<div class="section" id="final-step-results-treatment">
+<h3>Final Step (RESULTS TREATMENT)<a class="headerlink" href="#final-step-results-treatment" title="Permalink to this headline">¶</a></h3>
+<p>There is no calculation involved in this step. The third main script of CHAINS, called RESULTS TREATMENT, is designed to, as its name implies, treat the results from the previous steps and compile them into graphs and tables, for ease of interpretation and comparison.</p>
+</div>
+<div class="section" id="linking-the-steps-together">
+<h3>Linking the steps together<a class="headerlink" href="#linking-the-steps-together" title="Permalink to this headline">¶</a></h3>
+<p>In order to link all those steps together and allow communication between clusters, CHAINS makes use of the common CECI storage, known as CECIHOME. Every important file is copied and stored into the CECIHOME, then different Shell scripts are periodically executed through <a class="reference external" href="https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html">crontab</a> tasks to scan the CECIHOME and launch the various steps.</p>
+</div>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>COMING SOON</p>
+</div>
+<div class="section" id="acknowledgment">
+<h2>Acknowledgment<a class="headerlink" href="#acknowledgment" title="Permalink to this headline">¶</a></h2>
+<p>COMING SOON</p>
+</div>
+<div class="section" id="copyright-and-license">
+<h2>Copyright and License<a class="headerlink" href="#copyright-and-license" title="Permalink to this headline">¶</a></h2>
+<p>COMING SOON</p>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
