@@ -37,7 +37,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Content Overview" href="cnt.overview.html" /> 
+    <link rel="next" title="Welcome to CHAINS’ documentation!" href="homepage.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -82,13 +82,27 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents</span></p>
+              <p class="caption"><span class="caption-text">CHAINS</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="cnt.overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cnt.config.html">Configuration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cnt.design_phil.html">Design Philosophy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="homepage.html">Homepage</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Docsite testing</span></p>
+<p class="caption"><span class="caption-text">ABIN LAUNCHER</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.scan.html">Scanning the molecule structure file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.job_scale.html">Job scale</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.rendering.html">Rendering the templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.adapt.html">Adapting to other cases</a></li>
+</ul>
+<p class="caption"><span class="caption-text">CONTROL LAUNCHER</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">Tests</a></li>
+</ul>
+<p class="caption"><span class="caption-text">RESULTS TREATMENT</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">Tests</a></li>
+</ul>
+<p class="caption"><span class="caption-text">LINKING THE STEPS</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tests.html">Tests</a></li>
 </ul>
@@ -158,33 +172,61 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-chains-documentation">
+  <div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="welcome-to-chains-documentation">
 <h1>Welcome to CHAINS’ documentation!<a class="headerlink" href="#welcome-to-chains-documentation" title="Permalink to this headline">¶</a></h1>
-<p>CHAINS is a group of scripts developed at the Spectroscopy, Quantum Chemistry and Atmospheric Remote Sensing (<a class="reference external" href="https://www2.ulb.ac.be/cpm/index.html">SQUARES</a>) service, at <em>Université Libre de Bruxelles</em> (<a class="reference external" href="https://www.ulb.be/">ULB</a>). Its use is to automate the scanning of multiple molecules, looking for the ones whose electrons can be easily controlled by laser.</p>
-<p>This includes two big steps: <strong>caracterisation</strong> and <strong>evaluation</strong>. The caracterisation step makes use of ab initio calculations performed by programs such as <a class="reference external" href="https://www.faccts.de/orca/">ORCA</a> and <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a>, in order to build an effective Hamiltonian describing our molecule. The evaluation step consists of applying the quantum optimal control theory through the <a class="reference external" href="https://gitlab.com/dynaq.cqp/QOCT-RA">QOCT-RA</a> scripts, also developed by SQUARES. All those calculations are performed using the different clusters provided by the <em>Consortium des Équipements de Calcul Intensif</em> (<a class="reference external" href="http://www.ceci-hpc.be/">CECI</a>).</p>
+<div class="section" id="what-is-chains">
+<h2>What is CHAINS?<a class="headerlink" href="#what-is-chains" title="Permalink to this headline">¶</a></h2>
+<p>CHAINS is a group of scripts developed at the Spectroscopy, Quantum Chemistry and Atmospheric Remote Sensing (<a class="reference external" href="https://www2.ulb.ac.be/cpm/index.html">SQUARES</a>) service, at <em>Université Libre de Bruxelles</em> (<a class="reference external" href="https://www.ulb.be/">ULB</a>). It serves to automate a “quantum control screening” methodology, which consists of scanning multiple molecules, looking for the ones whose electrons can be easily controlled by laser.</p>
+<p>This methodology includes three big steps:</p>
+<ul class="simple">
+<li><p>The <strong>characterization</strong> step makes use of ab initio calculations performed by programs such as <a class="reference external" href="https://www.faccts.de/orca/">ORCA</a> and <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a>, in order to build an effective Hamiltonian describing our molecule.</p></li>
+<li><p>The <strong>evaluation</strong> step consists of using this effective Hamiltonian to apply the quantum optimal control theory through the <a class="reference external" href="https://gitlab.com/dynaq.cqp/QOCT-RA">QOCT-RA</a> scripts, also developed by SQUARES.</p></li>
+<li><p>The <strong>results</strong> step consists of treating the results and compiling them into graphs and tables.</p></li>
+</ul>
+<p>CHAINS can assist this whole methodology by automatically preparing the input files and launching the <a class="reference external" href="https://www.faccts.de/orca/">ORCA</a>, <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a> and <a class="reference external" href="https://gitlab.com/dynaq.cqp/QOCT-RA">QOCT-RA</a> calculations for each molecule, allowing the user to treat a big number of molecules much faster, making the scanning more efficient. It can also work with multiple clusters, in order to split the workload. In our case, all those calculations are performed on the different clusters provided by the <em>Consortium des Équipements de Calcul Intensif</em> (<a class="reference external" href="http://www.ceci-hpc.be/">CECI</a>).</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Although the global development has been aimed at a specific problematic, <strong>each individual script can easily be adapted</strong> to deal with other similar problems, programs and clusters, as will be explained in each of the different sections of this documentation.</p>
 </div>
+</div>
+<div class="section" id="design-philosophy">
+<h2>Design Philosophy<a class="headerlink" href="#design-philosophy" title="Permalink to this headline">¶</a></h2>
+<p>The development of CHAINS followed two main ideas:</p>
+<ul class="simple">
+<li><p><strong>Simple</strong>: Since CHAINS might be used by scientists with a minimal knowledge of software development, we want to keep it simple and easy to understand, so we tried to stick with the basics as much as possible. Also, since the calculations that will be launched might last for hours, days and maybe even weeks, there is no need to put too much emphasis on efficiency, as gaining a few seconds during the execution of CHAINS’ scripts wouldn’t really impact the overall performance of the total procedure.</p></li>
+<li><p><strong>Adaptable</strong>: Since there are as many scientific problems as there are scientists, we also want to make CHAINS easily adaptable. Therefore, we tried to keep in mind other programs and methodologies that may want to use some or all of CHAINS’ scripts.</p></li>
+</ul>
+<p>As a final note, CHAINS is not a single program but really just a group of scripts. Those scripts will be executed before and after each calculation, in order to prepare input files and treat output files. As such, if one calculation happens to fail, it is easy to restart where it stopped.</p>
+</div>
 <div class="section" id="languages-and-dependencies">
 <h2>Languages and dependencies<a class="headerlink" href="#languages-and-dependencies" title="Permalink to this headline">¶</a></h2>
-<div class="align-center figure" id="id1">
+<div class="align-center figure" id="id3">
 <img alt="Languages used in CHAINS" src="_images/logos.png" />
-<p class="caption"><span class="caption-text">The different languages used by CHAINS</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text">The different languages used by CHAINS</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
 </div>
 <p>The main language of CHAINS is Python 3.5+ but it also uses YAML files and Jinja2 templates, and there are also some Shell scripts. However, there is no need for an in-depth knowledge of anything but Python in order to customize CHAINS, as we only use the basic features of the other languages.</p>
 <p>In order to plot graphs and generate tables with the results, CHAINS also makes use of <a class="reference external" href="http://www.gnuplot.info/">Gnuplot</a> scripts and the <a class="reference external" href="https://www.latex-project.org/">LaTeX</a> language. Those are not needed to get the results though, only to process them and make them more readable. You can freely rework those scripts and files without affecting the main process.</p>
 <div class="section" id="what-is-yaml-and-why-is-it-used-here">
-<h3>What is YAML and why is it used here?<a class="headerlink" href="#what-is-yaml-and-why-is-it-used-here" title="Permalink to this headline">¶</a></h3>
+<h3><em>What is YAML and why is it used here?</em><a class="headerlink" href="#what-is-yaml-and-why-is-it-used-here" title="Permalink to this headline">¶</a></h3>
 <p><a class="reference external" href="https://yaml.org/">YAML</a> is a “human friendly data serialization standard for all programming languages”. It is used here for the configuration files, containing all parameters needed for the different scripts and calculations. The way those files are structured makes them very easy to use and to understand.</p>
 </div>
 <div class="section" id="what-is-jinja-and-why-is-it-used-here">
-<h3>What is Jinja and why is it used here?<a class="headerlink" href="#what-is-jinja-and-why-is-it-used-here" title="Permalink to this headline">¶</a></h3>
+<h3><em>What is Jinja and why is it used here?</em><a class="headerlink" href="#what-is-jinja-and-why-is-it-used-here" title="Permalink to this headline">¶</a></h3>
 <p>“<a class="reference external" href="https://jinja.palletsprojects.com/en/2.11.x/">Jinja</a> is a modern and designer-friendly templating language for Python, modelled after Django’s templates. It is fast, widely used and secure with the optional sandboxed template execution environment.” (quote from the official website)</p>
 <p>We use the Jinja language to create templates for the input files needed by <a class="reference external" href="https://www.faccts.de/orca/">ORCA</a>, <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a> and <a class="reference external" href="https://gitlab.com/dynaq.cqp/QOCT-RA">QOCT-RA</a>. We also use it for the job scripts, containing all instructions for the job scheduler (<a class="reference external" href="https://slurm.schedmd.com/documentation.html">SLURM</a> for the CECI clusters). The Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as <a class="reference external" href="https://gaussian.com/">Gaussian</a> or <a class="reference external" href="https://www.molpro.net/">Molpro</a>, and any other job scheduler such as <a class="reference external" href="https://github.com/adaptivecomputing/torque">Torque</a>.</p>
 </div>
 <div class="section" id="installing-yaml-and-jinja2">
-<h3>Installing YAML and Jinja2<a class="headerlink" href="#installing-yaml-and-jinja2" title="Permalink to this headline">¶</a></h3>
+<h3><em>Installing YAML and Jinja2</em><a class="headerlink" href="#installing-yaml-and-jinja2" title="Permalink to this headline">¶</a></h3>
 <p>If your Python distribution does not include YAML and Jinja2, you can install them using</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ python -m pip install pyyaml
 $ python -m pip install jinja2
@@ -198,45 +240,44 @@ $ python -m pip install --user jinja2
 <p>Otherwise, you might be denied the permission to install.</p>
 </div>
 </div>
-<div class="section" id="design-philosophy">
-<h2>Design Philosophy<a class="headerlink" href="#design-philosophy" title="Permalink to this headline">¶</a></h2>
-<p>COMING SOON</p>
-</div>
 <div class="section" id="global-overview">
 <h2>Global Overview<a class="headerlink" href="#global-overview" title="Permalink to this headline">¶</a></h2>
-<div class="align-center figure" id="id2">
+<div class="align-center figure" id="id4">
 <a class="reference external image-reference" href="_images/chains_workflow.png"><img alt="CHAINS workflow" src="_images/chains_workflow.png" style="width: 940px; height: 696px;" /></a>
-<p class="caption"><span class="caption-text">Global overview of CHAINS’ workflow (click to enlarge)</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text">Global overview of CHAINS’ workflow (click to enlarge)</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
 </div>
-<div class="section" id="caracterisation-step-abin-launcher">
-<h3>Caracterisation Step (ABIN LAUNCHER)<a class="headerlink" href="#caracterisation-step-abin-launcher" title="Permalink to this headline">¶</a></h3>
-<p>The first step consists to scan the molecule structure files and building the input files associated with the ab initio program you want to run. Once those files have been prepared, the corresponding calculations will be launched. This whole process is covered by the first main script of CHAINS, called ABIN LAUNCHER.</p>
+<div class="section" id="characterization-step-abin-launcher">
+<h3><em>Characterization Step (ABIN LAUNCHER)</em><a class="headerlink" href="#characterization-step-abin-launcher" title="Permalink to this headline">¶</a></h3>
+<p>The first step consists to scan the molecule structure files and building the input files associated with the ab initio program we want to run. Once those files have been prepared, the corresponding calculations will be launched. This whole process is covered by the first main script of CHAINS, called ABIN LAUNCHER.</p>
 <p>This script is executed twice through CHAINS. The first time, it is used to perform the geometry optimization of our molecule through the <a class="reference external" href="https://www.faccts.de/orca/">ORCA</a> program. The second time, it is used to calculate the different properties we will need during the evaluation step, through the <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a> program.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><strong>ABIN LAUNCHER is a completely autonomous module</strong> that does not need any files outside the ones present in its own folder. It can be extracted and used to launch independent calcuations, and can be very easily adapted to deal with other ab initio programs. Consult ABIN LAUNCHER’s specific documentation for more information.</p>
+<p><strong>ABIN LAUNCHER is a completely autonomous module</strong> that does not need any files outside the ones present in its own folder. It can be extracted and used to launch independent calculations, and can be very easily adapted to deal with other ab initio programs. Consult ABIN LAUNCHER’s specific documentation for more information.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The reason this caracterisation step is split in two phases is because the <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a> program is locked by license on a single cluster, and we want to make the most use out of this cluster. Since the geometry optimization can be handled by another program, we have separated it from the rest in order to free some ressources and gain some time.</p>
+<p>The reason this characterization step is split in two phases is because the <a class="reference external" href="https://www.q-chem.com/">Q-CHEM</a> program is locked by license on a single cluster, and we want to make the most use out of this cluster. Since the geometry optimization can be handled by another program, we have separated it from the rest in order to free some resources and gain some time.</p>
 </div>
 </div>
 <div class="section" id="evaluation-step-control-launcher">
-<h3>Evaluation Step (CONTROL LAUNCHER)<a class="headerlink" href="#evaluation-step-control-launcher" title="Permalink to this headline">¶</a></h3>
-<p>The second step consists to scan the output file of the caracterisation step and use it to build an effective Hamiltonian for our molecule. Once in possession of this effective Hamiltonian, we then perform a quantum control procedure through <a class="reference external" href="https://gitlab.com/dynaq.cqp/QOCT-RA">QOCT-RA</a>, consisting of populating each dark electronic state, from the ground state. This whole process is covered by the second main script of CHAINS, called CONTROL LAUNCHER. Each of those calculations yields a fidelity value, which reflects the efficiency of the control procedure and the controllability of the electrons in our molecule.</p>
+<h3><em>Evaluation Step (CONTROL LAUNCHER)</em><a class="headerlink" href="#evaluation-step-control-launcher" title="Permalink to this headline">¶</a></h3>
+<p>The second step consists to scan the output file of the characterization step and use it to build an effective Hamiltonian for our molecule. Once in possession of this effective Hamiltonian, we then perform a quantum control procedure through <a class="reference external" href="https://gitlab.com/dynaq.cqp/QOCT-RA">QOCT-RA</a>, consisting of populating each dark electronic state, from the ground state. This whole process is covered by the second main script of CHAINS, called CONTROL LAUNCHER. Each of those calculations yields a fidelity value, which reflects the efficiency of the control procedure and the controllability of the electrons in our molecule.</p>
 </div>
-<div class="section" id="final-step-results-treatment">
-<h3>Final Step (RESULTS TREATMENT)<a class="headerlink" href="#final-step-results-treatment" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="results-step-results-treatment">
+<h3><em>Results Step (RESULTS TREATMENT)</em><a class="headerlink" href="#results-step-results-treatment" title="Permalink to this headline">¶</a></h3>
 <p>There is no calculation involved in this step. The third main script of CHAINS, called RESULTS TREATMENT, is designed to, as its name implies, treat the results from the previous steps and compile them into graphs and tables, for ease of interpretation and comparison.</p>
 </div>
 <div class="section" id="linking-the-steps-together">
-<h3>Linking the steps together<a class="headerlink" href="#linking-the-steps-together" title="Permalink to this headline">¶</a></h3>
+<h3><em>Linking the steps together</em><a class="headerlink" href="#linking-the-steps-together" title="Permalink to this headline">¶</a></h3>
 <p>In order to link all those steps together and allow communication between clusters, CHAINS makes use of the common CECI storage, known as CECIHOME. Every important file is copied and stored into the CECIHOME, then different Shell scripts on different clusters are periodically executed through <a class="reference external" href="https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html">crontab</a> tasks to scan the CECIHOME and launch the various steps.</p>
 </div>
 </div>
 <div class="section" id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
 <p>COMING SOON</p>
+</div>
 </div>
 <div class="section" id="acknowledgment">
 <h2>Acknowledgment<a class="headerlink" href="#acknowledgment" title="Permalink to this headline">¶</a></h2>
@@ -245,19 +286,10 @@ $ python -m pip install --user jinja2
 </div>
 <div class="section" id="license">
 <h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<div class="admonition-todo admonition" id="id2">
+<p class="admonition-title">Todo</p>
 <p>COMING SOON (Probably just GPLv3)</p>
 </div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
-<div class="toctree-wrapper compound">
-</div>
-<div class="toctree-wrapper compound">
 </div>
 </div>
 
@@ -269,7 +301,7 @@ $ python -m pip install --user jinja2
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="cnt.overview.html" class="btn btn-neutral float-right" title="Content Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="homepage.html" class="btn btn-neutral float-right" title="Welcome to CHAINS’ documentation!" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>
@@ -279,8 +311,6 @@ $ python -m pip install --user jinja2
 
   <div role="contentinfo">
     <p>
-        
-        &copy; Copyright 2020, Iacobellis Nicolas
 
     </p>
   </div>
