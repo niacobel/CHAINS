@@ -4,15 +4,19 @@
    contain the root `toctree` directive.
 
 .. toctree::
-   :maxdepth: 2
    :hidden:
+   :numbered:
+   :maxdepth: 2
    :caption: CHAINS
 
-   Homepage <homepage>
+   Introduction <chains.introduction>
+   Workflow <chains.workflow>
+   Getting Started <chains.quickstart>
 
 .. toctree::
-   :maxdepth: 2
    :hidden:
+   :numbered:
+   :maxdepth: 2
    :caption: ABIN LAUNCHER
 
    Overview <abin_launcher.overview>
@@ -22,24 +26,32 @@
    Adapting to other cases <abin_launcher.adapt>
 
 .. toctree::
-   :maxdepth: 2
    :hidden:
+   :numbered:
+   :maxdepth: 2
    :caption: CONTROL LAUNCHER
 
    Tests <tests.rst>
 
 .. toctree::
-   :maxdepth: 2
    :hidden:
+   :numbered:
+   :maxdepth: 2
    :caption: RESULTS TREATMENT
 
    Tests <tests.rst>
 
 .. toctree::
-   :maxdepth: 2
    :hidden:
-   :caption: LINKING THE STEPS
+   :numbered:
+   :maxdepth: 2
+   :caption: LINKING THE SCRIPTS
 
    Tests <tests.rst>
 
-.. include:: homepage.rst
+.. include the content of the general overview file, and make it look similar.
+
+.. sectnum::
+   :suffix: .
+
+.. include:: chains.introduction.rst
