@@ -1,2 +1,4 @@
 ###### Requirements without Version Specifiers ######
 sphinxcontrib.autoprogram
+pyyaml
+jinja2
