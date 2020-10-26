@@ -42,20 +42,20 @@ The main language of CHAINS is Python 3.5+ but it also uses YAML files and Jinja
 
 In order to plot graphs and generate tables with the results, CHAINS also makes use of Gnuplot_ scripts and the LaTeX_ language. Those are not needed to get the results though, only to process them and make them more readable. You can freely rework those scripts and files without affecting the main process.
 
-*What is YAML and why is it used here?*
----------------------------------------
+What is YAML and why is it used here?
+-------------------------------------
 
 YAML_ is a "human friendly data serialization standard for all programming languages". It is used here for the configuration files, containing all parameters needed for the different scripts and calculations. The way those files are structured makes them very easy to use and to understand.
 
-*What is Jinja and why is it used here?*
-----------------------------------------
+What is Jinja and why is it used here?
+--------------------------------------
 
 "Jinja_ is a modern and designer-friendly templating language for Python, modelled after Django’s templates. It is fast, widely used and secure with the optional sandboxed template execution environment." (quote from the official website)
 
 We use the Jinja language to create templates for the input files needed by ORCA_, Q-CHEM_ and QOCT-RA_. We also use it for the job scripts, containing all instructions for the job scheduler (SLURM_ for the CECI clusters). The Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as Gaussian_ or Molpro_, and any other job scheduler such as Torque_.
 
-*Installing YAML and Jinja2*
-----------------------------
+Installing YAML and Jinja2
+--------------------------
 
 If your Python distribution does not include YAML and Jinja2, you can install them using
 

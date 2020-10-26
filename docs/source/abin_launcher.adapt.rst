@@ -1,3 +1,6 @@
-#######################
-Adapting to other cases
-#######################
+***********************
+Usage outside of CHAINS
+***********************
+
+.. todo::
+   COMING SOON

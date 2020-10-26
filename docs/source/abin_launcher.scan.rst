@@ -1,3 +1,6 @@
-####################################
-Scanning the molecule structure file
-####################################
+**************************
+Scanning the geometry file
+**************************
+
+.. todo::
+   COMING SOON

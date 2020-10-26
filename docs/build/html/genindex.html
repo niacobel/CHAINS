@@ -90,10 +90,10 @@
 <p class="caption"><span class="caption-text">ABIN LAUNCHER</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="abin_launcher.overview.html">1. Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="abin_launcher.scan.html">2. Scanning the molecule structure file</a></li>
-<li class="toctree-l1"><a class="reference internal" href="abin_launcher.job_scale.html">3. Job scale</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.scan.html">2. Scanning the geometry file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.job_scale.html">3. Job scaling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="abin_launcher.rendering.html">4. Rendering the templates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="abin_launcher.adapt.html">5. Adapting to other cases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.adapt.html">5. Usage outside of CHAINS</a></li>
 </ul>
 <p class="caption"><span class="caption-text">CONTROL LAUNCHER</span></p>
 <ul>
@@ -175,8 +175,236 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
+ <a href="#Symbols"><strong>Symbols</strong></a>
+ | <a href="#A"><strong>A</strong></a>
  
 </div>
+<h2 id="Symbols">Symbols</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    --cluster_name &lt;cluster_name&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-cl">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --clusters &lt;clusters&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-ccf">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --config &lt;config&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-cf">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --dry_run
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-d">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --help
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-h">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --keep_cf
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-kc">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --keep_mol
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-km">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --max &lt;max&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-max">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --mol_inp &lt;mol_inp&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-m">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --out_dir &lt;out_dir&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-o">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --overwrite
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-ow">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    --program &lt;program&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-p">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    -ccf &lt;clusters&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-ccf">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -cf &lt;config&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-cf">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -cl &lt;cluster_name&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-cl">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -d
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-d">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -h
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-h">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -kc
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-kc">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -km
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-km">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -m &lt;mol_inp&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-m">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -o &lt;out_dir&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-o">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -ow
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-ow">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+      <li>
+    -p &lt;program&gt;
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-p">abin_launcher.py command line option</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    abin_launcher.py command line option
+
+      <ul>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-cl">--cluster_name &lt;cluster_name&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-ccf">--clusters &lt;clusters&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-cf">--config &lt;config&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-d">--dry_run</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-h">--help</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-kc">--keep_cf</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-km">--keep_mol</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-max">--max &lt;max&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-m">--mol_inp &lt;mol_inp&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-o">--out_dir &lt;out_dir&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-ow">--overwrite</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-p">--program &lt;program&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-ccf">-ccf &lt;clusters&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-cf">-cf &lt;config&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-cl">-cl &lt;cluster_name&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-d">-d</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-h">-h</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-kc">-kc</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-km">-km</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-m">-m &lt;mol_inp&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-o">-o &lt;out_dir&gt;</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-ow">-ow</a>
+</li>
+        <li><a href="abin_launcher.overview.html#cmdoption-abin_launcher.py-p">-p &lt;program&gt;</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
 
 
            </div>

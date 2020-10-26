@@ -20,10 +20,10 @@
    :caption: ABIN LAUNCHER
 
    Overview <abin_launcher.overview>
-   Scanning the molecule structure file <abin_launcher.scan>
-   Job scale <abin_launcher.job_scale>
+   Scanning the geometry file <abin_launcher.scan>
+   Job scaling <abin_launcher.job_scale>
    Rendering the templates <abin_launcher.rendering>
-   Adapting to other cases <abin_launcher.adapt>
+   Usage outside of CHAINS <abin_launcher.adapt>
 
 .. toctree::
    :hidden:
