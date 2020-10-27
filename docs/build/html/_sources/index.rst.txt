@@ -31,6 +31,7 @@
    :maxdepth: 2
    :caption: CONTROL LAUNCHER
 
+   Overview <control_launcher.overview>
    Tests <tests.rst>
 
 .. toctree::
@@ -39,6 +40,7 @@
    :maxdepth: 2
    :caption: RESULTS TREATMENT
 
+   Overview <results_treatment.overview>
    Tests <tests.rst>
 
 .. toctree::

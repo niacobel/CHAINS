@@ -14,12 +14,12 @@ Workflow
 Characterization Phase (Steps 1-3 and 5-6)
 ==========================================
 
-**This phase is covered by the first main script of CHAINS, named** ``ABIN LAUNCHER``.
+*This phase is covered by the first main script of CHAINS, named* ``ABIN LAUNCHER``. *Consult its* :doc:`specific documentation <abin_launcher.overview>` *for details*.
 
-``ABIN LAUNCHER`` starts by scanning the molecule structure file (the geometry file) and building the input files associated with the ab initio program we want to run. Once those files have been prepared, the corresponding job will be launched. Note that the characterization phase is split into two jobs and that ``ABIN LAUNCHER`` is executed twice. The first time, it is used to perform the geometry optimization of the molecule through the ORCA_ program, and the second time, it is used to calculate different properties of our molecule through the Q-CHEM_ program.
+``ABIN LAUNCHER`` starts by scanning the molecule structure file (the geometry file) and uses it to build the input files associated with the ab initio program we want to run. Once those files have been prepared, the corresponding job will be launched. Note that the characterization phase is split into two jobs and that ``ABIN LAUNCHER`` is executed twice. The first time, it is used to assist the geometry optimization of the molecule through the ORCA_ program. The second time, it is used to assist the calculation of different properties of our molecule through the Q-CHEM_ program.
 
 .. note::
-   ``ABIN LAUNCHER`` **is completely autonomous.** It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent calculations, and can be very easily adapted to deal with other ab initio programs. Consult ``ABIN LAUNCHER``'s specific documentation for more information.
+   ``ABIN LAUNCHER`` **is completely autonomous.** It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent calculations, and can be very easily adapted to deal with other ab initio programs. Consult ``ABIN LAUNCHER``'s :doc:`Usage outside of CHAINS <abin_launcher.adapt>` specific documentation for more information.
 
 .. note:: 
    The reason this characterization phase is split in two jobs is because the Q-CHEM_ program is locked by license on a single cluster, and we want to make the most use out of this cluster. Since the geometry optimization can be handled by another program, we have separated it from the rest in order to free some resources and gain some time.
@@ -27,14 +27,14 @@ Characterization Phase (Steps 1-3 and 5-6)
 Evaluation Phase (Steps 8-9)
 ============================
 
-**This phase is covered by the second main script of CHAINS, named** ``CONTROL LAUNCHER``.
+*This phase is covered by the second main script of CHAINS, named* ``CONTROL LAUNCHER``. *Consult its* :doc:`specific documentation <control_launcher.overview>` *for details*.
 
-``CONTROL LAUNCHER`` starts by scanning the Q-CHEM output file and use it to build an effective Hamiltonian for our molecule. Once in possession of this effective Hamiltonian, multiple jobs will be launched, in order to perform a quantum control procedure through QOCT-RA_, consisting of separately populating each dark electronic state, starting from the ground state. Each of those calculations yields a fidelity value, which reflects the efficiency of the control procedure and the controllability of the electrons in our molecule.
+``CONTROL LAUNCHER`` starts by scanning the Q-CHEM output file and use it to build an effective Hamiltonian for our molecule. Once in possession of this effective Hamiltonian, multiple jobs will be launched in order to perform a quantum control procedure through QOCT-RA_. This procedure consists of separately populating each dark electronic state, starting from the ground state. Each of those calculations yields a fidelity value, which reflects the efficiency of the control procedure and the controllability of the electrons in our molecule.
 
 Results Phase (Step 11)
 =======================
 
-**This phase is covered by the third main script of CHAINS, named** ``RESULTS TREATMENT``.
+*This phase is covered by the third main script of CHAINS, named* ``RESULTS TREATMENT``. *Consult its* :doc:`specific documentation <results_treatment.overview>` *for details*.
 
 There is no calculation involved in this phase. As its name implies, ``RESULTS TREATMENT`` is designed to treat the results from the previous steps and compile them into graphs and tables, for ease of interpretation and comparison.
 

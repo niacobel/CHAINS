@@ -61,17 +61,8 @@ If your Python distribution does not include YAML and Jinja2, you can install th
 
 .. code-block:: shell
 
-   $ python -m pip install pyyaml
-   $ python -m pip install jinja2
-
-Note that depending on your machine configuration, you might need to specify to install them only for your user account:
-
-.. code-block:: shell
-
    $ python -m pip install --user pyyaml
    $ python -m pip install --user jinja2
-
-Otherwise, you might be denied the permission to install.
 
 Acknowledgment
 ==============

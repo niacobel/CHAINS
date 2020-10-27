@@ -23,7 +23,7 @@ import yaml
 
 # Subscripts (files that end with .py and must be placed in the same folder as this script)
 
-import errors
+import abin_errors as errors
 import mol_scan
 import renderer
 import scaling_fcts
@@ -44,6 +44,7 @@ required.add_argument("-m","--mol_inp", type=str, help="Path to either a molecul
 required.add_argument('-cf', '--config', type=str, help="Path to either a YAML config file or a directory containing multiple YAML config files", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job", required=True)
 required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the clusters configuration YAML file", required=True)
+#required.add_argument('-f', '--format', type=str, help="Format of the geometry files that need to be read.", required=True)
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
@@ -60,7 +61,7 @@ optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch t
 # ===================================================================
 # ===================================================================
 
-if __name__ == "__main__":
+if __name__ == "__main__": # This line is used so that the scripts for the documentation can import the file without executing it (see https://medium.com/python-features/understanding-if-name-main-in-python-a37a3d4ab0c3 for details)
 
   # ===================================================================
   # ===================================================================
@@ -85,9 +86,9 @@ if __name__ == "__main__":
   keep_cf = args.keep_cf                   # Flag for keeping the configuration files where they are
   dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
 
-  # Other important variables that could become arguments if the need arises
+  # Format of the molecule files
 
-  mol_fmt = "xyz"                                 # Format of the molecule files we want to treat
+  mol_fmt = "xyz"                                 # If you decide to add format as a command line argument, replace "xyz" by args.format
   mol_ext = "." + mol_fmt                         # Extension of the molecule files we're looking for
 
   # Save a reference to the original standard output as it will be modified later on (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)

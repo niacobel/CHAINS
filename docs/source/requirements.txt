@@ -1,4 +1,5 @@
 ###### Requirements without Version Specifiers ######
-sphinxcontrib.autoprogram
+sphinx-argparse
+sphinx-code-include
 pyyaml
 jinja2

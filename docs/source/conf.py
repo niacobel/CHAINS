@@ -40,12 +40,17 @@ extensions = []
 extensions.append('sphinx.ext.autodoc')
 extensions.append('sphinx.ext.napoleon')
 
-
 extensions.append('sphinx.ext.todo')
 todo_include_todos=True
 
-# Documenting CLI programs (https://pythonhosted.org/sphinxcontrib-autoprogram/)
-extensions.append('sphinxcontrib.autoprogram')
+# Get argparse informations (https://github.com/alex-rudakov/sphinx-argparse)
+extensions.append('sphinxarg.ext')
+
+# View source code (https://www.sphinx-doc.org/en/master/usage/extensions/viewcode.html#module-sphinx.ext.viewcode)
+extensions.append('sphinx.ext.viewcode')
+
+# Include source code (https://sphinx-code-include.readthedocs.io/en/latest/)
+extensions.append('code_include.extension')
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
