@@ -81,7 +81,7 @@ Command line arguments
 ======================
 
 .. argparse::
-   :filename: ../abin_launcher/abin_launcher.py
+   :module: abin_launcher
    :func: parser
    :prog: abin_launcher.py
    :nodescription:
