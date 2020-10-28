@@ -6,7 +6,7 @@
 .. toctree::
    :hidden:
    :numbered:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: CHAINS
 
    Introduction <chains.introduction>
@@ -16,37 +16,38 @@
 .. toctree::
    :hidden:
    :numbered:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: ABIN LAUNCHER
 
    Overview <abin_launcher.overview>
    Scanning the geometry file <abin_launcher.scan>
    Job scaling <abin_launcher.job_scale>
    Rendering the templates <abin_launcher.rendering>
+   Other important files <abin_launcher.other>
    Usage outside of CHAINS <abin_launcher.adapt>
+   Sample run <abin_launcher.example>
+   Benchmarking option <abin_launcher.benchmark>
 
 .. toctree::
    :hidden:
    :numbered:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: CONTROL LAUNCHER
 
    Overview <control_launcher.overview>
-   Tests <tests.rst>
 
 .. toctree::
    :hidden:
    :numbered:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: RESULTS TREATMENT
 
    Overview <results_treatment.overview>
-   Tests <tests.rst>
 
 .. toctree::
    :hidden:
    :numbered:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: LINKING THE SCRIPTS
 
    Tests <tests.rst>

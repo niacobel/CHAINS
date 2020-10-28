@@ -94,21 +94,22 @@
 <li class="toctree-l1"><a class="reference internal" href="abin_launcher.scan.html">2. Scanning the geometry file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="abin_launcher.job_scale.html">3. Job scaling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="abin_launcher.rendering.html">4. Rendering the templates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="abin_launcher.adapt.html">5. Usage outside of CHAINS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.other.html">5. Other important files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.adapt.html">6. Usage outside of CHAINS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.example.html">7. Sample run</a></li>
+<li class="toctree-l1"><a class="reference internal" href="abin_launcher.benchmark.html">8. Benchmarking option</a></li>
 </ul>
 <p class="caption"><span class="caption-text">CONTROL LAUNCHER</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="control_launcher.overview.html">1. Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tests.html">2. Tests</a></li>
 </ul>
 <p class="caption"><span class="caption-text">RESULTS TREATMENT</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="results_treatment.overview.html">1. Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tests.html">2. Tests</a></li>
 </ul>
 <p class="caption"><span class="caption-text">LINKING THE SCRIPTS</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tests.html">2. Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">1. Tests</a></li>
 </ul>
 
             
@@ -214,9 +215,9 @@
 </div>
 <div class="section" id="languages-and-dependencies">
 <h2><span class="sectnum">1.3.</span> Languages and Dependencies<a class="headerlink" href="#languages-and-dependencies" title="Permalink to this headline">¶</a></h2>
-<div class="align-center figure" id="id2">
+<div class="align-center figure" id="id3">
 <img alt="Languages used in CHAINS" src="_images/logos.png" />
-<p class="caption"><span class="caption-text">The different languages used by CHAINS</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-text">The different languages used by CHAINS</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
 </div>
 <p>The main language of CHAINS is Python 3.5+ but it also uses YAML files and Jinja2 templates, as well as some Shell scripts. However, there is no need for an in-depth knowledge of anything but Python in order to customize CHAINS, as we only use the basic features of the other languages.</p>
 <p>In order to plot graphs and generate tables with the results, CHAINS also makes use of <a class="reference external" href="http://www.gnuplot.info/">Gnuplot</a> scripts and the <a class="reference external" href="https://www.latex-project.org/">LaTeX</a> language. Those are not needed to get the results though, only to process them and make them more readable. You can freely rework those scripts and files without affecting the main process.</p>
@@ -238,14 +239,24 @@ $ python -m pip install --user jinja2
 </div>
 </div>
 </div>
+<div class="section" id="what-you-kneed-to-know">
+<h2><span class="sectnum">1.4.</span> What you kneed to know<a class="headerlink" href="#what-you-kneed-to-know" title="Permalink to this headline">¶</a></h2>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>COMING SOON
+Theoretical background
+Python knowledge
+Clusters and job scheduler</p>
+</div>
+</div>
 <div class="section" id="acknowledgment">
-<h2><span class="sectnum">1.4.</span> Acknowledgment<a class="headerlink" href="#acknowledgment" title="Permalink to this headline">¶</a></h2>
+<h2><span class="sectnum">1.5.</span> Acknowledgment<a class="headerlink" href="#acknowledgment" title="Permalink to this headline">¶</a></h2>
 <p>CHAINS makes use of a YAML version of Mendeleev’s periodic table procured by <a class="reference external" href="https://github.com/AlexGustafsson/molecular-data">AlexGustafsson’s molecular-data Github repository</a>.</p>
 <p>The main developer of CHAINS, Nicolas Iacobellis, would also like to express his deepest gratitude and give a shout-out to his friend, <a class="reference external" href="https://www.linkedin.com/in/bdheure/">Benjamin D’Heure</a>, for its tremendous help and essential expertise during the code development. Without him, this project might not have existed, or would have at least taken a different form.</p>
 </div>
 <div class="section" id="license">
-<h2><span class="sectnum">1.5.</span> License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
-<div class="admonition-todo admonition" id="id1">
+<h2><span class="sectnum">1.6.</span> License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<div class="admonition-todo admonition" id="id2">
 <p class="admonition-title">Todo</p>
 <p>COMING SOON (Probably just GPLv3)</p>
 </div>

@@ -64,6 +64,16 @@ If your Python distribution does not include YAML and Jinja2, you can install th
    $ python -m pip install --user pyyaml
    $ python -m pip install --user jinja2
 
+What you kneed to know
+======================
+
+.. todo::
+   COMING SOON
+   Theoretical background
+   Python knowledge
+   Clusters and job scheduler
+
+
 Acknowledgment
 ==============
 
