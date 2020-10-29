@@ -44,8 +44,22 @@ Obviously, the key part of this process lies in the quality of the job scales de
 
 .. |Si36Ge11H60| replace:: Si\ :sub:`36`\ Ge\ :sub:`11`\ H\ :sub:`60`\ 
 
+.. _scaling_fcts:
+
 Scaling functions
 =================
+
+.. _scaling_fcts_definition:
+
+General definition
+------------------
+
+All the scaling functions must be defined in the ``scaling_fcts.py`` file and need to obey some restrictions in order to be callable by ``ABIN LAUNCHER``:
+
+- They only take two dictionaries as arguments: the content of the ``mendeleev.yml`` file and the ``file_data`` variable, as built by the :doc:`scanning function <abin_launcher.scan>`.
+- They must return an integer or a float, that will act as the scale index.
+  
+If a problem arises when computing the scale index, an ``AbinError`` exception should be raised with a proper error message (see ``abin_errors.py`` for more details).
 
 Changing the scaling function
 -----------------------------
@@ -63,22 +77,6 @@ If you want to change the scaling function that will be called via ``ABIN LAUNCH
 
 where ``mycluster`` corresponds to the name of your machine (given as a :ref:`command line argument <abin_arguments>`) while ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_). This way, a different scaling function can be assigned to each program.
 
-.. _scaling_fcts_definition:
-
-General definition
-------------------
-
-All the scaling functions must be defined in the ``scaling_fcts.py`` file and need to obey some restrictions in order to be callable by ``ABIN LAUNCHER``:
-
-- They only take two dictionaries as arguments: the content of the ``mendeleev.yml`` file and the ``file_data`` variable, as built by the :doc:`scanning function <abin_launcher.scan>`.
-- They must return an integer or a float, that will act as the scale index.
-  
-If a problem arises when computing the scale index, an ``AbinError`` exception should be raised with a proper error message (see ``abin_errors.py`` for more details).
-
-.. warning::
-
-   You should not alter the ``mendeleev.yml`` file, as it might be used by those functions.
-
 Total number of electrons
 -------------------------
 
@@ -92,6 +90,8 @@ Total number of atoms
 .. autofunction:: scaling_fcts.total_nb_atoms
 
 This function simply sums up all the values of the keys in the ``chemical_formula`` key in ``file_data``. It does not make use of ``mendeleev.yml`` but it is still passed as an argument to satisfy the calling restrictions of the scaling functions (see :ref:`scaling_fcts_definition`).
+
+.. _job_scales:
 
 Job scales
 ==========
@@ -183,7 +183,7 @@ where
 - ``myclusterA`` and ``myclusterB`` are the names of your machines (given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each cluster.
 - ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_). This way, different job scales can be assigned to each program. 
 - ``partition_name`` contains the name of the cluster partition on which the job will be running. If you don't need it, you can just set the value to "default".
-- ``delay_command`` is an optional value that lets you delay the submission of the jobs. For instance, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` flag of the ``sbatch`` command, see here_.
+- ``delay_command`` is an optional value that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` flag of the ``sbatch`` command, see here_.
 
 You can have as many job scales as you want, and they don't need to be defined in ascending order of scale index limits. ``ABIN LAUNCHER`` will automatically sort them before starting to scan the geometry files.
 

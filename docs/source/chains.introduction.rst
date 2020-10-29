@@ -45,7 +45,7 @@ In order to plot graphs and generate tables with the results, CHAINS also makes 
 What is YAML and why is it used here?
 -------------------------------------
 
-YAML_ is a "human friendly data serialization standard for all programming languages". It is used here for the configuration files, containing all parameters needed for the different scripts and calculations. The way those files are structured makes them very easy to use and to understand.
+YAML_ is a "human friendly data serialization standard for all programming languages". It is used here for the configuration files, containing all the parameters needed for the different scripts and calculations. The way those files are structured makes them very easy to use and to understand.
 
 What is Jinja and why is it used here?
 --------------------------------------

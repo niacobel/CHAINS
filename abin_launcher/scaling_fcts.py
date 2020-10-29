@@ -4,7 +4,7 @@
 ##                    This script contains the possible definition functions for the scale_index used in abin-launcher.py                     ##
 ################################################################################################################################################
 
-import errors
+import abin_errors as errors
 
 #! ATTENTION: All the functions defined below need to:
 #! - receive two dictionaries (mendeleev and file_data) as arguments

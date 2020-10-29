@@ -5,7 +5,7 @@
 ################################################################################################################################################
 
 import re
-import errors
+import abin_errors as errors
 
 #! ATTENTION: All the functions defined below need to:
 #! - be called fmt_scan, where fmt is the name of the format of the molecule file as it will be given in the command line (stored in the mol_fmt variable in abin_launcher.py) 
