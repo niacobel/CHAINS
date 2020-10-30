@@ -69,33 +69,11 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   # ===================================================================
   # ===================================================================
 
-  # Read command line arguments
-
-  args = parser.parse_args()
-
-  prog = args.program                      # Name of the program for which files need to be created
-  mol_inp = args.mol_inp                   # Molecule file or folder containing the molecule files
-  config_inp = args.config                 # YAML configuration file or folder containing the YAML configuration files
-  out_dir = args.out_dir                   # Folder where all jobs subfolders will be created
-  cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
-
-  clusters_file = args.clusters            # YAML file containing all informations about the clusters
-  overwrite = args.overwrite               # Flag for overwriting the files
-  max = args.max                           # Maximum number of molecule or configuration files that will be treated
-  keep_mol = args.keep_mol                 # Flag for keeping the molecule files where they are
-  keep_cf = args.keep_cf                   # Flag for keeping the configuration files where they are
-  dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
-
-  # Format of the molecule files
-
-  mol_fmt = "xyz"                                 # If you decide to add format as a command line argument, replace "xyz" by args.format
-  mol_ext = "." + mol_fmt                         # Extension of the molecule files we're looking for
-
   # Save a reference to the original standard output as it will be modified later on (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
 
   original_stdout = sys.stdout
 
-  # Get the size of the terminal in order to have a prettier output, if you need something more robust, go check http://granitosaurus.rocks/getting-terminal-size.html
+  # Get the size of the terminal in order to have a prettier console output, if you need something more robust, go check http://granitosaurus.rocks/getting-terminal-size.html
 
   columns, rows = shutil.get_terminal_size()
 
@@ -108,11 +86,41 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   print("".center(columns,"*"))
 
   # =========================================================
+  # Read command line arguments
+  # =========================================================
+
+  args = parser.parse_args()
+
+  # Required arguments
+
+  prog = args.program                      # Name of the program for which files need to be created
+  mol_inp = args.mol_inp                   # Geometry file or directory containing the geometry files
+  config_inp = args.config                 # YAML configuration file or directory containing the YAML configuration files
+  out_dir = args.out_dir                   # Directory where all jobs subdirectories will be created
+  cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
+
+  # Optional arguments
+
+  clusters_file = args.clusters            # YAML file containing all informations about the clusters
+  overwrite = args.overwrite               # Flag for overwriting the files
+  max = args.max                           # Maximum number of molecule or configuration files that will be treated
+  keep_mol = args.keep_mol                 # Flag for keeping the molecule files where they are
+  keep_cf = args.keep_cf                   # Flag for keeping the configuration files where they are
+  dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
+
+  # Format of the molecule files
+
+  mol_fmt = "xyz"                          # If you decide to add format as a command line argument, replace "xyz" by args.format
+  mol_ext = "." + mol_fmt                  # Extension of the molecule files we're looking for
+
+  # =========================================================
   # Define codes directory
   # =========================================================
 
-  # Codes directory (determined by getting the path to the directory where this script is)
+  # Determined by getting the path to the directory of this script
+
   code_dir = os.path.dirname(os.path.realpath(os.path.abspath(getsourcefile(lambda:0))))
+
   print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 
   # =========================================================
@@ -127,7 +135,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
     # If no value has been provided through the command line, take the clusters.yml file in the same directory as this script 
     clusters_file = errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"Default clusters configuration YAML file","file")
 
-  # Loading the clusters_file for the informations about the clusters
+  # Loading the clusters_file for the information about the clusters
 
   print ("{:<40} {:<100}".format('\nLoading the clusters file',clusters_file + " ..."), end="")
   with open(clusters_file, 'r') as f_clusters:
@@ -138,7 +146,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   # Load Mendeleev's periodic table
   # =========================================================
 
-  # Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used for the scaling functions.
+  # Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used by the scaling process.
 
   mendeleev_file = errors.check_abspath(os.path.join(code_dir,"mendeleev.yml"),"Mendeleev periodic table YAML file","file")
   print ("{:<141}".format("\nLoading AlexGustafsson's Mendeleev Table ..."), end="")
@@ -151,7 +159,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   # =========================================================
 
   if cluster_name not in clusters_cfg:
-    raise errors.AbinError ("ERROR: There is no information about the %s cluster in the %s file. Please add relevant information or change the cluster before proceeding further." % (cluster_name,clusters_file))
+    raise errors.AbinError ("ERROR: There is no information about the %s cluster in the %s file. Please add relevant information or change the cluster before proceeding further." % (cluster_name.upper(),clusters_file))
 
   print("\nThis script is running on the %s cluster" % cluster_name.upper())
 

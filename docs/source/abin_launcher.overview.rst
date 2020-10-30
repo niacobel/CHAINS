@@ -41,8 +41,8 @@ As for what each file does, everything will be explained in more details in the 
 - ``mol_scan.py`` is the library of functions that define how to scan the geometry files, i.e. how to read and interpret them.
 - ``scaling_fcts`` is the library of functions that define how to determine the job size, by calculating what we defined as the scale index.
 - ``renderer.py`` is the library of functions that define how to render the Jinja templates, i.e. how to create the input files and the job instructions file.
-- ``abin_errors.py`` contains all the classes and functions defining how to handle errors.
-- ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, notably the job scales and their associated requirements.
+- ``abin_errors.py`` contains all the classes and functions defining :ref:`how to handle errors <abin_errors>`.
+- ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, called the :ref:`clusters configuration file <clusters_file>`.
 - ``mendeleev.yml`` is a YAML version of Mendeleev's periodic table procured by `AlexGustafsson's molecular-data Github repository`_
 
 - Finally, ``Templates`` is the directory containing all the Jinja templates that will be used by ``ABIN LAUNCHER``:
@@ -64,25 +64,77 @@ Command line arguments
 How does it work?
 =================
 
-``ABIN LAUNCHER``'s procedure follows three main steps: **scanning**, **scaling** and **rendering**.
+The executable part of ``ABIN LAUNCHER`` is the main script, ``abin_launcher.py``. This is the one that must be called in the command line (see the :ref:`precedent subsection <abin_arguments>`). The overall procedure follows three main steps: **scanning**, **scaling** and **rendering**, followed by the small **submitting** step. Each of the three main steps will be more thoroughly explained in a dedicated section of this documentation. As such, this subsection will only focus on the global procedure.
 
-Scanning
---------
+Input files
+-----------
 
-``ABIN LAUNCHER`` begins by scanning the geometry file, looking for the chemical formula and the atomic coordinates of the molecule. For more details on how this scan is performed, consult the :doc:`Scanning the geometry file <abin_launcher.scan>` specific documentation.
+There are two main input files for ``ABIN LAUNCHER``:
+
+- The **geometry files**, given by the ``-m / --mol_inp`` subcommand, are the files presenting the nature and the structure of your molecules. They contain the type and number of the constituting atoms and their respective coordinates.
+- The **configuration files**, given by the ``-cf / --config`` subcommand, are the YAML files containing the parameters specific to your calculations and your programs (job type, basis set, etc.)
+
+In both cases, you can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple input files, ``ABIN LAUNCHER`` will create the input files and launch the jobs corresponding to each geometry-configuration combination. For example, if you have 5 geometry files and 3 configuration files, you will end up with 15 launched jobs on your cluster.
+
+Note that by default, every input file that has been successfully "treated" by ``ABIN LAUNCHER`` will be archived in a ``Launched`` directory created in the same directory as the input files. This has been designed this way so that you can repeatedly use the same directory as "source" for those input files without repeating jobs. If you want to turn off this behavior, you can use the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional subcommands to keep the geometry files and/or the configuration files, respectively.
+
+Other arguments
+---------------
+
+There are three other required arguments for executing ``ABIN LAUNCHER``:
+
+- The **name of the program** you want to run, given by the ``-p / --program`` subcommand. This one must be the same as the one given in the clusters configuration file, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+- The **name of the cluster** you are running on, given by the ``-cl / --cluster_name`` subcommand. This one must also be the same as the one given in the clusters configuration file, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+- The **"output directory"** where each job subdirectory will be created, given by the ``-o / --out_dir`` subcommand.. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
+
+There are also a number of optional arguments that can be used to adapt to each specific situation. Their description in the :ref:`command line arguments <abin_arguments>` subsection should be self-explanatory.
+
+First step: Scanning
+--------------------
+
+``ABIN LAUNCHER`` begins by scanning the geometry file, looking for the chemical formula and the atomic coordinates of the molecule. 
+
+For more details on how this scan is performed, consult the :doc:`Scanning the geometry file <abin_launcher.scan>` specific documentation.
 
 .. note::
-   At this time, only the XYZ format is supported for geometry files. However, new formats can be added in the future if the need arises.
+   At this time, only the XYZ format is supported for geometry files. However, new formats can be added if the need arises.
 
-Scaling
--------
+Second step: Scaling
+--------------------
 
-Based on the information received from the geometry file, ``ABIN LAUNCHER`` attributes a value, called the scale index, to the molecule. This value is then used to evaluate the job scale for that molecule and specify the calculation requirements accordingly (walltime, number of CPUs, memory, etc.). For more details on how this scaling process is performed, consult the :doc:`Job scaling <abin_launcher.job_scale>` specific documentation.
+Based on the information received from the geometry file, ``ABIN LAUNCHER`` attributes a value, called the scale index, to the molecule. This value is then used to evaluate the job scale for that molecule and specify the calculation requirements accordingly (walltime, number of CPUs, memory, etc.). 
 
-Rendering
----------
+For more details on how this scaling process is performed, consult the :doc:`Job scaling <abin_launcher.job_scale>` specific documentation.
 
-Finally, based on user-defined Jinja templates, ``ABIN LAUNCHER`` creates the input files and the job instructions file associated with our calculation, then submits the calculation to the job scheduler. The content of those input files is based on the information from the geometry file and the configuration file (YAML file containing all the parameters for the ab initio calculation). For more details on how this whole rendering process is performed, consult the :doc:`Rendering the templates <abin_launcher.rendering>` specific documentation.
+Third step: Rendering
+---------------------
+
+Finally, based on user-defined Jinja templates, ``ABIN LAUNCHER`` creates the input files and the job instructions file associated with our calculation. The content of those input files is based on the information from the geometry file and the configuration file. 
+
+For more details on how this whole rendering process is performed, consult the :doc:`Rendering the templates <abin_launcher.rendering>` specific documentation.
+
+The end step: Submitting
+------------------------
+
+Now that everything has been prepared for the job, ``ABIN LAUNCHER`` submits it to the job scheduler. The exact command that will be executed is:
+
+.. code-block::
+
+    <subcommand> <delay_command> <job instructions file>
+
+where
+
+- ``<subcommand>`` is the command which submits jobs to your job scheduler. In SLURM's case, it is the ``sbatch`` command. This must be indicated in the :ref:`clusters configuration file <clusters_file>`: 
+
+.. code-block:: yaml
+
+   mycluster:
+     subcommand: <subcommand>
+
+- ``<delay_command>`` is an optional command that can delay the submission of this particular job, which can prove useful if you want to prioritize certain job sizes, consult the :doc:`Job scaling <abin_launcher.job_scale>` specific documentation for details.
+- ``<job instructions file>`` is the name of the file that will be created. It contains the commands for the job scheduler to run the calculation on the cluster.
+ 
+Once the job has been submitted, ``ABIN LAUNCHER`` will proceed to the next configuration file with the same geometry. Once all the configuration files have been treated, it will proceed to the next geometry and treat again all the configuration files for that geometry. At the end of the execution, barring any problems, a job will have been launched for each geometry-configuration combination.
 
 .. Hyperlink targets
 
