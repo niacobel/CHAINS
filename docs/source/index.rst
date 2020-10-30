@@ -24,7 +24,6 @@
    Job scaling <abin_launcher.job_scale>
    Rendering the templates <abin_launcher.rendering>
    Other important files <abin_launcher.other>
-   Usage outside of CHAINS <abin_launcher.adapt>
    Sample run <abin_launcher.example>
    Benchmarking option <abin_launcher.benchmark>
 
@@ -50,6 +49,7 @@
    :maxdepth: 1
    :caption: LINKING THE SCRIPTS
 
+   Integration of ABIN LAUNCHER <chains.abin_integration>
    Tests <tests.rst>
 
 .. include the content of the general overview file, and make it look similar.

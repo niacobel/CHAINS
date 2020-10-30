@@ -12,7 +12,7 @@ What is ABIN LAUNCHER?
 
 In both cases, after having created the files, ``ABIN LAUNCHER`` then launches the corresponding job on the cluster.
 
-Note however that ``ABIN LAUNCHER`` is **completely autonomous** and does not depend on CHAINS. It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent calculations, and can be very easily adapted to deal with other ab initio programs. For more information about how to adapt ``ABIN LAUNCHER`` to outside cases, consult the :doc:`Usage outside of CHAINS <abin_launcher.adapt>` specific documentation.
+However, ``ABIN LAUNCHER`` is **completely autonomous** and does not depend on CHAINS. It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent calculations, and can be very easily adapted to deal with other ab initio programs. As such, this specific part of the documentation only explains how ``ABIN LAUNCHER`` works in and of itself, and its integration into CHAINS is explained :doc:`elsewhere <chains.abin_integration>`.
 
 Directory structure
 ===================
@@ -112,6 +112,8 @@ Third step: Rendering
 Finally, based on user-defined Jinja templates, ``ABIN LAUNCHER`` creates the input files and the job instructions file associated with our calculation. The content of those input files is based on the information from the geometry file and the configuration file. 
 
 For more details on how this whole rendering process is performed, consult the :doc:`Rendering the templates <abin_launcher.rendering>` specific documentation.
+
+.. _submitting_step:
 
 The end step: Submitting
 ------------------------

@@ -19,7 +19,7 @@ Characterization Phase (Steps 1-3 and 5-6)
 ``ABIN LAUNCHER`` starts by scanning the molecule structure file (the geometry file) and uses it to build the input files associated with the ab initio program we want to run. Once those files have been prepared, the corresponding job will be launched. Note that the characterization phase is split into two jobs and that ``ABIN LAUNCHER`` is executed twice. The first time, it is used to assist the geometry optimization of the molecule through the ORCA_ program. The second time, it is used to assist the calculation of different properties of our molecule through the Q-CHEM_ program.
 
 .. note::
-   ``ABIN LAUNCHER`` **is completely autonomous.** It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent calculations, and can be very easily adapted to deal with other ab initio programs. Consult ``ABIN LAUNCHER``'s :doc:`Usage outside of CHAINS <abin_launcher.adapt>` specific documentation for more information.
+   ``ABIN LAUNCHER`` **is completely autonomous.** It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent calculations, and can be very easily adapted to deal with other ab initio programs.
 
 .. note:: 
    The reason this characterization phase is split in two jobs is because the Q-CHEM_ program is locked by license on a single cluster, and we want to make the most use out of this cluster. Since the geometry optimization can be handled by another program, we have separated it from the rest in order to free some resources and gain some time.

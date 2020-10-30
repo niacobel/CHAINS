@@ -6,6 +6,7 @@
 
 import os
 import jinja2
+import abin_errors as errors
 
 def jinja_render(path_tpl_dir, tpl, render_vars):
     """Renders a file based on its jinja template
