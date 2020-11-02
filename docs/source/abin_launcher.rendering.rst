@@ -189,7 +189,7 @@ We can then define the configuration file content as:
    user-email: your@email.com
    mail-type: FAIL
 
-For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are dependent on the cluster, it makes more sense to define them in the YAML clusters configuration file:
+For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are dependent on the cluster, it makes more sense to define them in the :ref:`clusters configuration file <clusters_file>`:
 
 .. code-block:: yaml
 
@@ -206,6 +206,8 @@ For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are depend
          command: another-command
 
 Note that for intuitivity purposes, the name of the YAML keys is close to identical to the name of the Jinja variables (``method`` for ``{{ method }}``, ``basis-set`` for ``{{ basis_set }}``, etc.), but nothing prevents you from doing things differently.
+
+.. _rendering_fct:
 
 Rendering functions
 ===================
@@ -226,11 +228,11 @@ General definition
 
 All the rendering functions must be defined in the ``renderer.py`` file and need to obey some restrictions in order to be callable by ``ABIN LAUNCHER``:
 
-- They need to be called *prog_render*, where *prog* is the name of the program as it appears in the YAML clusters configuration file and as it was given :ref:`in the command line <abin_arguments>`. 
+- They need to be called *prog_render*, where *prog* is the name of the program as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. 
 - They take six dictionaries as arguments: ``mendeleev``, ``clusters_cfg``, ``config``, ``file_data``, ``job_specs`` and ``misc`` (see the next section for details)
 - They must return a dictionary where each key is the name of the file and each value the rendered content of that file, e.g. {name_of_input_file:content_of_input_file ; name_of_job_file:content_of_job_file}
 
-If a problem arises when rendering the templates, an ``AbinError`` exception should be raised with a proper error message (see ``abin_errors.py`` for more details).
+If a problem arises when rendering the templates, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
 
 In essence, the rendering functions have a pretty simple structure: their task is to define the name and location of each Jinja template and define the needed content for that template (stored in ``render_vars``). Some additional steps might be required depending on each specific case though.
 
@@ -240,13 +242,13 @@ The six arguments
 As said in the previous section, the rendering functions take six dictionaries as arguments. Since those functions might want various information depending on each specific case, we tried to include as many pertinent details that you might want to refer to during your rendering process. Thus, the six dictionaries are defined as follows:
 
 - ``mendeleev`` is the content of the ``mendeleev.yml`` file
-- ``clusters_cfg`` is the content of the YAML clusters configuration file
+- ``clusters_cfg`` is the content of the :ref:`clusters configuration file <clusters_file>`
 - ``config`` is the content of the YAML configuration file
 - ``file_data`` is the variable built by the :doc:`scanning function <abin_launcher.scan>`.
 
 - ``job_specs`` contains the information about the resources requirements defined by the :doc:`job scaling <abin_launcher.job_scale>` process as well as other details about the job:
 
-   - ``prog``, the name of the program as it appears in the YAML clusters configuration file and as it was given :ref:`in the command line <abin_arguments>`. You can either use this value or explicitly state it in the code since you already know it.
+   - ``prog``, the name of the program as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. You can either use this value or explicitly state it in the code since you already know it.
    - ``scaling_fct``, the name of the chosen :ref:`scaling function <scaling_fcts>`
    - ``scale_index``, the computed value of the scale_index
    - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`

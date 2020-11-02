@@ -4,7 +4,7 @@
 ##                    This script contains the possible definition functions for the scale_index used in abin-launcher.py                     ##
 ################################################################################################################################################
 
-import abin_errors as errors
+import abin_errors
 
 #! ATTENTION: All the functions defined below need to:
 #! - receive two dictionaries (mendeleev and file_data) as arguments
@@ -67,7 +67,7 @@ def total_nb_elec(mendeleev:dict,file_data:dict):
             nb_elec = element['number']
         
         if nb_elec == 0:
-          raise errors.AbinError ("ERROR: There is no atomic number defined for %s in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % symbol)
+          raise abin_errors.AbinError ("ERROR: There is no atomic number defined for %s in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % symbol)
 
         return nb_elec
 

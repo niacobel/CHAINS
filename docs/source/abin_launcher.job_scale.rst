@@ -59,12 +59,12 @@ All the scaling functions must be defined in the ``scaling_fcts.py`` file and ne
 - They only take two dictionaries as arguments: the content of the ``mendeleev.yml`` file and the ``file_data`` variable, as built by the :doc:`scanning function <abin_launcher.scan>`.
 - They must return an integer or a float, that will act as the scale index.
   
-If a problem arises when computing the scale index, an ``AbinError`` exception should be raised with a proper error message (see ``abin_errors.py`` for more details).
+If a problem arises when computing the scale index, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
 
 Changing the scaling function
 -----------------------------
 
-If you want to change the scaling function that will be called via ``ABIN LAUNCHER``, you need to change the value of the ``scaling_function`` key in your YAML clusters configuration file (named ``clusters.yml`` by default).
+If you want to change the scaling function that will be called via ``ABIN LAUNCHER``, you need to change the value of the ``scaling_function`` key in the :ref:`clusters configuration file <clusters_file>`.
 
 .. code-block:: yaml
 
@@ -96,7 +96,7 @@ This function simply sums up all the values of the keys in the ``chemical_formul
 Job scales
 ==========
 
-The job scales must be defined as follows in the ``job_scales`` key in your YAML clusters configuration file (named ``clusters.yml`` by default):
+The job scales must be defined as follows in the ``job_scales`` key in the :ref:`clusters configuration file <clusters_file>`:
 
 .. code-block:: yaml
 

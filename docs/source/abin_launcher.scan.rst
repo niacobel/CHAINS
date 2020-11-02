@@ -95,7 +95,7 @@ All the scanning functions must be defined in the ``mol_scan.py`` file and need 
 - They only take one argument: a list containing the lines of the geometry file (``mol_content``).
 - They must return a dictionary (``file_data``), following the pattern :code:`{ 'chemical_formula' : { }, 'atomic_coordinates' : [ ] }` (you can add additional keys if you want).
   
-If a problem arises when scanning the molecule file, an ``AbinError`` exception should be raised with a proper error message (see ``abin_errors.py`` for more details).
+If a problem arises when scanning the molecule file, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
 
 .. Hyperlink targets
 

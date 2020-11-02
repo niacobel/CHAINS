@@ -30,10 +30,10 @@ The ``ABIN LAUNCHER`` directory has and must have the following structure:
       ├── clusters.yml
       ├── mendeleev.yml
       └── Templates/
-          ├── orca_job.sh.jinja
-          ├── orca.inp.jinja
-          ├── qchem_job.sh.jinja
-          └── qchem.in.jinja
+            ├── orca_job.sh.jinja
+            ├── orca.inp.jinja
+            ├── qchem_job.sh.jinja
+            └── qchem.in.jinja
 
 As for what each file does, everything will be explained in more details in the other sections of this documentation, but here is a short summary:
 
@@ -45,10 +45,14 @@ As for what each file does, everything will be explained in more details in the 
 - ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, called the :ref:`clusters configuration file <clusters_file>`.
 - ``mendeleev.yml`` is a YAML version of Mendeleev's periodic table procured by `AlexGustafsson's molecular-data Github repository`_
 
-- Finally, ``Templates`` is the directory containing all the Jinja templates that will be used by ``ABIN LAUNCHER``:
+- Finally, ``Templates`` is the directory containing all the Jinja templates that will be used by ``ABIN LAUNCHER``. For CHAINS, those templates are the following:
 
     - ``orca.inp.jinja`` and ``qchem.in.jinja`` are the Jinja templates corresponding to the input file for ORCA and Q-CHEM, respectively.
     - ``orca_job.sh.jinja`` and ``qchem_job.sh.jinja`` are the Jinja templates corresponding to the job instructions file for ORCA and Q-CHEM, respectively. They contain all the commands that will be executed through the job scheduler to perform the calculation.
+
+.. note::
+
+   There are two supplementary files: ``benchmark.py`` and, in the ``Templates`` directory, ``benchmark.sh.jinja``. Those files are not part of ``ABIN LAUNCHER`` itself but introduce a :doc:`benchmarking option <abin_launcher.benchmark>`.
 
 .. _abin_arguments:
 
@@ -72,7 +76,7 @@ Input files
 There are two main input files for ``ABIN LAUNCHER``:
 
 - The **geometry files**, given by the ``-m / --mol_inp`` subcommand, are the files presenting the nature and the structure of your molecules. They contain the type and number of the constituting atoms and their respective coordinates.
-- The **configuration files**, given by the ``-cf / --config`` subcommand, are the YAML files containing the parameters specific to your calculations and your programs (job type, basis set, etc.)
+- The **configuration files**, given by the ``-cf / --config`` subcommand, are the YAML files containing the parameters specific to your calculations and your programs (job type, basis set, etc.). Those files must have the .yml or .yaml extension.
 
 In both cases, you can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple input files, ``ABIN LAUNCHER`` will create the input files and launch the jobs corresponding to each geometry-configuration combination. For example, if you have 5 geometry files and 3 configuration files, you will end up with 15 launched jobs on your cluster.
 
@@ -83,8 +87,8 @@ Other arguments
 
 There are three other required arguments for executing ``ABIN LAUNCHER``:
 
-- The **name of the program** you want to run, given by the ``-p / --program`` subcommand. This one must be the same as the one given in the clusters configuration file, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
-- The **name of the cluster** you are running on, given by the ``-cl / --cluster_name`` subcommand. This one must also be the same as the one given in the clusters configuration file, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+- The **name of the program** you want to run, given by the ``-p / --program`` subcommand. This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+- The **name of the cluster** you are running on, given by the ``-cl / --cluster_name`` subcommand. This one must also be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
 - The **"output directory"** where each job subdirectory will be created, given by the ``-o / --out_dir`` subcommand.. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
 
 There are also a number of optional arguments that can be used to adapt to each specific situation. Their description in the :ref:`command line arguments <abin_arguments>` subsection should be self-explanatory.
@@ -134,9 +138,49 @@ where
      subcommand: <subcommand>
 
 - ``<delay_command>`` is an optional command that can delay the submission of this particular job, which can prove useful if you want to prioritize certain job sizes, consult the :doc:`Job scaling <abin_launcher.job_scale>` specific documentation for details.
-- ``<job instructions file>`` is the name of the file that will be created. It contains the commands for the job scheduler to run the calculation on the cluster.
+- ``<job instructions file>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.
  
 Once the job has been submitted, ``ABIN LAUNCHER`` will proceed to the next configuration file with the same geometry. Once all the configuration files have been treated, it will proceed to the next geometry and treat again all the configuration files for that geometry. At the end of the execution, barring any problems, a job will have been launched for each geometry-configuration combination.
+
+Output directory structure
+--------------------------
+
+If we have for example 2 geometry files and 2 configuration files, once the execution of ``ABIN LAUNCHER`` has ended, the structure of the output directory (given as the ``-o / --out_dir`` command line argument) might look like:
+
+.. code-block::
+
+    out_dir/ 
+      └── geometry1_config1/
+            ├── config1.yml
+            ├── geometry1.xyz
+            ├── geometry1_config1.log
+            ├── job_instructions.sh
+            └── input_file
+      └── geometry1_config2/
+            ├── config2.yml
+            ├── geometry1.xyz
+            ├── geometry1_config2.log
+            ├── job_instructions.sh
+            └── input_file
+      └── geometry2_config1/
+            ├── config1.yml
+            ├── geometry2.xyz
+            ├── geometry2_config1.log
+            ├── job_instructions.sh
+            └── input_file
+      └── geometry2_config2/
+            ├── config2.yml
+            ├── geometry2.xyz
+            ├── geometry2_config2.log
+            ├── job_instructions.sh
+            └── input_file
+
+where 
+
+- ``geometryX_configX`` is the job subdirectory created by ``ABIN LAUNCHER``, and from which the job will be submitted to the job scheduler.
+- ``geometryX.xyz`` and ``configX.yml`` are copies of the geometry file and the configuration file, respectively.
+- ``job_instructions.sh`` and ``input_file`` are the files created by the :doc:`rendering process <abin_launcher.rendering>`.
+- ``geometryX_configX.log`` is an output file containing the details of the treatment of this geometry-configuration combination by ``ABIN LAUNCHER`` (the computed scale index, the used job scale, etc.)
 
 .. Hyperlink targets
 

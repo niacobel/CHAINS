@@ -173,8 +173,44 @@ This is the bare minimum required by ``ABIN LAUNCHER``, but you can add as many 
 
 .. _abin_errors:
 
-Error handling
-==============
+Errors handling
+===============
 
-.. todo::
-   COMING SOON
+When adding a :ref:`rendering function <rendering_fct>` or another custom function to ``ABIN LAUNCHER``, having a way to handle errors is definitely useful. In ``ABIN LAUNCHER``, this is managed by the ``abin_errors.py`` file. It is somewhat basic but should be enough to cover your needs.
+
+Custom exception
+----------------
+
+A custom exception class has been created to handle errors specific to ``ABIN LAUNCHER``, in the ``abin_errors.py`` file:
+
+.. autoclass:: abin_errors.AbinError 
+
+Feel free to call it when you want to prevent predictable errors from happening (missing file, incorrect value, etc.) by simply using
+
+.. code-block:: python
+
+   raise abin_errors.AbinError (<message>)
+
+where ``<message>`` is a proper error message describing the error. Those raised exceptions wil be handled ``ABIN LAUNCHER``, which will then either abort the execution or skip the incriminated geometry or configuration file, depending on where the error occurred.
+
+Checking the existence of files and directories
+-----------------------------------------------
+
+In order to easily check if specific files or directories exist, a function has been defined in the ``abin_errors.py`` file:
+
+.. autofunction:: abin_errors.check_abspath
+
+Let's say we want to check if our periodic table file is still there, we can use the code:
+
+.. code-block:: python
+
+  mendeleev_file = abin_errors.check_abspath(os.path.join(code_dir,"mendeleev.yml"),"Mendeleev periodic table YAML file","file")
+
+This line of code will check if there is a file named ``mendeleev.yml`` in ``ABIN LAUNCHER``'s directory (``code_dir``) and if it is indeed a file (and not a directory for example). If there is, it will return the absolute path towards that file (useful for referencing that file later in the script no matter where the current directory is). Otherwise, it will raise an exception and specify the context as "Mendeleev periodic table YAML file" for easy tracking, which might result in the following error message:
+
+.. code-block:: text
+
+   Something went wrong when checking the path  ~/CHAINS/abin_launcher/mendeleev.yml
+   Context:  Mendeleev periodic table YAML file
+   ERROR: ~/CHAINS/abin_launcher/mendeleev.yml does not seem to exist.
+

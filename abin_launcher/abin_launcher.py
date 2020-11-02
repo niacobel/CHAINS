@@ -23,7 +23,7 @@ import yaml
 
 # Subscripts (files that end with .py and must be placed in the same folder as this script)
 
-import abin_errors as errors
+import abin_errors
 import mol_scan
 import renderer
 import scaling_fcts
@@ -130,10 +130,10 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   # Check if the file exists
 
   if clusters_file: 
-    clusters_file = errors.check_abspath(clusters_file,"Command line argument -cl / --clusters","file")
+    clusters_file = abin_errors.check_abspath(clusters_file,"Command line argument -cl / --clusters","file")
   else:
     # If no value has been provided through the command line, take the clusters.yml file in the same directory as this script 
-    clusters_file = errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"Default clusters configuration YAML file","file")
+    clusters_file = abin_errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"Default clusters configuration YAML file","file")
 
   # Loading the clusters_file for the information about the clusters
 
@@ -148,7 +148,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
 
   # Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used by the scaling process.
 
-  mendeleev_file = errors.check_abspath(os.path.join(code_dir,"mendeleev.yml"),"Mendeleev periodic table YAML file","file")
+  mendeleev_file = abin_errors.check_abspath(os.path.join(code_dir,"mendeleev.yml"),"Mendeleev periodic table YAML file","file")
   print ("{:<141}".format("\nLoading AlexGustafsson's Mendeleev Table ..."), end="")
   with open(mendeleev_file, 'r') as periodic_table:
     mendeleev = yaml.load(periodic_table, Loader=yaml.FullLoader)
@@ -159,7 +159,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   # =========================================================
 
   if cluster_name not in clusters_cfg:
-    raise errors.AbinError ("ERROR: There is no information about the %s cluster in the %s file. Please add relevant information or change the cluster before proceeding further." % (cluster_name.upper(),clusters_file))
+    raise abin_errors.AbinError ("ERROR: There is no information about the %s cluster in the %s file. Please add relevant information or change the cluster before proceeding further." % (cluster_name.upper(),clusters_file))
 
   print("\nThis script is running on the %s cluster" % cluster_name.upper())
 
@@ -170,28 +170,28 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   # Check if the program exists in our clusters database. 
 
   if prog not in clusters_cfg[cluster_name]["progs"]:
-    raise errors.AbinError ("ERROR: The specified program (%s) is unknown on this cluster. Possible programs include: %s \nPlease use one of those, change cluster or add information for this program to the YAML cluster file." % (prog, ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys())))
+    raise abin_errors.AbinError ("ERROR: The specified program (%s) is unknown on this cluster. Possible programs include: %s \nPlease use one of those, change cluster or add information for this program to the YAML cluster file." % (prog, ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys())))
 
   # Define the scanning function that will extract informations about the molecule from the molecule file (depends on the file format) - defined in mol_scan.py
 
   scan_fct = mol_fmt + "_scan"
 
   if (scan_fct) not in dir(mol_scan) or not callable(getattr(mol_scan, scan_fct)):
-    raise errors.AbinError ("ERROR: There is no function defined for the %s format in mol_scan.py." % mol_fmt)
+    raise abin_errors.AbinError ("ERROR: There is no function defined for the %s format in mol_scan.py." % mol_fmt)
 
   # Define the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py
 
   scaling_fct = clusters_cfg[cluster_name]["progs"][prog]["scaling_function"]
 
   if (scaling_fct) not in dir(scaling_fcts) or not callable(getattr(scaling_fcts, scaling_fct)):
-    raise errors.AbinError ("ERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
+    raise abin_errors.AbinError ("ERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
 
   # Define the rendering function that will render the job manifest and the input file (depends on the program)  - defined in renderer.py
 
   render_fct = prog + "_render"
 
   if (render_fct) not in dir(renderer) or not callable(getattr(renderer, render_fct)):
-    raise errors.AbinError ("ERROR: There is no function defined for the %s program in renderer.py." % prog)
+    raise abin_errors.AbinError ("ERROR: There is no function defined for the %s program in renderer.py." % prog)
 
   # =========================================================
   # Check jinja templates
@@ -202,7 +202,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
 
   for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates'].values():
     # Check if all the files specified in the clusters YAML file exists in the Templates folder of abin_launcher.
-    errors.check_abspath(os.path.join(path_tpl_dir,filename),"Jinja template","file")
+    abin_errors.check_abspath(os.path.join(path_tpl_dir,filename),"Jinja template","file")
 
   # =========================================================
   # Establishing the different job scales
@@ -238,15 +238,15 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   # Check other arguments
   # =========================================================
 
-  out_dir = errors.check_abspath(out_dir,"Command line argument -o / --out_dir","folder")
+  out_dir = abin_errors.check_abspath(out_dir,"Command line argument -o / --out_dir","folder")
   print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
   if max != None and max <= 0:
-    raise errors.AbinError ("ERROR: The specified max value (%s) must be a non-zero positive integer" % max)
+    raise abin_errors.AbinError ("ERROR: The specified max value (%s) must be a non-zero positive integer" % max)
 
   # Check molecule file(s)
 
-  mol_inp = errors.check_abspath(mol_inp,"Command line argument -m / --mol_inp")
+  mol_inp = abin_errors.check_abspath(mol_inp,"Command line argument -m / --mol_inp")
 
   if os.path.isdir(mol_inp):
     # If the argument mol_inp is a folder, we need to look for every molecule file with the given format in that folder.
@@ -257,7 +257,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
     # Find all matching files in mol_inp folder
     mol_inp_list = [mol for mol in os.listdir(mol_inp) if rule.match(mol)]
     if mol_inp_list == []:
-      raise errors.AbinError ("ERROR: Can't find any molecule of the %s format in %s" % (mol_ext,mol_inp_path))
+      raise abin_errors.AbinError ("ERROR: Can't find any molecule of the %s format in %s" % (mol_ext,mol_inp_path))
     if max:
       mol_inp_list = mol_inp_list[0:max]
     print('%12s' % "[ DONE ]")
@@ -266,14 +266,14 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
     print ("{:<40} {:<100}".format('\nMolecule file:',mol_inp))
     # If given a single molecule file as argument, check its extension.
     if os.path.isfile(mol_inp) and os.path.splitext(mol_inp)[-1].lower() != (mol_ext.lower()):
-      raise errors.AbinError ("  ^ ERROR: This is not an %s file." % mol_fmt)
+      raise abin_errors.AbinError ("  ^ ERROR: This is not an %s file." % mol_fmt)
     mol_inp_path = os.path.dirname(mol_inp)
     mol_inp_file = os.path.basename(mol_inp)
     mol_inp_list = [mol_inp_file]
 
   # Check config file(s)
 
-  config_inp = errors.check_abspath(config_inp,"Command line argument -cf / --config")
+  config_inp = abin_errors.check_abspath(config_inp,"Command line argument -cf / --config")
 
   if os.path.isdir(config_inp):
     # If the argument config_inp is a folder, we need to look for every YAML configuration file in that folder.
@@ -285,7 +285,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
     # Find all matching files in mol_inp folder
     config_inp_list = [config for config in os.listdir(config_inp) if (rule.match(config) or rule2.match(config))]
     if config_inp_list == []:
-      raise errors.AbinError ("ERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
+      raise abin_errors.AbinError ("ERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
     if max:
       config_inp_list = config_inp_list[0:max]
     print('%12s' % "[ DONE ]")
@@ -294,7 +294,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
     print ("{:<40} {:<100}".format('\nConfiguration file:',config_inp))
     # If given a single config file as argument, check its extension.
     if os.path.isfile(config_inp) and os.path.splitext(config_inp)[-1].lower() != (".yml") and os.path.splitext(config_inp)[-1].lower() != (".yaml"):
-      raise errors.AbinError ("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
+      raise abin_errors.AbinError ("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
     config_inp_path = os.path.dirname(config_inp)
     config_inp_file = os.path.basename(config_inp)
     config_inp_list = [config_inp_file]
@@ -357,7 +357,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
       for atom in file_data['chemical_formula'].keys():
         # Scan mendeleev looking for the atom symbol. If there is no match, returns None thus raises an exception (see https://stackoverflow.com/questions/8653516/python-list-of-dictionaries-search for more details)
         if not next((element for element in mendeleev if element["symbol"] == atom), None):
-          raise errors.AbinError ("ERROR: Element %s is not defined in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % atom)
+          raise abin_errors.AbinError ("ERROR: Element %s is not defined in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % atom)
       
       # =========================================================
       # Determining the scale_index
@@ -390,7 +390,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
           break
 
       if not jobscale:
-        raise errors.AbinError("ERROR: This molecule job scale is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
+        raise abin_errors.AbinError("ERROR: This molecule job scale is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
       
       # =========================================================
       # Determining the ressources needed for the job
@@ -430,7 +430,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
       mol_log.close()
 
     # In case of an error specific to the molecule file, skip it
-    except errors.AbinError as error:
+    except abin_errors.AbinError as error:
       sys.stdout = original_stdout                       # Reset the standard output to its original value
       print(error)
       print("Skipping %s molecule" % mol_name)
@@ -464,7 +464,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
         
         # Check if a folder already exists for that molecule - config combination
         if os.path.exists(os.path.join(out_dir,mol_name + "_" + config_name)) and not overwrite:
-          raise errors.AbinError ("ERROR: A folder for the %s molecule with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
+          raise abin_errors.AbinError ("ERROR: A folder for the %s molecule with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
 
         # =========================================================
         # Rendering the needed input files
@@ -576,7 +576,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
         shutil.move(os.path.join(out_dir,log_name), job_dir)    # Archive the log file in the job subfolder
 
       # In case of an error specific to the configuration file, skip it and never deal with it again
-      except errors.AbinError as error:
+      except abin_errors.AbinError as error:
         sys.stdout = original_stdout                            # Reset the standard output to its original value
         print(error)
         print("Skipping config %s" % config_name)
