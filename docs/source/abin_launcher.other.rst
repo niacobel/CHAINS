@@ -7,7 +7,7 @@ Other important files
 Clusters configuration file
 ===========================
 
-The clusters configuration file is a YAML file containing all the information about the clusters, such as the command used to submit jobs, the location of the programs you want to run, the command to run them, the scaling function and the job scales. If you don't know what those parameters are, they have been introduced in the previous sections of this documentation (see :ref:`submitting step <submitting_step>`, :doc:`job scaling <abin_launcher.job_scale>` and :doc:`rendering the templates <abin_launcher.rendering>`). Here is a full overview of what the file might look like:
+The clusters configuration file, named ``clusters.yml``, is the YAML file containing all the information about the clusters, such as the command used to submit jobs, the location of the programs you want to run, the command to run them, the scaling function and the job scales. If you don't know what those parameters are, they have been introduced in the previous sections of this documentation (see :ref:`submitting step <submitting_step>`, :doc:`job scaling <abin_launcher.job_scale>` and :doc:`rendering the templates <abin_launcher.rendering>`). Here is a full overview of what the file might look like:
 
 .. code-block:: yaml
 
@@ -15,6 +15,7 @@ The clusters configuration file is a YAML file containing all the information ab
      subcommand: value
      progs:
        myprog1:
+         job_instructions: value
          set_env: value
          command: value
          scaling_function: name-of-scaling-function
@@ -35,6 +36,7 @@ The clusters configuration file is a YAML file containing all the information ab
              delay_command: value
            - ...
        myprog2:
+         job_instructions: value
          set_env: value
          command: value
          scaling_function: name-of-scaling-function
@@ -73,6 +75,7 @@ This is what the file might look like in this situation:
      subcommand: sbatch
      progs:
        orca:
+         job_instructions: orca_job.sh
          set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
          command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
          scaling_function: total_nb_elec
@@ -110,6 +113,7 @@ This is what the file might look like in this situation:
      subcommand: sbatch
      progs:
        orca:
+         job_instructions: orca_job.sh
          set_env: module load orca/4.0.1.2
          command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
          scaling_function: total_nb_elec
@@ -136,6 +140,7 @@ This is what the file might look like in this situation:
              mem_per_cpu: 2000 # in MB
              delay_command: --begin=now+60
        qchem:
+         job_instructions: qchem_job.sh
          set_env: module load Q-Chem/5.3.0-SHMEM
          command: srun qchem
          scaling_function: total_nb_elec
@@ -169,7 +174,7 @@ This is what the file might look like in this situation:
              mem_per_cpu: 4000 # in MB
              delay_command: --begin=now+120
 
-This is the bare minimum required by ``ABIN LAUNCHER``, but you can add as many keys as you want depending on your needs. Just remember to adjust the ``scale_limit`` of your job scales if you change your scaling function. Otherwise, those numbers won't make sense.
+This is the bare minimum required by ``ABIN LAUNCHER``, but you can add as many keys as you want depending on your needs.
 
 .. _abin_errors:
 
@@ -185,28 +190,31 @@ A custom exception class has been created to handle errors specific to ``ABIN LA
 
 .. autoclass:: abin_errors.AbinError 
 
-Feel free to call it when you want to prevent predictable errors from happening (missing file, incorrect value, etc.) by simply using
+Feel free to raise it when you want to prevent predictable errors from happening (missing file, incorrect value, etc.) by simply using
 
 .. code-block:: python
 
-   raise abin_errors.AbinError (<message>)
+   raise abin_errors.AbinError ("my message here")
 
-where ``<message>`` is a proper error message describing the error. Those raised exceptions wil be handled ``ABIN LAUNCHER``, which will then either abort the execution or skip the incriminated geometry or configuration file, depending on where the error occurred.
+Those raised exceptions wil be catched by ``ABIN LAUNCHER``, which will then either abort the execution or skip the incriminated geometry or configuration file, depending on where the error occurred.
 
 Checking the existence of files and directories
 -----------------------------------------------
 
-In order to easily check if specific files or directories exist, a function has been defined in the ``abin_errors.py`` file:
+In order to easily check if specific files or directories exist, the ``check_abspath`` function has been defined in the ``abin_errors.py`` file:
 
 .. autofunction:: abin_errors.check_abspath
 
-Let's say we want to check if our periodic table file is still there, we can use the code:
+As an example, let's say we want to check if our periodic table file is still there, we can use the code:
 
 .. code-block:: python
 
   mendeleev_file = abin_errors.check_abspath(os.path.join(code_dir,"mendeleev.yml"),"Mendeleev periodic table YAML file","file")
 
-This line of code will check if there is a file named ``mendeleev.yml`` in ``ABIN LAUNCHER``'s directory (``code_dir``) and if it is indeed a file (and not a directory for example). If there is, it will return the absolute path towards that file (useful for referencing that file later in the script no matter where the current directory is). Otherwise, it will raise an exception and specify the context as "Mendeleev periodic table YAML file" for easy tracking, which might result in the following error message:
+This will check if there is a file named ``mendeleev.yml`` in ``ABIN LAUNCHER``'s directory (``code_dir``) and if it is indeed a file (and not a directory for example). 
+
+- If there is, it will return the absolute path towards that file (useful for referencing that file later in the script no matter where the current directory is). 
+- Otherwise, it will raise an exception and specify the context as "Mendeleev periodic table YAML file" for easy tracking, which will result in an error message of the form:
 
 .. code-block:: text
 

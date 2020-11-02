@@ -185,7 +185,7 @@ where
 - ``partition_name`` contains the name of the cluster partition on which the job will be running. If you don't need it, you can just set the value to "default".
 - ``delay_command`` is an optional value that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` flag of the ``sbatch`` command, see here_.
 
-You can have as many job scales as you want, and they don't need to be defined in ascending order of scale index limits. ``ABIN LAUNCHER`` will automatically sort them before starting to scan the geometry files.
+You can have as many job scales as you want, and they don't need to be defined in ascending order of scale index limits. ``ABIN LAUNCHER`` will automatically sort them before starting to scan the geometry files. Just remember to adjust the ``scale_limit`` of your job scales if you change your scaling function. Otherwise, those numbers won't make sense.
 
 .. Hyperlink targets
 

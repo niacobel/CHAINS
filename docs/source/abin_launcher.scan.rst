@@ -40,7 +40,7 @@ Function definition
 Defined in the ``mol_scan.py`` file, the ``xyz_scan`` function receives the content of the geometry file as an argument (a list variable) and returns a ``file_data`` dictionary with two keys: ``chemical_formula`` and ``atomic_coordinates``: 
 
 - The first key, ``chemical_formula``, contains a dictionary where each *key:value* pair corresponds to an atom type and the number of atoms of that type in the molecule. For example, the value for the ``chemical_formula`` key for |H3PO4| is *{'H':3, 'P':1, 'O':4}*.
-- The second key, ``atomic_coordinates`` is simply a list of the atomic coordinates line of the XYZ file.
+- The second key, ``atomic_coordinates`` is simply a list of the atomic coordinates lines of the XYZ file.
 
 By making use of `regular expressions`_, the function detects all the lines that have the *<atom type> <x coordinate> <y coordinate> <z coordinate>* pattern and stores them as a list into ``atomic_coordinates``. For ``chemical_formula``, the function counts the number of occurrences of each atom type as it reads it at the beginning of each coordinates line.
 

@@ -1,33 +1,30 @@
 ################################################################################################################################################
 ##                                                                Molecule Scanner                                                            ##
 ##                                                                                                                                            ##
-##             This script contains the different functions that will scan the content of a molecule file according to its format             ##
+##                                        This script contains the scanning functions for ABIN LAUNCHER,                                      ##
+##                                consult the documentation at https://chains-ulb.readthedocs.io/ for details                                 ##
 ################################################################################################################################################
 
 import re
 import abin_errors
 
-#! ATTENTION: All the functions defined below need to:
-#! - be called fmt_scan, where fmt is the name of the format of the molecule file as it will be given in the command line (stored in the mol_fmt variable in abin_launcher.py) 
-#! - receive a list (mol_content) as argument
-#! - return a dictionary (file_data), following the pattern {'chemical_formula':{}, 'atomic_coordinates':[]} (you can add additional keys if you want)
-#!   * The first key of file_data is a dictionary stating the chemical formula of the molecule in the form {'atom type 1':number of type 1 atoms, 'atom type 2':number of type 2 atoms, ...}, ex: {'Si':17, 'O':4, 'H':28}
-#!   * The second key is a list containing all atomic coordinates, as they will be used in the input file of the ab initio program
-#! If a problem arises when scanning the molecule file, an AbinError exception should be raised with a proper error message (see errors.py for more informations)
-#! Otherwise, you will need to modify abin_launcher.py accordingly.
-
 def xyz_scan(mol_content:list):
-    """Scan the content of an xyz file and extract the chemical formula and atomic coordinates of the molecule
+    """Scans the content of an XYZ geometry file and extracts the chemical formula and atomic coordinates of the molecule.
 
     Parameters
     ----------
     mol_content : list
-        Content of the xyz file
+        Content of the XYZ geometry file.
 
     Returns
     -------
     file_data : dict
-        The extracted informations of the xyz file, following the pattern {'chemical_formula':{}, 'atomic_coordinates':[]}
+        The extracted informations of the file, following the pattern { 'chemical_formula' : { }, 'atomic_coordinates' : [ ] }
+
+    Raises
+    ------
+    AbinError
+        If the number of atomic coordinates lines does not match the number of atoms mentioned in the first line of the .xyz file.
     """
 
     file_data = {'chemical_formula':{}, 'atomic_coordinates':[]}
@@ -39,7 +36,9 @@ def xyz_scan(mol_content:list):
     # Scanning the content of the XYZ file to determine the chemical formula and atomic coordinates of the molecule
       
     lines_rx = {
-        # Pattern for finding lines looking like 'Si        -0.31438        1.89081        0.00000' (this is a regex, for more information, see https://docs.python.org/3/library/re.html)
+        # Pattern for finding the atomic coordinates lines
+        # They look like 'Si   -0.31438   1.89081   0.00000' 
+        # This uses regex, for more information, see https://docs.python.org/3/library/re.html)
         'atomLine': re.compile(
             r'^\s{0,4}(?P<atomSymbol>[a-zA-Z]{0,3})\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+$')
     }
@@ -59,6 +58,6 @@ def xyz_scan(mol_content:list):
     # Check if the number of lines matches the number of atoms defined in the first line of the .xyz file
     
     if checksum_nlines != nb_atoms:
-      raise abin_errors.AbinError("ERROR: Number of atoms lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, nb_atoms))
+      raise abin_errors.AbinError("ERROR: Number of atomic coordinates lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, nb_atoms))
   
     return file_data

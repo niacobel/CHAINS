@@ -1,29 +1,30 @@
 ################################################################################################################################################
 ##                                                                The Renderer                                                                ##
 ##                                                                                                                                            ##
-##         This script contains the rendering functions for the different job manifest and input files corresponding to each program          ##
+##                                       This script contains the rendering functions for ABIN LAUNCHER,                                      ##
+##                                consult the documentation at https://chains-ulb.readthedocs.io/ for details                                 ##
 ################################################################################################################################################
 
 import os
 import jinja2
 import abin_errors
 
-def jinja_render(path_tpl_dir, tpl, render_vars):
-    """Renders a file based on its jinja template
+def jinja_render(path_tpl_dir:str, tpl:str, render_vars:dict):
+    """Renders a file based on its jinja template.
 
     Parameters
     ----------
     path_tpl_dir : str
-        The path towards the directory where the jinja template is located
+        The path towards the directory where the jinja template is located.
     tpl : str
-        The name of the jinja template file
+        The name of the jinja template file.
     render_vars : dict
-        Dictionary containing the definitions of all the variables present in the jinja template
+        Dictionary containing the definitions of all the variables present in the jinja template.
 
     Returns
     -------
     output_text : str
-        Content of the rendered file
+        Content of the rendered file.
     """
    
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(path_tpl_dir))
@@ -31,14 +32,14 @@ def jinja_render(path_tpl_dir, tpl, render_vars):
     
     return output_text
 
-#! ATTENTION: All the functions defined below need to:
-#! - be called prog_render, where prog is the name of the program as it appears in the YAML files (and as it will be given in the command line) 
-#! - receive six dictionaries from abin_launcher.py as arguments: mendeleev, clusters_cfg, config, file_data, job_specs and misc
-#! - return a dictionary (rendered_content) containing the text of all the rendered files in the form of <filename>: <rendered_content>
-#! Otherwise, you will need to modify abin_launcher.py accordingly.
+# ===================================================================
+# ===================================================================
+#                           Rendering functions
+# ===================================================================
+# ===================================================================
 
 def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
-    """Renders the job manifest and the input file associated with the program orca
+    """Renders the job instructions file and the input file associated with the ORCA program.
 
     Parameters
     ----------
@@ -46,46 +47,51 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
         Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
         Unused in this function.
     clusters_cfg : dict
-        Content of the YAML clusters file
+        Content of the YAML clusters configuration file.
     config : dict
-        Content of the YAML configuration file
+        Content of the YAML configuration file.
     file_data : dict
-        The extracted informations of the molecule file (see mol_scan.py for more details)
+        Information extracted by the scanning function from the geometry file.
     job_specs : dict
-        Contains all information related to the job (see abin_launcher.py for more details)
+        Contains all information related to the job.
     misc : dict
-        Contains all the additional variables that did not pertain to the other arguments (see abin_launcher.py for more details)
+        Contains all the additional variables that did not pertain to the other arguments.
 
     Returns
     -------
     rendered_content : dict
-        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>
+        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
     
-    Advice
-    -------
-    Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template and should be modified accordingly.
+    Notes
+    -----
+    Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template.
     """
 
-    # Define the names of all the template and rendered files, given in the YAML cluster file.
+    # Check if all the files specified in the clusters YAML file exists in the Templates directory of abin_launcher.
+    
+    for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
+        abin_errors.check_abspath(os.path.join(misc['path_tpl_dir'],filename),"Jinja template","file")
 
-    tpl_inp = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja']['templates']['input']                     # Jinja template file for the orca input
-    tpl_manifest = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja']['templates']['job_manifest']         # Jinja template file for the orca job manifest (job submitting script)
+    # Define the names of all the template and rendered files, given in the YAML clusters configuration file.
 
-    rnd_input = misc['mol_name'] + ".inp"                                                                                            # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
-    rnd_manifest = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja']['renders']['job_manifest']           # Name of the rendered job manifest file
+    tpl_inp = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']                     # Jinja template file for the orca input
+    tpl_inst = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_instructions']         # Jinja template file for the orca job instructions file
+
+    rnd_input = misc['mol_name'] + ".inp"                                                                                         # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
+    rnd_inst = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['job_instructions']                            # Name of the rendered job instructions file
 
     # Initialize our dictionary that will contain all the text of the rendered files
 
     rendered_content = {}
 
-    # Get the path to the chains folder and the check_scripts folder because the job manifest needs to execute check_orca.py and source load_modules.sh
+    # Get the path to the chains directory and the check_scripts directory because the job instructions file needs to execute check_orca.py and source load_modules.sh
 
-    chains_path = os.path.dirname(misc['code_dir'])                      # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
+    chains_path = os.path.dirname(misc['code_dir'])                      # Get the parent directory from the codes_dir (which is the abin_launcher directory)                         
     check_script_path = os.path.join(chains_path,"check_scripts")
 
-    # Rendering the jinja template for the orca job manifest
+    # Rendering the jinja template for the orca job instructions file
   
-    print("{:<80}".format("\nRendering the jinja template for the orca job manifest ..."), end="")
+    print("{:<80}".format("\nRendering the jinja template for the orca job instructions file ..."), end="")
 
     render_vars = {  
         "mol_name" : misc['mol_name'],
@@ -102,7 +108,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
         "chains_folder" : chains_path,
         "check_folder" : check_script_path,
         "results_subfolder" : config['results'][job_specs['prog']]['folder_name'],
-        "job_manifest" : rnd_manifest,
+        "job_manifest" : rnd_inst,
         "config_file" : misc['config_name'],
         "benchmark" : config['general']['benchmark'],
         "benchmark_folder" : config['general']['benchmark-folder'],
@@ -112,7 +118,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
         "scale_index" : job_specs['scale_index']
         }
     
-    rendered_content[rnd_manifest] = jinja_render(misc['path_tpl_dir'], tpl_manifest, render_vars)
+    rendered_content[rnd_inst] = jinja_render(misc['path_tpl_dir'], tpl_inst, render_vars)
 
     print('%12s' % "[ DONE ]")
    
@@ -142,7 +148,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     return rendered_content
 
 def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
-    """Renders the job manifest and the input file associated with the program qchem
+    """Renders the job instructions file and the input file associated with the Q-CHEM program.
 
     Parameters
     ----------
@@ -150,41 +156,46 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
         Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
         Unused in this function.
     clusters_cfg : dict
-        Content of the YAML clusters file
+        Content of the YAML clusters configuration file.
     config : dict
-        Content of the YAML configuration file
+        Content of the YAML configuration file.
     file_data : dict
-        The extracted informations of the molecule file (see mol_scan.py for more details)
+        Information extracted by the scanning function from the geometry file.
     job_specs : dict
-        Contains all information related to the job (see abin_launcher.py for more details)
+        Contains all information related to the job.
     misc : dict
-        Contains all the additional variables that did not pertain to the other arguments (see abin_launcher.py for more details)
+        Contains all the additional variables that did not pertain to the other arguments.
 
     Returns
     -------
     rendered_content : dict
-        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>
+        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
     
-    Advice
-    -------
-    Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template and should be modified accordingly.
+    Notes
+    -----
+    Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template.
     """
 
-    # Define the names of all the template and rendered files, given in the YAML cluster file.
+    # Check if all the files specified in the clusters YAML file exists in the Templates directory of abin_launcher.
+    
+    for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
+        abin_errors.check_abspath(os.path.join(misc['path_tpl_dir'],filename),"Jinja template","file")
 
-    tpl_inp = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja']['templates']['input']                     # Jinja template file for the qchem input
-    tpl_manifest = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja']['templates']['job_manifest']         # Jinja template file for the qchem job manifest (job submitting script)
+    # Define the names of all the template and rendered files, given in the YAML clusters configuration file.
 
-    rnd_input = misc['mol_name'] + ".in"                                                                                             # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
-    rnd_manifest = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja']['renders']['job_manifest']           # Name of the rendered job manifest file
+    tpl_inp = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']                     # Jinja template file for the qchem input
+    tpl_inst = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_instructions']         # Jinja template file for the qchem job instructions file
+
+    rnd_input = misc['mol_name'] + ".in"                                                                                          # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
+    rnd_inst = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['job_instructions']                            # Name of the rendered job instructions file
 
     # Initialize our dictionary that will contain all the text of the rendered files
 
-    rendered_content = {}   
+    rendered_content = {}
 
-    # Get the path to the chains folder and the check_scripts folder because the job manifest needs to execute check_qchem.py and source load_modules.sh
+    # Get the path to the chains directory and the check_scripts directory because the job instructions file needs to execute check_qchem.py and source load_modules.sh
 
-    chains_path = os.path.dirname(misc['code_dir'])                      # Get the parent folder from the codes_dir (which is the abin_launcher folder)                         
+    chains_path = os.path.dirname(misc['code_dir'])                      # Get the parent directory from the codes_dir (which is the abin_launcher directory)                         
     check_script_path = os.path.join(chains_path,"check_scripts")
 
     # Rendering the jinja template for the qchem job manifest
@@ -206,7 +217,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
         "chains_folder" : chains_path,
         "check_folder" : check_script_path,
         "results_subfolder" : config['results'][job_specs['prog']]['folder_name'],
-        "job_manifest" : rnd_manifest,
+        "job_manifest" : rnd_inst,
         "config_file" : misc['config_name'],
         "benchmark" : config['general']['benchmark'],
         "benchmark_folder" : config['general']['benchmark-folder'],
@@ -216,7 +227,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
         "scale_index" : job_specs['scale_index']
         }
     
-    rendered_content[rnd_manifest] = jinja_render(misc['path_tpl_dir'], tpl_manifest, render_vars)
+    rendered_content[rnd_inst] = jinja_render(misc['path_tpl_dir'], tpl_inst, render_vars)
 
     print('%12s' % "[ DONE ]")
    

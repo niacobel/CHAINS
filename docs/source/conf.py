@@ -86,3 +86,16 @@ def setup(app):
 # Other options
 
 html_show_copyright = False
+
+# -- Options for LaTeX output ------------------------------------------------
+
+latex_elements = {
+
+    # Paper size ('letterpaper' or 'a4paper')
+    'papersize': 'a4paper',
+
+    # Font size ('10pt', '11pt' or '12pt')
+    'pointsize': '12pt',
+
+
+}

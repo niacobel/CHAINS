@@ -1,67 +1,60 @@
 ################################################################################################################################################
 ##                                                             Scaling functions                                                              ##
 ##                                                                                                                                            ##
-##                    This script contains the possible definition functions for the scale_index used in abin-launcher.py                     ##
+##                                        This script contains the scaling functions for ABIN LAUNCHER,                                       ##
+##                                consult the documentation at https://chains-ulb.readthedocs.io/ for details                                 ##
 ################################################################################################################################################
 
 import abin_errors
 
-#! ATTENTION: All the functions defined below need to:
-#! - receive two dictionaries (mendeleev and file_data) as arguments
-#! - return an integer or a float (that will act as the scale_index)
-#! Otherwise, you will need to modify abin_launcher.py accordingly.
-#! Additionnaly, their name will be called as is in the YAML clusters file, pertaining to the "scaling_function" key (total_nb_elec, total_nb_atoms, etc)
-
-"""  
-file_data is considered to follow the following pattern: {'chemical_formula':{dict}; 'atomic_coordinates':[list]} (as it should have been given by the mol_scan functions)
-If this is not the case, the functions below will need to be modified accordingly.
-"""
-
 def total_nb_elec(mendeleev:dict,file_data:dict):
-    """Calculates the total number of electrons in a molecule
+    """Calculates the total number of electrons in a molecule.
 
     Parameters
     ----------
     mendeleev : dict
-        Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
+        Content of AlexGustafsson's Mendeleev Table YAML file, which can be found at https://github.com/AlexGustafsson/molecular-data.
     file_data : dict
-        The extracted informations of the molecule file
+        The extracted informations of the geometry file.
 
     Returns
     -------
     total_elec : int
-        Total number of electrons in the molecule
-    
-    Advice
-    -------
-    Do not alter the mendeleev.yml file from AlexGustafsson as it will be used as is.
+        Total number of electrons in the molecule.
+
+    Raises
+    ------
+    AbinError
+        If there is no atomic number defined in mendeleev for one of the constituting atoms of the molecule. Exception raised in the ``get_nb_elec_for_element`` subfunction.
     """
 
     # Definition of the function that can fetch the number of electrons associated with each element in Gustafsson's table
 
-    def get_nb_elec_for_element(symbol:str, mendeleev:dict) -> int:
-        """Return the number of electrons for a specific element
+    def get_nb_elec_for_element(symbol:str, mendeleev:dict):
+        """Returns the number of electrons for a specific element.
 
         Parameters
         ----------
         symbol : str
-            The atom symbol of the element
+            The atom symbol of the element.
         mendeleev : dict
-            Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
+            Content of AlexGustafsson's Mendeleev Table YAML file, which can be found at https://github.com/AlexGustafsson/molecular-data.
 
         Returns
         -------
         nb_elec : int
-           Number of electrons
+           Number of electrons.
         
-        Advice
-        -------
-        Do not alter the mendeleev.yml file from AlexGustafsson as it will be used as is.
+        Raises
+        ------
+        AbinError
+            If there is no atomic number defined in mendeleev for one of the constituting atoms of the molecule.
         """
 
         nb_elec = 0
 
         # Scan the mendeleev table and get the atomic number of our atom
+
         for element in mendeleev:
           if (element['symbol'] == symbol):
             nb_elec = element['number']
@@ -79,11 +72,13 @@ def total_nb_elec(mendeleev:dict,file_data:dict):
     print(''.center(68, '-'))
     print("{:<12} {:<16} {:<18} {:<22}".format('Atom Type','Atomic Number','Number of atoms','Number of electrons'))
     print(''.center(68, '-'))
+
     for atom,nb_atom in file_data['chemical_formula'].items():
       atomic_number = get_nb_elec_for_element(atom,mendeleev)
       subtotal_elec = nb_atom * atomic_number
       print("{:<12} {:<16} {:<18} {:<22}".format(atom, atomic_number, nb_atom, subtotal_elec))
       total_elec += subtotal_elec
+
     print(''.center(68, '-'))
     print("{:<29} {:<18} {:<22}".format('Total',sum(file_data['chemical_formula'].values()),total_elec))
     print(''.center(68, '-'))
@@ -91,20 +86,20 @@ def total_nb_elec(mendeleev:dict,file_data:dict):
     return total_elec
 
 def total_nb_atoms(mendeleev:dict,file_data:dict):
-    """Returns the total number of atoms in a molecule
+    """Returns the total number of atoms in a molecule.
 
     Parameters
     ----------
     mendeleev : dict
-        Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
-        Unused for this particular function.
+        Content of AlexGustafsson's Mendeleev Table YAML file, which can be found at https://github.com/AlexGustafsson/molecular-data.
+        Unused in this particular function.
     file_data : dict
-        The extracted informations of the molecule file
+        The extracted informations of the geometry file.
 
     Returns
     -------
     total_atoms : int
-        Total number of atoms in the molecule    
+        Total number of atoms in the molecule.
     """
 
     # Returns the total number of atoms in the molecule by summing all the values given in the chemical_formula dictionary
