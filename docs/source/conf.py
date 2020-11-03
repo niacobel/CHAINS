@@ -92,7 +92,7 @@ html_show_copyright = False
 
 # -- Options for LaTeX output ------------------------------------------------
 
-latex_elements = {
+""" latex_elements = {
 
     # Paper size ('letterpaper' or 'a4paper')
     'papersize': 'a4paper',
@@ -100,5 +100,4 @@ latex_elements = {
     # Font size ('10pt', '11pt' or '12pt')
     'pointsize': '11pt',
 
-
-}
+} """
