@@ -180,8 +180,8 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
 
 where
 
-- ``myclusterA`` and ``myclusterB`` are the names of your machines (given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each cluster.
-- ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_). This way, different job scales can be assigned to each program. 
+- ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each cluster.
+- ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each program. 
 - ``partition_name`` contains the name of the cluster partition on which the job will be running. If you don't need it, you can just set the value to "default".
 - ``delay_command`` is an optional value that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` flag of the ``sbatch`` command, see here_.
 

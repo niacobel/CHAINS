@@ -96,7 +96,12 @@ Other arguments
 
 There are three other required arguments for executing ``ABIN LAUNCHER``:
 
-- The **name of the program** you want to run, given by the ``-p / --program`` subcommand. This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+- The **name of the program** you want to run, given by the ``-p / --program`` subcommand. This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive. 
+
+.. note::
+
+   This argument does not need to be the same name as the software you actually want to execute on the cluster. It is just a label that is used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different values for this argument that run the same program (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
+
 - The **name of the cluster** you are running on, given by the ``-cl / --cluster_name`` subcommand. This one must also be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
 - The **"output directory"** where each job subdirectory will be created, given by the ``-o / --out_dir`` subcommand. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
 

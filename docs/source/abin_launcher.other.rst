@@ -60,12 +60,17 @@ The clusters configuration file, named ``clusters.yml``, is the YAML file contai
    myclusterB:
      ...
 
+where
+
+- ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`).
+- ``myprog1`` and ``myprog2`` are the names of the programs you want to run (also given as a :ref:`command line argument <abin_arguments>`).
+
 If you want a more concrete example, let's consider the following situation:
 
-- Two clusters who use SLURM as the job scheduler, named slurm_cluster_A and slurm_cluster_B
-- We want to run two programs: ORCA and Q-CHEM
+- Two clusters who use SLURM as the job scheduler, named ``slurm_cluster_A`` and ``slurm_cluster_B``
+- We want to run two programs: ORCA_ and Q-CHEM_
 - Both programs use ``total_nb_elec`` as the scaling function
-- ORCA is available on both clusters, but Q-CHEM is specific to the slurm_cluster_B
+- ORCA is available on both clusters, but Q-CHEM is specific to the ``slurm_cluster_B``
 
 This is what the file might look like in this situation:
 
@@ -213,7 +218,7 @@ As an example, let's say we want to check if our periodic table file is still th
 
 This will check if there is a file named ``mendeleev.yml`` in ``ABIN LAUNCHER``'s directory (``code_dir``) and if it is indeed a file (and not a directory for example). 
 
-- If there is, it will return the absolute path towards that file (useful for referencing that file later in the script no matter where the current directory is). 
+- If there is, it will return the absolute path towards that file (useful for referencing that file later in the script, no matter where the current directory is). 
 - Otherwise, it will raise an exception and specify the context as "Mendeleev periodic table YAML file" for easy tracking, which will result in an error message of the form:
 
 .. code-block:: text
@@ -222,3 +227,7 @@ This will check if there is a file named ``mendeleev.yml`` in ``ABIN LAUNCHER``'
    Context:  Mendeleev periodic table YAML file
    ERROR: ~/CHAINS/abin_launcher/mendeleev.yml does not seem to exist.
 
+.. Hyperlink targets
+
+.. _ORCA: https://www.faccts.de/orca/
+.. _Q-CHEM: https://www.q-chem.com/
