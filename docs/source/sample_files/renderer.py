@@ -6,8 +6,11 @@
 ################################################################################################################################################
 
 import os
-import jinja2
+
+from jinja2 import Environment, FileSystemLoader
+
 import abin_errors
+
 
 def jinja_render(path_tpl_dir:str, tpl:str, render_vars:dict):
     """Renders a file based on its jinja template.
@@ -27,8 +30,10 @@ def jinja_render(path_tpl_dir:str, tpl:str, render_vars:dict):
         Content of the rendered file.
     """
    
-    environment = jinja2.Environment(loader=jinja2.FileSystemLoader(path_tpl_dir))
-    output_text = environment.get_template(tpl).render(render_vars)
+    file_loader = FileSystemLoader(path_tpl_dir)
+    env = Environment(loader=file_loader)
+    template = env.get_template(tpl)
+    output_text = template.render(render_vars)
     
     return output_text
 
