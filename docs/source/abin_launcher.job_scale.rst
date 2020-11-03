@@ -17,22 +17,26 @@ For example, let's say we want to run a geometry optimization on the |Si36Ge11H6
 .. code-block:: yaml
 
    job_scales:
-      - label: tiny
+      - 
+        label: tiny
         scale_limit: 50
         time: 0-00:10:00
         cores: 4 
         mem_per_cpu: 500 # in MB
-      - label: small
+      - 
+        label: small
         scale_limit: 500
         time: 1-00:00:00
         cores: 8
         mem_per_cpu: 500 # in MB
-      - label: medium
+      - 
+        label: medium
         scale_limit: 1000
         time: 2-00:00:00
         cores: 8
         mem_per_cpu: 2000 # in MB
-      - label: big
+      - 
+        label: big
         scale_limit: 1500
         time: 3-00:00:00
         cores: 16
@@ -105,85 +109,97 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
        myprog1:
          scaling_function: name-of-scaling-function
          job_scales:     
-           - label: scale1
+           - 
+             label: scale1
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - label: scale2
+           - 
+             label: scale2
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - ...
+           - 
+             ...
        myprog2:
          scaling_function: name-of-scaling-function
          job_scales:     
-           - label: scale1
+           - 
+             label: scale1
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - label: scale2
+           - 
+             label: scale2
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - ...
+           - 
+             ...
  
    myclusterB:
      progs:
        myprog1:
          scaling_function: name-of-scaling-function
          job_scales:     
-           - label: scale1
+           - 
+             label: scale1
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - label: scale2
+           - 
+             label: scale2
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - ...
+           - 
+             ...
        myprog2:
          scaling_function: name-of-scaling-function
          job_scales:     
-           - label: scale1
+           - 
+             label: scale1
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - label: scale2
+           - 
+             label: scale2
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - ...
+           - 
+             ...
 
 where
 
 - ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each cluster.
 - ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each program. 
 - ``partition_name`` contains the name of the cluster partition on which the job will be running. If you don't need it, you can just set the value to "default".
-- ``delay_command`` is an optional value that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` flag of the ``sbatch`` command, see here_.
+- ``delay_command`` is an optional key that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` flag of the ``sbatch`` command, see here_.
 
 You can have as many job scales as you want, and they don't need to be defined in ascending order of scale index limits. ``ABIN LAUNCHER`` will automatically sort them before starting to scan the geometry files. Just remember to adjust the ``scale_limit`` of your job scales if you change your scaling function. Otherwise, those numbers won't make sense.
 

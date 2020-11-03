@@ -7,11 +7,11 @@
    :hidden:
    :numbered:
    :maxdepth: 1
-   :caption: CHAINS
+   :caption: THE BASICS
 
-   Introduction <chains.introduction>
-   Workflow <chains.workflow>
-   Getting Started <chains.quickstart>
+   chains.know
+   chains.workflow
+   chains.quickstart
 
 .. toctree::
    :hidden:
@@ -52,9 +52,8 @@
    Integration of ABIN LAUNCHER <chains.abin_integration>
    Tests <tests.rst>
 
-.. include the content of the general overview file, and make it look similar.
+********************************
+Welcome to CHAINS' documentation
+********************************
 
-.. sectnum::
-   :suffix: .
-
-.. include:: chains.introduction.rst
+.. include:: introduction_content.rst

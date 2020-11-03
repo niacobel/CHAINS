@@ -58,22 +58,26 @@ dragon1:
       command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
       scaling_function: *scl_fct
       job_scales: 
-        - <<: *tiny_orca     
-        - label: small
+        - 
+          <<: *tiny_orca     
+        - 
+          label: small
           scale_limit: 1000
           partition_name: Def
           time: 5-00:00:00
           cores: 8
           mem_per_cpu: 1000 # in MB
           delay_command:
-        - label: medium
+        - 
+          label: medium
           scale_limit: 1500
           partition_name: Def
           time: 5-00:00:00
           cores: 8
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+60
-        - label: big
+        - 
+          label: big
           scale_limit: 2000
           partition_name: Long
           time: 15-00:00:00
@@ -103,23 +107,27 @@ dragon2:
       command: /opt/cecisw/arch/easybuild/2019b/software/ORCA/4.2.1-gompi-2019b/orca
       scaling_function: *scl_fct
       job_scales:
-        - <<: *tiny_orca
+        - 
+          <<: *tiny_orca
           partition_name: debug  
-        - label: small
+        - 
+          label: small
           scale_limit: 1000
           partition_name: batch
           time: 2-00:00:00
           cores: 8
           mem_per_cpu: 1000 # in MB
           delay_command: 
-        - label: medium
+        - 
+          label: medium
           scale_limit: 1500
           partition_name: batch
           time: 5-00:00:00
           cores: 8
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+60
-        - label: big
+        - 
+          label: big
           scale_limit: 2000
           partition_name: long
           time: 15-00:00:00
@@ -147,22 +155,26 @@ lemaitre3:
       command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
       scaling_function: *scl_fct
       job_scales:
-        - <<: *tiny_orca  
-        - label: small
+        - 
+          <<: *tiny_orca  
+        - 
+          label: small
           scale_limit: 700
           partition_name: batch
           time: 1-00:00:00
           cores: 8
           mem_per_cpu: 500 # in MB
           delay_command:
-        - label: medium
+        - 
+          label: medium
           scale_limit: 1000
           partition_name: batch
           time: 2-00:00:00
           cores: 8
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+60
-        - label: big
+        - 
+          label: big
           scale_limit: 1500
           partition_name: batch
           time: 2-00:00:00
@@ -197,29 +209,34 @@ hercules:
       command: srun qchem -nt ${SLURM_CPUS_PER_TASK}
       scaling_function: *scl_fct
       job_scales:
-        - <<: *tiny_qchem
-        - label: very small
+        - 
+          <<: *tiny_qchem
+        - 
+          label: very small
           scale_limit: 500
           partition_name: default
           time: 1-00:00:00
           cores: 8
           mem_per_cpu: 1000 # in MB
           delay_command:  
-        - label: small
+        - 
+          label: small
           scale_limit: 800
           partition_name: default
           time: 2-00:00:00
           cores: 8
           mem_per_cpu: 1500 # in MB
           delay_command:
-        - label: medium
+        - 
+          label: medium
           scale_limit: 1500
           partition_name: default
           time: 5-00:00:00
           cores: 16
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+60
-        - label: big
+        - 
+          label: big
           scale_limit: 2000
           partition_name: default
           time: 10-00:00:00

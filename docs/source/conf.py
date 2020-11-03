@@ -52,6 +52,9 @@ extensions.append('sphinx.ext.viewcode')
 # Include source code (https://sphinx-code-include.readthedocs.io/en/latest/)
 extensions.append('code_include.extension')
 
+# Embed youtube videos (https://github.com/divi255/sphinxcontrib.youtube)
+extensions.append('sphinxcontrib.yt')
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -95,7 +98,7 @@ latex_elements = {
     'papersize': 'a4paper',
 
     # Font size ('10pt', '11pt' or '12pt')
-    'pointsize': '12pt',
+    'pointsize': '11pt',
 
 
 }

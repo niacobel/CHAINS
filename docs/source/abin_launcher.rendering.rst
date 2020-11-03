@@ -347,28 +347,32 @@ Finally, let's consider that we have the following clusters configuration file:
          command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca           
          scaling_function: total_nb_elec
          job_scales:
-           - label: tiny
+           - 
+             label: tiny
              scale_limit: 50
              partition_name: default
              time: 0-00:10:00
              cores: 4 
              mem_per_cpu: 500 # in MB
              delay_command:
-           - label: small
+           - 
+             label: small
              scale_limit: 1000
              partition_name: Def
              time: 2-00:00:00
              cores: 4
              mem_per_cpu: 1000 # in MB
              delay_command:
-           - label: medium
+           - 
+             label: medium
              scale_limit: 1500
              partition_name: Def
              time: 5-00:00:00
              cores: 8
              mem_per_cpu: 2000 # in MB
              delay_command: --begin=now+60
-           - label: big
+           - 
+             label: big
              scale_limit: 2000
              partition_name: Long
              time: 10-00:00:00

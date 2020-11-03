@@ -20,42 +20,48 @@ The clusters configuration file, named ``clusters.yml``, is the YAML file contai
          command: value
          scaling_function: name-of-scaling-function
          job_scales:
-           - label: scale1
+           - 
+             label: scale1
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - label: scale2
+           - 
+             label: scale2
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - ...
+           - 
+             ...
        myprog2:
          job_instructions: value
          set_env: value
          command: value
          scaling_function: name-of-scaling-function
          job_scales:
-           - label: scale1
+           - 
+             label: scale1
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - label: scale2
+           - 
+             label: scale2
              scale_limit: value
              partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
              delay_command: value
-           - ...
+           - 
+             ...
 
    myclusterB:
      ...
@@ -85,28 +91,30 @@ This is what the file might look like in this situation:
          command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
          scaling_function: total_nb_elec
          job_scales:
-           - label: tiny
+           - 
+             label: tiny
              scale_limit: 50
              partition_name: batch
              time: 0-00:10:00
              cores: 4 
              mem_per_cpu: 500 # in MB
-             delay_command:
-           - label: small
+           - 
+             label: small
              scale_limit: 500
              partition_name: batch
              time: 1-00:00:00
              cores: 8
              mem_per_cpu: 500 # in MB
-             delay_command:
-           - label: medium
+           - 
+             label: medium
              scale_limit: 1000
              partition_name: batch
              time: 2-00:00:00
              cores: 8
              mem_per_cpu: 2000 # in MB
              delay_command: --begin=now+60
-           - label: big
+           - 
+             label: big
              scale_limit: 1500
              partition_name: batch
              time: 3-00:00:00
@@ -123,21 +131,22 @@ This is what the file might look like in this situation:
          command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
          scaling_function: total_nb_elec
          job_scales:
-           - label: tiny
+           - 
+             label: tiny
              scale_limit: 50
              partition_name: default
              time: 0-00:20:00
              cores: 4 
-             mem_per_cpu: 500 # in MB
-             delay_command: 
-           - label: small
+             mem_per_cpu: 500 # in MB 
+           - 
+             label: small
              scale_limit: 500
              partition_name: default
              time: 1-10:00:00
              cores: 8
-             mem_per_cpu: 500 # in MB
-             delay_command: 
-           - label: medium
+             mem_per_cpu: 500 # in MB 
+           - 
+             label: medium
              scale_limit: 1000
              partition_name: default
              time: 3-00:00:00
@@ -150,28 +159,30 @@ This is what the file might look like in this situation:
          command: srun qchem
          scaling_function: total_nb_elec
          job_scales:
-           - label: tiny
+           - 
+             label: tiny
              scale_limit: 100
              partition_name: default
              time: 0-00:20:00
              cores: 4 
              mem_per_cpu: 500 # in MB
-             delay_command:
-           - label: small
+           - 
+             label: small
              scale_limit: 750
              partition_name: default
              time: 1-00:00:00
              cores: 8
              mem_per_cpu: 1000 # in MB
-             delay_command:
-           - label: medium
+           - 
+             label: medium
              scale_limit: 1500
              partition_name: default
              time: 3-00:00:00
              cores: 8
              mem_per_cpu: 2000 # in MB
              delay_command: --begin=now+60
-           - label: big
+           - 
+             label: big
              scale_limit: 2000
              partition_name: long
              time: 8-00:00:00
