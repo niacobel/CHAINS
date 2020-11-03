@@ -501,9 +501,9 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
           config = yaml.load(f_config, Loader=yaml.FullLoader)
         print('%12s' % "[ DONE ]")
 
-        # Get the path to the jinja templates directory (a directory named "Templates" in the same directory as this script)
+        # Get the path to the jinja templates directory (a directory named "templates" in the same directory as this script)
         
-        path_tpl_dir = os.path.join(code_dir,"Templates")
+        path_tpl_dir = os.path.join(code_dir,"templates")
 
         # Build a dictionary that will contain all information related to the job
 
@@ -629,7 +629,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
     # Archive the geometry file if keep_mol has not been set and there was no problem
 
     if not keep_mol:
-      launched_dir = os.path.join(mol_inp_path,"Launched")      # Directory where the molecule files will be put after having been treated by this script, it will be created inside the directory where were all the molecule files.
+      launched_dir = os.path.join(mol_inp_path,"launched")      # Directory where the molecule files will be put after having been treated by this script, it will be created inside the directory where were all the molecule files.
       os.makedirs(launched_dir, exist_ok=True)
       if os.path.exists(os.path.join(launched_dir,mol_filename)):
         os.remove(os.path.join(launched_dir,mol_filename))
@@ -651,7 +651,7 @@ if __name__ == "__main__": # This line is used so that the scripts for the docum
   if not keep_cf:
     for config_filename in config_inp_list:
       if config_filename not in problem_cf:
-        launched_dir = os.path.join(config_inp_path,"Launched") # Directory where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
+        launched_dir = os.path.join(config_inp_path,"launched") # Directory where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
         os.makedirs(launched_dir, exist_ok=True)
         if os.path.exists(os.path.join(launched_dir,config_filename)):
           os.remove(os.path.join(launched_dir,config_filename))

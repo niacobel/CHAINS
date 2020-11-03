@@ -29,7 +29,7 @@ The ``ABIN LAUNCHER`` directory has and must have the following structure:
       ├── abin_errors.py
       ├── clusters.yml
       ├── mendeleev.yml
-      └── Templates/
+      └── templates/
 
 As for what each file does, everything will be explained in more details in the other sections of this documentation, but here is a short summary:
 
@@ -40,13 +40,13 @@ As for what each file does, everything will be explained in more details in the 
 - ``abin_errors.py`` contains all the classes and functions defining :ref:`how to handle errors <abin_errors>`.
 - ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, called the :ref:`clusters configuration file <clusters_file>`.
 - ``mendeleev.yml`` is a YAML version of Mendeleev's periodic table procured by `AlexGustafsson's molecular-data Github repository`_.
-- ``Templates`` is the directory containing all the Jinja templates that will be used by ``ABIN LAUNCHER``. 
+- ``templates`` is the directory containing all the Jinja templates that will be used by ``ABIN LAUNCHER``. 
 
-In CHAINS' case, the ``Templates`` directory structure is:
+In CHAINS' case, the ``templates`` directory structure is:
 
 .. code-block::
 
-   └── Templates/
+   └── templates/
          ├── orca_job.sh.jinja
          ├── orca.inp.jinja
          ├── qchem_job.sh.jinja
@@ -59,7 +59,7 @@ where
 
 .. note::
 
-   There are two supplementary files: ``benchmark.py`` and, in the ``Templates`` directory, ``benchmark.sh.jinja``. Those files are not part of ``ABIN LAUNCHER`` itself but they introduce a :doc:`benchmarking option <abin_launcher.benchmark>`.
+   There are two supplementary files: ``benchmark.py`` and, in the ``templates`` directory, ``benchmark.sh.jinja``. Those files are not part of ``ABIN LAUNCHER`` itself but they introduce a :doc:`benchmarking option <abin_launcher.benchmark>`.
 
 .. _abin_arguments:
 
@@ -89,7 +89,7 @@ There are two main input files for ``ABIN LAUNCHER``:
 
 In both cases, you can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple input files, ``ABIN LAUNCHER`` will create the input files and launch the jobs corresponding to each geometry-configuration combination. For example, if you have 5 geometry files and 3 configuration files, you will end up with 15 launched jobs on your cluster.
 
-By default, every input file that has been *successfully* processed by ``ABIN LAUNCHER`` will be **archived** in a ``Launched`` directory created in the same directory as the input files. This has been designed this way so that you can repeatedly use the same directory as "source" for those input files without repeating jobs. If you want to turn off this behavior, you can use the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional subcommands to keep the geometry files and/or the configuration files, respectively.
+By default, every input file that has been *successfully* processed by ``ABIN LAUNCHER`` will be **archived** in a ``launched`` directory created in the same directory as the input files. This has been designed this way so that you can repeatedly use the same directory as "source" for those input files without repeating jobs. If you want to turn off this behavior, you can use the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively.
 
 Other arguments
 ---------------
@@ -107,7 +107,7 @@ First step: Scanning
 
 ``ABIN LAUNCHER`` begins by scanning the geometry file, looking for the chemical formula and the atomic coordinates of the molecule. 
 
-For more details on how this scan is performed, consult the :doc:`Scanning the geometry file <abin_launcher.scan>` specific documentation.
+For more details on how this scan is performed, consult the :doc:`abin_launcher.scan` specific documentation.
 
 .. note::
    At this time, only the XYZ format is supported for geometry files. However, new formats can be added if the need arises.
@@ -117,14 +117,14 @@ Second step: Scaling
 
 Based on the information received from the geometry file, ``ABIN LAUNCHER`` attributes a value, called the scale index, to the molecule. This value is then used to evaluate the job scale for that molecule and specify the calculation requirements accordingly (walltime, number of CPUs, memory, etc.). 
 
-For more details on how this scaling process is performed, consult the :doc:`Job scaling <abin_launcher.job_scale>` specific documentation.
+For more details on how this scaling process is performed, consult the :doc:`abin_launcher.job_scale` specific documentation.
 
 Third step: Rendering
 ---------------------
 
 Finally, based on user-defined Jinja templates, ``ABIN LAUNCHER`` creates the input files and the job instructions file associated with our calculation. The content of those input files is based on the information from the geometry file and the configuration file. 
 
-For more details on how this whole rendering process is performed, consult the :doc:`Rendering the templates <abin_launcher.rendering>` specific documentation.
+For more details on how this whole rendering process is performed, consult the :doc:`abin_launcher.rendering` specific documentation.
 
 .. _submitting_step:
 
@@ -146,7 +146,7 @@ where
    mycluster:
      subcommand: <subcommand>
 
-- ``<delay_command>`` is an optional command that can delay the submission of this particular job, which can prove useful if you want to prioritize certain job sizes, consult the :doc:`Job scaling <abin_launcher.job_scale>` specific documentation for details.
+- ``<delay_command>`` is an optional command that can delay the submission of this particular job, which can prove useful if you want to prioritize certain job sizes, consult the :doc:`abin_launcher.job_scale` specific documentation for details.
 - ``<job instructions file>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster. This name must be specified in the :ref:`clusters configuration file <clusters_file>`:
 
 .. code-block:: yaml
@@ -161,6 +161,8 @@ where
 where ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_).
 
 Once the job has been submitted, ``ABIN LAUNCHER`` will proceed to the next configuration file with the same geometry. Once all the configuration files have been treated, it will proceed to the next geometry and treat again all the configuration files for that geometry. At the end of the execution, barring any problems, a job will have been launched for each geometry-configuration combination.
+
+.. _out_dir_struct:
 
 Output directory structure
 --------------------------

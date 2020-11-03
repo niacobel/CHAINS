@@ -190,11 +190,11 @@ print('%12s' % "[ DONE ]")
 # Check jinja templates
 # =========================================================
 
-# Get the path to jinja templates folder (a folder named "Templates" in the same folder as this script)
-path_tpl_dir = os.path.join(code_dir,"Templates")
+# Get the path to jinja templates folder (a folder named "templates" in the same folder as this script)
+path_tpl_dir = os.path.join(code_dir,"templates")
 
 for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates'].values():
-  # Check if all the files specified in the clusters YAML file exists in the Templates folder of control_launcher.
+  # Check if all the files specified in the clusters YAML file exists in the templates folder of control_launcher.
   errors.check_abspath(os.path.join(path_tpl_dir,filename),"Jinja template","file")
 
 # =========================================================

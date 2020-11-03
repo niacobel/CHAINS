@@ -67,7 +67,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template.
     """
 
-    # Check if all the files specified in the clusters YAML file exists in the Templates directory of abin_launcher.
+    # Check if all the files specified in the clusters YAML file exists in the templates directory of abin_launcher.
     
     for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
         abin_errors.check_abspath(os.path.join(misc['path_tpl_dir'],filename),"Jinja template","file")
@@ -176,7 +176,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template.
     """
 
-    # Check if all the files specified in the clusters YAML file exists in the Templates directory of abin_launcher.
+    # Check if all the files specified in the clusters YAML file exists in the templates directory of abin_launcher.
     
     for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
         abin_errors.check_abspath(os.path.join(misc['path_tpl_dir'],filename),"Jinja template","file")
@@ -198,9 +198,9 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     chains_path = os.path.dirname(misc['code_dir'])                      # Get the parent directory from the codes_dir (which is the abin_launcher directory)                         
     check_script_path = os.path.join(chains_path,"check_scripts")
 
-    # Rendering the jinja template for the qchem job manifest
+    # Rendering the jinja template for the qchem job instructions file
   
-    print("{:<80}".format("\nRendering the jinja template for the qchem job manifest ..."), end="")
+    print("{:<80}".format("\nRendering the jinja template for the qchem job instructions file ..."), end="")
   
     render_vars = {
         "mol_name" : misc['mol_name'],

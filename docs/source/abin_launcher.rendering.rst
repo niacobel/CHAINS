@@ -26,7 +26,7 @@ To illustrate how to create those Jinja templates, let's consider two basic exam
 
 .. warning::
 
-   All the Jinja templates must be placed inside the ``Templates`` directory of ``ABIN LAUNCHER``.
+   All the Jinja templates must be placed inside the ``templates`` directory of ``ABIN LAUNCHER``.
 
 ORCA input file template
 ------------------------
@@ -51,14 +51,8 @@ First, we will create an input file template for ORCA_. Consider the geometry op
 
 To make a Jinja template for such an input file, we need to replace every variable part of this input by a Jinja variable:
 
-.. code-block:: jinja
-
-   ! {{ method }} {{ basis_set }} {{ job_type }} 
-   *xyz {{ charge }} {{ multiplicity }}
-   {% for coordinate_line in coordinates -%}
-   {{ coordinate_line }}
-   {% endfor -%}
-   *
+.. literalinclude:: sample_files/sample_orca.inp.jinja
+   :language: jinja
 
 We can intuitively tell that:
 
@@ -80,7 +74,7 @@ The input file is not the only file that needs to be created. We also need to cr
    #!/bin/bash
 
    #SBATCH --output=slurm_output.log
-   #SBATCH --job-name=c2h6_orca
+   #SBATCH --job-name=orca_c2h6_svp
    #SBATCH --mail-user=your@email.com
    #SBATCH --mail-type=FAIL
    #SBATCH --time=0-05:00:00
@@ -102,7 +96,7 @@ Now, we need to replace every variable part of this input by a Jinja variable:
    #!/bin/bash
 
    #SBATCH --output=slurm_output.log
-   #SBATCH --job-name={{ mol_name }}_orca
+   #SBATCH --job-name=orca_{{ mol_name }}_{{ config_name }}
    #SBATCH --mail-user={{ user_email }}
    #SBATCH --mail-type={{ mail_type }}
    #SBATCH --time={{ job_walltime }}
@@ -117,14 +111,14 @@ Now, we need to replace every variable part of this input by a Jinja variable:
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
-Once again, that's it! Now we have a basic functioning job instructions file template for ORCA jobs. However, we can also take this template one step further:
+We are almost done, but there is one more thing we need to take into consideration here: ``ABIN LAUNCHER`` puts a copy of the geometry file inside the job subdirectory (see :ref:`out_dir_struct`). If we don't want that file to be overwrought by the new optimized geometery, we need to rename it before ORCA starts running:
 
 .. code-block:: jinja
 
    #!/bin/bash
 
    #SBATCH --output=slurm_output.log
-   #SBATCH --job-name={{ mol_name }}_{{ prog }}
+   #SBATCH --job-name=orca_{{ mol_name }}_{{ config_name }}
    #SBATCH --mail-user={{ user_email }}
    #SBATCH --mail-type={{ mail_type }}
    #SBATCH --time={{ job_walltime }}
@@ -132,12 +126,23 @@ Once again, that's it! Now we have a basic functioning job instructions file tem
    #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
    #SBATCH --partition={{ partition }}
 
-   echo -e "\n================= {{ prog }} execution begins now =================="
+   echo -e "Renaming the original .xyz file to avoid overwriting it with the new one."
+   cd $SLURM_SUBMIT_DIR
+   mv {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz
 
-   {{ set_env }}
-   {{ command }} {{ mol_name }}.inp > {{ mol_name }}.out 
+   echo -e "\n================= ORCA execution begins now =================="
 
-   echo -e "\n=================  {{ prog }} execution ends now  =================="
+   module load ORCA/4.1.0-OpenMPI-3.1.3
+   /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca {{ mol_name }}.inp > {{ mol_name }}.out 
+
+   echo -e "\n=================  ORCA execution ends now  =================="
+
+Once again, that's it! Now we have a basic functioning job instructions file template for ORCA jobs. 
+
+However, we can also take this template one step further:
+
+.. literalinclude:: sample_files/sample_orca_job.sh.jinja
+   :language: jinja
 
 where the module to load has been replaced by ``{{ set_env }}`` and the command to execute the program has been replaced by ``{{ command }}``.
 
@@ -166,8 +171,9 @@ ORCA input file:
 
 Job instructions file:
 
-- ``{{ mol_name }}`` - defined as the same name as the geometry file (minus the extension)
 - ``{{ prog }}`` - already given as a :ref:`command line argument <abin_arguments>`
+- ``{{ mol_name }}`` - name of the geometry file (minus the extension)
+- ``{{ config_name }}`` - name of the configuration file (minus the extension)
 - ``{{ user_email }}``
 - ``{{ mail_type }}``
 - ``{{ job_walltime }}`` - already defined by the :doc:`job scaling <abin_launcher.job_scale>` process
@@ -179,15 +185,8 @@ Job instructions file:
 
 We can then define the configuration file content as:
 
-.. code-block:: yaml
-
-   method: B3LYP
-   basis-set: def2-SVP
-   job-type: Opt
-   charge: 0
-   multiplicity: 1
-   user-email: your@email.com
-   mail-type: FAIL
+.. literalinclude:: sample_files/svp.yml
+   :language: yaml
 
 For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are dependent on the cluster, it makes more sense to define them in the :ref:`clusters configuration file <clusters_file>`:
 
@@ -256,7 +255,7 @@ As said in the previous section, the rendering functions take six dictionaries a
 - ``misc`` contains all other pertinent details:
 
    - ``code_dir`` is the path towards the ``ABIN LAUNCHER`` directory
-   - ``path_tpl_dir`` is the path towards the ``Templates`` directory in the ``ABIN LAUNCHER`` directory.
+   - ``path_tpl_dir`` is the path towards the ``templates`` directory in the ``ABIN LAUNCHER`` directory.
    - ``mol_name`` is the name of the geometry file (minus the extension)
    - ``config_name`` is the name of the configuration file
 
@@ -321,50 +320,20 @@ Review of the template and configuration files
 
 Before defining the function, we need to review our different files:
 
-First, we have the input file template, that will be named ``orca.inp.jinja``:
+First, we have the input file template, that will be named ``sample_orca.inp.jinja``:
 
-.. code-block:: jinja
+.. literalinclude:: sample_files/sample_orca.inp.jinja
+   :language: jinja
 
-   ! {{ method }} {{ basis_set }} {{ job_type }} 
-   *xyz {{ charge }} {{ multiplicity }}
-   {% for coordinate_line in coordinates -%}
-   {{ coordinate_line }}
-   {% endfor -%}
-   *
+Then, the job instructions file template, that will be named ``sample_orca_job.sh.jinja``:
 
-Then, the job instructions file template, that will be named ``orca_job.sh.jinja``:
+.. literalinclude:: sample_files/sample_orca_job.sh.jinja
+   :language: jinja
 
-.. code-block:: jinja
+Third, the configuration file, named ``svp.yml``:
 
-   #!/bin/bash
-
-   #SBATCH --output=slurm_output.log
-   #SBATCH --job-name={{ mol_name }}_{{ prog }}
-   #SBATCH --mail-user={{ user_email }}
-   #SBATCH --mail-type={{ mail_type }}
-   #SBATCH --time={{ job_walltime }}
-   #SBATCH --ntasks={{ job_cores }}
-   #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
-   #SBATCH --partition={{ partition }}
-
-   echo -e "\n================= {{ prog }} execution begins now =================="
-
-   {{ set_env }}
-   {{ command }} {{ mol_name }}.inp > {{ mol_name }}.out 
-
-   echo -e "\n=================  {{ prog }} execution ends now  =================="
-
-Third, the configuration file:
-
-.. code-block:: yaml
-
-   method: B3LYP
-   basis-set: def2-SVP
-   job-type: Opt
-   charge: 0
-   multiplicity: 1
-   user-email: your@email.com
-   mail-type: FAIL
+.. literalinclude:: sample_files/svp.yml
+   :language: yaml
 
 Finally, let's consider that we have the following clusters configuration file:
 
@@ -420,8 +389,8 @@ We first have to define the names of our Jinja templates.
 
 .. code-block:: python
 
-    tpl_inp = "orca.inp.jinja"
-    tpl_inst = "orca_job.sh.jinja"
+    tpl_inp = "sample_orca.inp.jinja"
+    tpl_inst = "sample_orca_job.sh.jinja"
 
 Then we have to define the names of our rendered files.
 
@@ -461,6 +430,7 @@ Let's proceed with the second template in the same manner:
 
       render_vars = {  
          "mol_name" : misc['mol_name'],
+         "config_name" : misc['config_name'],
          "user_email" : config['user-email'],
          "mail_type" : config['mail-type'],
          "job_walltime" : job_specs['walltime'],
@@ -482,84 +452,8 @@ Finally, we just need to return ``rendered_content`` to the main script so that 
 
 Our function is now ready. This is what it ends up looking like with proper comments and documentation:
 
-.. code-block:: python
-
-   def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
-       """Renders the job instructions file and the input file associated with the ORCA program.
-
-       Parameters
-       ----------
-       mendeleev : dict
-           Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
-           Unused in this function.
-       clusters_cfg : dict
-           Content of the YAML clusters configuration file.
-       config : dict
-           Content of the YAML configuration file.
-       file_data : dict
-           Information extracted by the scanning function from the geometry file.
-       job_specs : dict
-           Contains all information related to the job.
-       misc : dict
-           Contains all the additional variables that did not pertain to the other arguments.
-   
-       Returns
-       -------
-       rendered_content : dict
-           Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
-       
-       Notes
-       -----
-       Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template.
-       """
-
-      # Define the names of the templates
-
-      tpl_inp = "orca.inp.jinja"
-      tpl_inst = "orca_job.sh.jinja"
-
-      # Define the names of the rendered files
-
-      rnd_input = misc['mol_name'] + ".inp"
-      rnd_inst = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['job_instructions']
-
-      # Initialize the dictionary that will be returned by the function
-
-      rendered_content = {}
-
-      # Render the template for the input file
-
-      render_vars = {
-         "method" : config['method'],
-         "basis_set" : config['basis-set'],
-         "job_type" : config['job-type'],
-         "charge" : config['charge'],
-         "multiplicity" : config['multiplicity'],
-         "coordinates" : file_data['atomic_coordinates']
-      }
-
-      rendered_content[rnd_input] = jinja_render(misc['path_tpl_dir'], tpl_inp, render_vars)
-
-      # Render the template for the job instructions file
-
-      render_vars = {  
-         "mol_name" : misc['mol_name'],
-         "user_email" : config['user-email'],
-         "mail_type" : config['mail-type'],
-         "job_walltime" : job_specs['walltime'],
-         "job_cores" : job_specs['cores'],
-         "job_mem_per_cpu" : job_specs['mem_per_cpu'],
-         "partition" : job_specs['partition'],     
-         "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
-         "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-         "prog" : job_specs['prog']
-      }
-
-      rendered_content[rnd_inst] = jinja_render(misc['path_tpl_dir'], tpl_inst, render_vars)
-
-      # Return the content of the rendered files
-
-      return rendered_content
+.. literalinclude:: sample_files/rendering_function.py
+   :language: python
 
 .. Hyperlink targets
 

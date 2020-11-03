@@ -20,7 +20,7 @@ echo -e "===================================================================="
 echo -e "=========================   Running ORCA   ========================="
 echo -e "===================================================================="
 
-echo -e "\nRenaming the original .xyz file to avoid overwriting it."
+echo -e "\nRenaming the original .xyz file to avoid overwriting it with the new one."
 cd $SLURM_SUBMIT_DIR
 mv {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz
 

@@ -164,10 +164,10 @@ print('%12s' % "[ DONE ]")
 # Check jinja templates
 # =========================================================
 
-# Get the path to jinja templates folder (a folder named "Templates" in the same folder as this script)
-path_tpl_dir = os.path.join(code_dir,"Templates")
+# Get the path to jinja templates folder (a folder named "templates" in the same folder as this script)
+path_tpl_dir = os.path.join(code_dir,"templates")
 
-# Check if all the files specified in the config file exist in the Templates folder of results_treatment.
+# Check if all the files specified in the config file exist in the templates folder of results_treatment.
 for filename in config["jinja_templates"].values():
   errors.check_abspath(os.path.join(path_tpl_dir,filename),"Jinja template","file")
 

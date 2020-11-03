@@ -1,0 +1,61 @@
+
+Scanning c3h8.xyz file ...                                                         [ DONE ]
+
+
+**************************************
+     1. Scale index determination     
+**************************************
+
+--------------------------------------------------------------------
+Atom Type    Atomic Number    Number of atoms    Number of electrons   
+--------------------------------------------------------------------
+H            1                8                  8                     
+C            6                3                  18                    
+--------------------------------------------------------------------
+Total                         11                 26                    
+--------------------------------------------------------------------
+
+Scale index:  26
+
+
+*************************************
+     2. Calculation requirements     
+*************************************
+
+--------------------------------------------------
+Scale index:         26                            
+--------------------------------------------------
+Cluster:             lemaitre3                     
+Job scale:           tiny                          
+Job scale limit:     50.0                          
+--------------------------------------------------
+Job partition:       batch                         
+Job walltime:        0-00:10:00                    
+Number of cores:     4                             
+Mem per CPU (MB):    500                           
+--------------------------------------------------
+
+
+********************************************************************
+     3. Generation of the job instructions file and input files     
+********************************************************************
+
+Loading the configuration file tzvp.yml ...                                        [ DONE ]
+
+Rendering the jinja template for the orca input file ...                           [ DONE ]
+
+Rendering the jinja template for the orca job instructions file ...                [ DONE ]
+
+
+*************************
+     4. The end step     
+*************************
+
+The c3h8_tzvp subdirectory has been created at /home/users/n/i/niacobel/abin_docs_sample/orca_jobs
+
+The files tzvp.yml and c3h8.xyz have been successfully copied into the subdirectory.
+
+The c3h8.inp file has been created into the subdirectory
+The orca_job.sh file has been created into the subdirectory
+
+Launching the job ...

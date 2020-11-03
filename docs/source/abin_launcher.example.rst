@@ -1,6 +1,207 @@
-***************************
-Sample run of ABIN LAUNCHER
-***************************
+**********
+Sample run
+**********
 
-.. todo::
-   COMING SOON
+This section will cover a sample run of ``ABIN LAUNCHER``, to get a concrete example of its operating mode. Our study case here includes three molecules (or geometry files) and two configuration files. Our goal is to optimize the geometry of those three molecules with two different basis sets through ORCA_. Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/sample_files>`_.
+
+Preparation
+===========
+
+Jinja templates
+---------------
+
+We will simply use the Jinja templates defined in the :doc:`rendering section <abin_launcher.rendering>` and place them in the ``templates`` directory of ``ABIN LAUNCHER``:
+
+- The template for the ORCA input file, named ``sample_orca.inp.jinja``, is:
+
+.. literalinclude:: sample_files/sample_orca.inp.jinja
+   :language: jinja
+
+- And the one for the job instructions file, named ``sample_orca_job.sh.jinja``, is:
+
+.. literalinclude:: sample_files/sample_orca_job.sh.jinja
+   :language: jinja
+
+Rendering function
+------------------
+
+We will also use the one we defined in the :ref:`rendering section <rendering_fct>`, it is placed in the ``renderer.py`` file which is in this case:
+
+.. literalinclude:: sample_files/renderer.py
+   :language: python
+
+Clusters configuration file
+---------------------------
+
+For this run, we will be running on the LEMAITRE3 cluster from the CECI_, the job scheduler is SLURM and the chosen scaling function is ``total_nb_elec``. 
+
+The clusters configuration file (``clusters.yml``) looks like:
+
+.. literalinclude:: sample_files/clusters.yml
+   :language: yaml
+
+Execution
+=========
+
+Geometries and configuration files
+----------------------------------
+
+Our three molecules are simply |CH4|, |C2H6| and |C3H8|. They are each represented by a XYZ geometry file:
+
+.. |CH4| replace:: CH\ :sub:`4`\ 
+.. |C2H6| replace:: C\ :sub:`2`\ H\ :sub:`6`\ 
+.. |C3H8| replace:: C\ :sub:`3`\ H\ :sub:`8`\ 
+
+- ``ch4.xyz``:
+
+.. literalinclude:: sample_files/ch4.xyz
+
+- ``c2h6.xyz``:
+
+.. literalinclude:: sample_files/c2h6.xyz
+
+- and ``c3h8.xyz``:
+
+.. literalinclude:: sample_files/c3h8.xyz
+
+For our two configuration files, we want to perform a geometry optimization using the DFT method with the B3LYP functional, and the two considered basis sets are def2-SVP and def2-TZVP. Thus, our two files are:
+
+- ``svp.yml``:
+
+.. literalinclude:: sample_files/svp.yml
+   :language: yaml
+
+- and ``tzvp.yml``:
+
+.. literalinclude:: sample_files/tzvp.yml
+   :language: yaml
+
+Let's store those files in two distinct directories: one for the molecule geometries, named ``molecules``, and one for the configuration files, named ``configs``. We will also create a directory for the jobs, named ``orca_jobs``.
+
+This is what our home directory on the cluster now looks like:
+
+.. code-block::
+
+    abin_launcher/ 
+      ├── abin_launcher.py
+      ├── mol_scan.py
+      ├── scaling_fcts.py
+      ├── renderer.py
+      ├── abin_errors.py
+      ├── clusters.yml
+      ├── mendeleev.yml
+      └── templates/
+            ├── sample_orca.inp.jinja
+            └── sample_orca_job.sh.jinja
+    molecules/ 
+      ├── ch4.xyz
+      ├── c2h6.xyz
+      └── c3h8.xyz
+    configs/ 
+      ├── svp.yml
+      └── tzvp.yml
+    orca_jobs/ 
+      └── currently empty
+
+Running ABIN LAUNCHER
+---------------------
+
+.. note::
+
+   Before executing ``ABIN LAUNCHER``, remember to load (manually or through your user profile configuration) your Python distribution, which must include YAML and Jinja2.
+
+We can now execute ``abin_launcher.py`` by running the command
+
+.. code-block:: shell
+
+   python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
+
+This is what appears on the console screen:
+
+.. figure:: figures/abin_launcher_run.png
+    :scale: 65%
+    :align: center
+    :alt: Running ABIN LAUNCHER
+    :figclass: align-center
+    
+    Console output when running ``ABIN LAUNCHER`` (click to zoom in)
+
+And if we take a look at the job queue, we can see our 6 ORCA jobs up and running:
+
+.. figure:: figures/abin_launcher_squeue.png
+    :scale: 80%
+    :align: center
+    :alt: Jobs queue after running ABIN LAUNCHER
+    :figclass: align-center
+    
+    Jobs queue after running ``ABIN LAUNCHER`` (click to zoom in)
+
+Directory structure after execution
+-----------------------------------
+
+If we take a look at the directory structure, it now looks like:
+
+.. code-block::
+
+    abin_launcher/ 
+      └── no changes
+    molecules/
+      └── launched/
+            ├── ch4.xyz
+            ├── c2h6.xyz
+            └── c3h8.xyz
+    configs/ 
+      └── launched/
+            ├── svp.yml
+            └── tzvp.yml
+    orca_jobs/ 
+      └── ch4_svp/
+            ├── ch4.xyz
+            ├── svp.yml
+            ├── ch4.inp
+            ├── orca_job.sh
+            └── ch4_svp.log
+      └── ch4_tzvp/
+            ├── ch4.xyz
+            ├── tzvp.yml
+            ├── ch4.inp
+            ├── orca_job.sh
+            └── ch4_tzvp.log
+      └── c2h6_svp/
+            ├── c2h6.xyz
+            ├── svp.yml
+            ├── c2h6.inp
+            ├── orca_job.sh
+            └── c2h6_svp.log
+      └── c2h6_tzvp/
+            ├── c2h6.xyz
+            ├── tzvp.yml
+            ├── c2h6.inp
+            ├── orca_job.sh
+            └── c2h6_tzvp.log
+      └── c3h8_svp/
+            ├── c3h8.xyz
+            ├── svp.yml
+            ├── c3h8.inp
+            ├── orca_job.sh
+            └── c3h8_svp.log
+      └── c3h8_tzvp/
+            ├── c3h8.xyz
+            ├── tzvp.yml
+            ├── c3h8.inp
+            ├── orca_job.sh
+            └── c3h8_tzvp.log
+
+As you can see, the geometry files and the configuration files have both been archived into a ``launched`` directory created by ``ABIN LAUNCHER``. This is the default behavior, allowing you to reuse the same directories for other geometries and configurations, making it easier to create an alias for the execution command. If you want to turn it off, just add the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively.
+
+A subdirectory has also been created in ``orca_jobs`` for each of the six jobs. Those subdirectories contain the copies of the geometry and the configuration files, the rendered input file and job instructions file, as well as a log file containing the details of the treatment of this geometry-configuration combination by ``ABIN LAUNCHER``. *(The output files created by ORCA will also end up in those subdirectories.)*
+
+As an example, here is what the ``c3h8_tzvp.log`` looks like:
+
+.. literalinclude:: sample_files/c3h8_tzvp.log
+   :language: text
+
+.. Hyperlink targets
+
+.. _CECI: http://www.ceci-hpc.be/
+.. _ORCA: https://www.faccts.de/orca/

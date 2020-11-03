@@ -1,0 +1,37 @@
+lemaitre3:
+  subcommand: sbatch
+  progs:
+    orca:
+      job_instructions: orca_job.sh
+      set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
+      command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
+      scaling_function: total_nb_elec
+      job_scales:
+        - label: tiny
+          scale_limit: 50
+          partition_name: batch
+          time: 0-00:10:00
+          cores: 4
+          mem_per_cpu: 500 # in MB
+          delay_command:
+        - label: small
+          scale_limit: 700
+          partition_name: batch
+          time: 1-00:00:00
+          cores: 8
+          mem_per_cpu: 500 # in MB
+          delay_command:
+        - label: medium
+          scale_limit: 1000
+          partition_name: batch
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 2000 # in MB
+          delay_command: --begin=now+60
+        - label: big
+          scale_limit: 1500
+          partition_name: batch
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+120

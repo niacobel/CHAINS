@@ -1,5 +1,5 @@
 ***********
-Job Scaling
+Job scaling
 ***********
 
 What is job scaling and why does it matter?
@@ -40,7 +40,7 @@ For example, let's say we want to run a geometry optimization on the |Si36Ge11H6
 
 The ``scale_limit`` key defines the upper limit of that job scale for the scale index. This means our molecule is too big for the ``tiny`` and ``small`` scales, which have an upper limit of 50 and 500, respectively. It will then uses the resources defined in the ``medium`` scale, which are: a time limit of 2 days, 8 CPUs and 2 GB of memory per CPU.
 
-Obviously, the key part of this process lies in the quality of the job scales definition. The finer they are, the better the scaling will be. Since this is highly dependent on the program you want to run and the machine on which it will be running, you will need to do extensive testing on your part. If your machine uses SLURM as a job scheduler, you might want to take a look at the :doc:`Benchmarking option <abin_launcher.benchmark>` section.
+Obviously, the key part of this process lies in the quality of the job scales definition. The finer they are, the better the scaling will be. Since this is highly dependent on the program you want to run and the machine on which it will be running, you will need to do extensive testing on your part. If your machine uses SLURM as a job scheduler, you might want to take a look at the :doc:`abin_launcher.benchmark` section.
 
 .. |Si36Ge11H60| replace:: Si\ :sub:`36`\ Ge\ :sub:`11`\ H\ :sub:`60`\ 
 

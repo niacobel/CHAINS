@@ -1,0 +1,6 @@
+! {{ method }} {{ basis_set }} {{ job_type }}
+*xyz {{ charge }} {{ multiplicity }}
+{% for coordinate_line in coordinates -%}
+{{ coordinate_line }}
+{% endfor -%}
+*

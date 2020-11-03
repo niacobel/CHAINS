@@ -41,8 +41,8 @@ else
     if [ ${status} -eq 0 ]; then
       # If successful, archive the source file and the log file
       mv ~/CONTROL/${MOL_NAME}.log ~/CONTROL/${MOL_NAME}/${MOL_NAME}.log
-      mkdir -p ${WATCH_DIR}/Launched
-      mv ${filepath} ${WATCH_DIR}/Launched/
+      mkdir -p ${WATCH_DIR}/launched
+      mv ${filepath} ${WATCH_DIR}/launched/
     fi
   done
 
