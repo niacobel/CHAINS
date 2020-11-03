@@ -53,7 +53,7 @@ extensions.append('sphinx.ext.viewcode')
 extensions.append('code_include.extension')
 
 # Embed youtube videos (https://github.com/divi255/sphinxcontrib.youtube)
-extensions.append('sphinxcontrib.yt')
+# extensions.append('sphinxcontrib.yt')
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

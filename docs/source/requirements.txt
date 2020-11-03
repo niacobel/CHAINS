@@ -1,6 +1,6 @@
 ###### Requirements without Version Specifiers ######
 sphinx-argparse
 sphinx-code-include
-sphinxcontrib.yt
+# sphinxcontrib.yt
 pyyaml
 jinja2
