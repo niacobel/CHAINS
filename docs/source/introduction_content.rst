@@ -27,14 +27,14 @@ As a final note, CHAINS is not a single program but really just a group of scrip
 Languages and Dependencies
 ==========================
 
-.. figure:: figures/logos.*
+.. figure:: https://github.com/niacobel/CHAINS/blob/master/docs/source/figures/logos.png
     :align: center
     :alt: Languages used in CHAINS
     :figclass: align-center
 
     The different languages used by CHAINS
 
-The main language of CHAINS is Python 3.5+ but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. However, there is no need for an in-depth knowledge of anything but Python in order to customize CHAINS, as we only use the basic features of the other languages. Consult the :doc:`chains.know` section for details.
+The main language of CHAINS is Python 3.5+ but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. However, there is no need for an in-depth knowledge of anything but Python in order to customize CHAINS, as we only use the basic features of the other languages. Consult the :doc:`basics.know` section for details.
 
 If your Python distribution does not include YAML and Jinja2, you can install them using
 

@@ -1,6 +1,6 @@
-*************************************
-Benchmarking option for ABIN LAUNCHER
-*************************************
+*******************
+Benchmarking option
+*******************
 
 .. todo::
    COMING SOON

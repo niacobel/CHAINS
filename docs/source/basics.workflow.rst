@@ -1,6 +1,6 @@
-********
-Workflow
-********
+****************
+CHAINS' Workflow
+****************
 
 .. figure:: figures/workflow.*
     :scale: 65%

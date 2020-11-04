@@ -9,9 +9,9 @@
    :maxdepth: 1
    :caption: THE BASICS
 
-   chains.know
-   chains.workflow
-   chains.quickstart
+   basics.know
+   basics.workflow
+   basics.plan
 
 .. toctree::
    :hidden:
@@ -19,13 +19,13 @@
    :maxdepth: 1
    :caption: ABIN LAUNCHER
 
-   Overview <abin_launcher.overview>
-   Scanning the geometry file <abin_launcher.scan>
-   Job scaling <abin_launcher.job_scale>
-   Rendering the templates <abin_launcher.rendering>
-   Other important files <abin_launcher.other>
-   Sample run <abin_launcher.example>
-   Benchmarking option <abin_launcher.benchmark>
+   abin_launcher.overview
+   abin_launcher.scan
+   abin_launcher.job_scale
+   abin_launcher.rendering
+   abin_launcher.other
+   abin_launcher.example
+   abin_launcher.benchmark
 
 .. toctree::
    :hidden:
