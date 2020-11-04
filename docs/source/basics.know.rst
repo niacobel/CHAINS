@@ -2,6 +2,26 @@
 What You Need To Know
 *********************
 
+In this section, we will cover what programming knowledge you will need in order to use CHAINS, and introduce you to some great tutorials that can teach you all about it.
+
+About Python
+============
+
+Python 3.5 is the main language of CHAINS. If you just want to use the scripts without customizing them, a basic beginner's knowledge of Python should be more than enough. Otherwise, you might need to delve just a bit deeper into that language, although we tried to stick with the basics as much as possible. If some lines of code use anything a bit unusual, a link is usually given in the comments for reference.
+
+.. todo::
+
+   Find more complete videos
+
+Here is a Python youtube tutorial for complete beginners, made by Mosh Hamedani:
+
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/kqtD5dpn9C8" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+| 
+| As far as written tutorials go, the `official tutorial <https://docs.python.org/3/tutorial/index.html>`_ is quite complete. The Python Guru `website <https://thepythonguru.com/>`_ also offers some great tutorials, as does `TutorialsTeacher <https://www.tutorialsteacher.com/python>`_. For French speakers, OpenClassRooms also constitutes `a great option <https://openclassrooms.com/fr/courses/235344-apprenez-a-programmer-en-python>`_.
+
 About YAML
 ==========
 
@@ -34,11 +54,28 @@ Here is a small youtube tutorial made by Jason Rigden that will cover the basics
 |
 | With that, you know everything you need to know about Jinja2 in order to use CHAINS! We use the Jinja language to create templates for the input files needed by ORCA_, Q-CHEM_ and QOCT-RA_. We also use it for the job scripts, containing all instructions for the job scheduler (SLURM_ for the CECI clusters). As you may have seen in the video, the Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as Gaussian_ or Molpro_, and any other job scheduler such as Torque_.
 
+About Regular Expressions
+=========================
+
 .. todo::
+
+   Complete this section
+
+Here is a youtube tutorial made by  Corey Schafer that will cover the regular expressions and their uses in Python:
+
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/K8L6KVGG-7o" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+|
+| With that, you know everything you need to know about regular expressions in order to customize CHAINS! 
+
+About Job Schedulers
+====================
+
+.. todo::
+
    COMING SOON
-   Theoretical background
-   Python knowledge
-   Clusters and job scheduler
 
 .. Hyperlink targets
 

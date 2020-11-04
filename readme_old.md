@@ -43,7 +43,7 @@ Right-click > "View Image" to zoom in
             ├── qchem_job.sh.jinja
             └── qchem.in.jinja
       ├── abin_launcher.py
-      ├── mol_scan.py
+      ├── geom_scan.py
       ├── scaling_fcts.py
       ├── renderer.py
       ├── errors.py

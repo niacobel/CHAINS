@@ -84,7 +84,7 @@ This is what our home directory on the cluster now looks like:
 
     abin_launcher/ 
       ├── abin_launcher.py
-      ├── mol_scan.py
+      ├── geom_scan.py
       ├── scaling_fcts.py
       ├── renderer.py
       ├── abin_errors.py
@@ -119,17 +119,17 @@ We can now execute ``abin_launcher.py`` by running the command
 This is what appears on the console screen:
 
 .. figure:: figures/abin_launcher_run.png
-    :scale: 65%
+    :scale: 90%
     :align: center
     :alt: Running ABIN LAUNCHER
     :figclass: align-center
     
     Console output when running ``ABIN LAUNCHER`` (click to zoom in)
 
-And if we take a look at the job queue, we can see our 6 ORCA jobs up and running:
+And if we take a look at the job queue, we can see that our 6 ORCA jobs have indeed been submitted to the job scheduler:
 
 .. figure:: figures/abin_launcher_squeue.png
-    :scale: 80%
+    :scale: 90%
     :align: center
     :alt: Jobs queue after running ABIN LAUNCHER
     :figclass: align-center
@@ -196,7 +196,7 @@ As you can see, the geometry files and the configuration files have both been ar
 
 A subdirectory has also been created in ``orca_jobs`` for each of the six jobs. Those subdirectories contain the copies of the geometry and the configuration files, the rendered input file and job instructions file, as well as a log file containing the details of the treatment of this geometry-configuration combination by ``ABIN LAUNCHER``. *(The output files created by ORCA will also end up in those subdirectories.)*
 
-As an example, here is what the ``c3h8_tzvp.log`` looks like:
+As an example, here is what the ``c3h8_tzvp.log`` file looks like:
 
 .. literalinclude:: sample_files/c3h8_tzvp.log
    :language: text

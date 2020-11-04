@@ -1,5 +1,5 @@
 ################################################################################################################################################
-##                                                                Molecule Scanner                                                            ##
+##                                                             Geometry Files Scanner                                                         ##
 ##                                                                                                                                            ##
 ##                                        This script contains the scanning functions for ABIN LAUNCHER,                                      ##
 ##                                consult the documentation at https://chains-ulb.readthedocs.io/ for details                                 ##
@@ -14,7 +14,7 @@ def xyz_scan(mol_content:list):
     Parameters
     ----------
     mol_content : list
-        Content of the XYZ geometry file.
+        Content of the XYZ geometry file. Each element of the list is a line of the file.
 
     Returns
     -------
@@ -27,34 +27,45 @@ def xyz_scan(mol_content:list):
         If the number of atomic coordinates lines does not match the number of atoms mentioned in the first line of the .xyz file.
     """
 
+    # Initialize the file_data dictionary that will be returned by the function
+
     file_data = {'chemical_formula':{}, 'atomic_coordinates':[]}
     
     # Determining the number of atoms (first line of the xyz file)
     
     nb_atoms = int(mol_content[0])
 
+    # Define the pattern of the atomic coordinates lines (They look like 'Si   -0.31438   1.89081   0.00000')
+    # This is based on regular expressions (regex), consult https://docs.python.org/3/library/re.html for details
+
+    pattern = re.compile(r'^\s*(?P<atomSymbol>[a-zA-Z]{0,3})\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+\s*$')
+
     # Scanning the content of the XYZ file to determine the chemical formula and atomic coordinates of the molecule
-      
-    lines_rx = {
-        # Pattern for finding the atomic coordinates lines
-        # They look like 'Si   -0.31438   1.89081   0.00000' 
-        # This uses regex, for more information, see https://docs.python.org/3/library/re.html)
-        'atomLine': re.compile(
-            r'^\s{0,4}(?P<atomSymbol>[a-zA-Z]{0,3})\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+$')
-    }
     
     checksum_nlines = 0                                                 # This variable will be used to check if the number of coordinate lines matches the number of atoms of the molecule 
     
-    for line in mol_content[2:]:                                        # We only start at the 3rd line because the first two won't contain any coordinates
-      m = lines_rx['atomLine'].match(line)
-      if m is not None:                                                 # We only care if the line looks like an atom coordinates
+    for line in mol_content[2:]:                                        # We only start at the 3rd line ([2:]) because the first two won't contain any coordinates
+      
+      matching_line = pattern.match(line)
+
+      # If the line matches our pattern
+
+      if matching_line is not None:
         checksum_nlines += 1
-        file_data['atomic_coordinates'].append(line)                    # All coordinates will be stored in this variable to be rendered in the input file later on
-        if m.group("atomSymbol") not in file_data['chemical_formula']:
-          file_data['chemical_formula'][m.group("atomSymbol")] = 1
+
+        # Store the line in the 'atomic_coordinates' key to be rendered in the input file later on
+
+        file_data['atomic_coordinates'].append(line)
+
+        # Count the number of occurrences of the atom type
+
+        atom_type = matching_line.group("atomSymbol")
+
+        if atom_type not in file_data['chemical_formula']:
+          file_data['chemical_formula'][atom_type] = 1
         else:
-          file_data['chemical_formula'][m.group("atomSymbol")] += 1
-                
+          file_data['chemical_formula'][atom_type] += 1
+
     # Check if the number of lines matches the number of atoms defined in the first line of the .xyz file
     
     if checksum_nlines != nb_atoms:

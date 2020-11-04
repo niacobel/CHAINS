@@ -23,7 +23,7 @@ The ``ABIN LAUNCHER`` directory has and must have the following structure:
 
     abin_launcher/
       ├── abin_launcher.py
-      ├── mol_scan.py
+      ├── geom_scan.py
       ├── scaling_fcts.py
       ├── renderer.py
       ├── abin_errors.py
@@ -34,7 +34,7 @@ The ``ABIN LAUNCHER`` directory has and must have the following structure:
 As for what each file does, everything will be explained in more details in the other sections of this documentation, but here is a short summary:
 
 - ``abin_launcher.py`` is the main script itself, the one that needs to be executed.
-- ``mol_scan.py`` is the library of functions that define how to scan the geometry files, i.e. how to read and interpret them.
+- ``geom_scan.py`` is the library of functions that define how to scan the geometry files, i.e. how to read and interpret them.
 - ``scaling_fcts`` is the library of functions that define how to determine the job size, by calculating what we defined as the scale index.
 - ``renderer.py`` is the library of functions that define how to render the Jinja templates, i.e. how to create the input files and the job instructions file.
 - ``abin_errors.py`` contains all the classes and functions defining :ref:`how to handle errors <abin_errors>`.
