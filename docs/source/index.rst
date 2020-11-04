@@ -56,4 +56,4 @@
 Welcome to CHAINS' documentation
 ********************************
 
-.. include:: introduction_content.rst
+.. include:: ../../readme.rst
