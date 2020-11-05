@@ -1,7 +1,23 @@
-.. image:: https://readthedocs.org/projects/chains-ulb/badge/
+.. badges
+
+|GitHub Page| |Documentation Status| |GitHub License| |DOI|
+
+.. |GitHub Page| image:: https://img.shields.io/website-up-down-green-red/https/github.com/niacobel/CHAINS.svg
+   :alt: GitHub Page
+   :target: https://github.com/niacobel/CHAINS
+
+.. |Documentation Status| image:: https://readthedocs.org/projects/chains-ulb/badge/
     :alt: Documentation Status
-    :scale: 100%
     :target: https://chains-ulb.readthedocs.io/en/latest/?badge=latest
+
+.. |GitHub License| image:: https://img.shields.io/github/license/niacobel/CHAINS.svg
+   :alt: GitHub License
+   :target: https://github.com/niacobel/CHAINS/blob/master/LICENSE
+
+.. |DOI| image:: https://zenodo.org/badge/DOI/not-yet.svg
+
+.. .. |DOI| image:: https://zenodo.org/badge/DOI/10.1007/978-3-319-76207-4_15.svg
+   :target: https://doi.org/10.1007/978-3-319-76207-4_15
 
 What is CHAINS?
 ===============

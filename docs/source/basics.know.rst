@@ -73,7 +73,7 @@ Regular Expressions can present themselves as incredibly unintuitive but their v
    <iframe width="560" height="315" src="https://www.youtube.com/embed/K8L6KVGG-7o" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 |
-| With that, you know everything you need to know about regular expressions in order to customize CHAINS! 
+| With that, you know everything you need to know about regular expressions in order to customize CHAINS! To make it easier to work with regexes, feel free to use the `regex101 website <https://regex101.com/>`_ which can help you to build and understand them.
 
 .. todo::
 
