@@ -1,3 +1,8 @@
+.. image:: https://readthedocs.org/projects/chains-ulb/badge/
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://chains-ulb.readthedocs.io/en/latest/?badge=latest
+
 What is CHAINS?
 ===============
 
@@ -50,7 +55,7 @@ Acknowledgment
 
 CHAINS makes use of a YAML version of Mendeleev's periodic table procured by `AlexGustafsson's molecular-data Github repository`_.
 
-The main developer of CHAINS, Nicolas Iacobellis, would also like to express his deepest gratitude and give a shout-out to his friend, `Benjamin D'Heure`_, for its tremendous help and essential expertise during the code development. Without him, this project might not have existed, or would have at least taken a different form.
+The main developer of CHAINS, Nicolas Iacobellis, would also like to express his deepest gratitude and give a shout-out to his friend, Benjamin D'Heure (`Linkedin page`_), for its tremendous help and essential expertise during the code development. Without him, this project might not have existed, or would have at least taken a different form.
 
 License
 =======
@@ -61,18 +66,14 @@ License
 .. Hyperlink targets
 
 .. _`AlexGustafsson's molecular-data Github repository`: https://github.com/AlexGustafsson/molecular-data
-.. _`Benjamin D'Heure`: https://www.linkedin.com/in/bdheure/
+.. _`Linkedin page`: https://www.linkedin.com/in/bdheure/
 .. _CECI: http://www.ceci-hpc.be/
-.. _Gaussian: https://gaussian.com/
 .. _Gnuplot: http://www.gnuplot.info/
 .. _Jinja2: https://jinja.palletsprojects.com/en/2.11.x/ 
 .. _LaTeX: https://www.latex-project.org/
-.. _Molpro: https://www.molpro.net/
 .. _ORCA: https://www.faccts.de/orca/
 .. _Q-CHEM: https://www.q-chem.com/
 .. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA
-.. _SLURM: https://slurm.schedmd.com/documentation.html
 .. _SQUARES: https://www2.ulb.ac.be/cpm/index.html
-.. _Torque: https://github.com/adaptivecomputing/torque
 .. _ULB: https://www.ulb.be/
 .. _YAML: https://yaml.org/

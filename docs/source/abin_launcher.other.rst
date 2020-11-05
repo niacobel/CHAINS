@@ -15,7 +15,6 @@ The clusters configuration file, named ``clusters.yml``, is the YAML file contai
      subcommand: value
      progs:
        myprog1:
-         job_instructions: value
          set_env: value
          command: value
          scaling_function: name-of-scaling-function
@@ -39,7 +38,6 @@ The clusters configuration file, named ``clusters.yml``, is the YAML file contai
            - 
              ...
        myprog2:
-         job_instructions: value
          set_env: value
          command: value
          scaling_function: name-of-scaling-function
@@ -86,7 +84,6 @@ This is what the file might look like in this situation:
      subcommand: sbatch
      progs:
        orca:
-         job_instructions: orca_job.sh
          set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
          command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
          scaling_function: total_nb_elec
@@ -126,7 +123,6 @@ This is what the file might look like in this situation:
      subcommand: sbatch
      progs:
        orca:
-         job_instructions: orca_job.sh
          set_env: module load orca/4.0.1.2
          command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
          scaling_function: total_nb_elec
@@ -154,7 +150,6 @@ This is what the file might look like in this situation:
              mem_per_cpu: 2000 # in MB
              delay_command: --begin=now+60
        qchem:
-         job_instructions: qchem_job.sh
          set_env: module load Q-Chem/5.3.0-SHMEM
          command: srun qchem
          scaling_function: total_nb_elec

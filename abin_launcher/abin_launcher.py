@@ -50,10 +50,11 @@ required.add_argument('-cl', '--cluster_name', type=str, help="Name of the clust
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit.')
 optional.add_argument("-ow","--overwrite",action="store_true",help="If a job subdirectory for a geometry-configuration combination already exists, remove it before creating a new one.")
-optional.add_argument('--max', type=int, help="Maximum number of geometry or configuration files that will be treated.")
+optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files and directories.")
+optional.add_argument('--max_mol', type=int, help="Maximum number of geometry files that will be treated.")
+optional.add_argument('--max_cf', type=int, help="Maximum number of configuration files that will be treated.")
 optional.add_argument("-km","--keep_mol",action="store_true",help="Do not archive the geometry files after they have been processed and leave them where they are.")
 optional.add_argument("-kc","--keep_cf",action="store_true",help="Do not archive the configuration files after they have been processed and leave them where they are.")
-optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files and directories.")
 
 # =================================================================== #
 # =================================================================== #
@@ -99,6 +100,7 @@ def main():
 
     mol_inp = args.mol_inp                   # Geometry file or directory containing the geometry files
     config_inp = args.config                 # YAML configuration file or directory containing the YAML configuration files
+
     prog = args.program                      # Name of the program for which files need to be created
     out_dir = args.out_dir                   # Directory where all jobs subdirectories will be created
     cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
@@ -106,11 +108,14 @@ def main():
     # Optional arguments
 
     overwrite = args.overwrite               # Flag for removing job subdirectories before creating a new one, if they have the same name
-    max = args.max                           # Maximum number of geometry or configuration files that will be treated
-    keep_mol = args.keep_mol                 # Flag for keeping the geometry files where they are
-    keep_cf = args.keep_cf                   # Flag for keeping the configuration files where they are
     dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
 
+    max_mol = args.max_mol                   # Maximum number of geometry files that will be treated
+    max_cf = args.max_cf                     # Maximum number of configuration files that will be treated
+    
+    keep_mol = args.keep_mol                 # Flag for keeping the geometry files where they are
+    keep_cf = args.keep_cf                   # Flag for keeping the configuration files where they are
+    
     # Format of the molecule files
 
     mol_fmt = "xyz"                          # If you decide to add format as a command line argument, replace "xyz" by args.format
@@ -204,13 +209,12 @@ def main():
     # Sort the different job scales by their upper limit and store them in the job_scales dictionary
 
     for scale in job_scales_tmp:
-      scale_limit = scale['scale_limit']
-      del scale['scale_limit']
-      job_scales[float(scale_limit)] = scale
+      scale_limit = scale.pop('scale_limit')
+      job_scales[scale_limit] = scale
 
-    print("\nJob scales for %s on %s:" % (prog,cluster_name.upper()))
     job_scales = OrderedDict(sorted(job_scales.items()))
 
+    print("\nJob scales for %s on %s:" % (prog,cluster_name.upper()))
     print("")
     print(''.center(106, '-'))
     print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)'))
@@ -226,42 +230,50 @@ def main():
     out_dir = abin_errors.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
     print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
-    if max != None and max <= 0:
-      raise abin_errors.AbinError ("ERROR: The specified max value (%s) must be a non-zero positive integer" % max)
+    if max_mol != None and max_mol <= 0:
+      raise abin_errors.AbinError ("ERROR: The specified max_mol value (%s) must be a non-zero positive integer" % max_mol)
+
+    if max_cf != None and max_cf <= 0:
+      raise abin_errors.AbinError ("ERROR: The specified max_cf value (%s) must be a non-zero positive integer" % max_cf)
 
     # Check geometry file(s)
     # ======================
 
     mol_inp = abin_errors.check_abspath(mol_inp,"Command line argument -m / --mol_inp")
 
+    # If the argument mol_inp is a directory, we need to look for every geometry file with the given format in that directory.
+
     if os.path.isdir(mol_inp):
 
-      # If the argument mol_inp is a directory, we need to look for every geometry file with the given format in that directory.
-
       print("{:<40} {:<100}".format("\nLooking for %s geometry files in" % mol_ext, mol_inp + " ..."), end="")
+      
       mol_inp_path = mol_inp
 
-      # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
+      # Define which type of file we are looking for (*.mol_ext) in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
 
-      rule = re.compile(fnmatch.translate("*." + mol_fmt), re.IGNORECASE)
+      rule = re.compile(fnmatch.translate("*" + mol_ext), re.IGNORECASE)
 
       # Find all matching files in mol_inp directory
 
-      mol_inp_list = [mol for mol in os.listdir(mol_inp) if rule.match(mol)]
+      mol_inp_list = [mol_file for mol_file in os.listdir(mol_inp) if rule.match(mol_file)]
+
       if mol_inp_list == []:
         raise abin_errors.AbinError ("ERROR: Can't find any geometry of the %s format in %s" % (mol_ext,mol_inp_path))
-      if max:
-        mol_inp_list = mol_inp_list[0:max]
+
+      if max_mol:
+        mol_inp_list = mol_inp_list[0:max_mol]
+
       print('%12s' % "[ DONE ]")
+
+    # If given a single geometry file as argument, check its extension.
 
     else:
 
       print ("{:<40} {:<100}".format('\nGeometry file:',mol_inp))
 
-      # If given a single geometry file as argument, check its extension.
-
       if os.path.isfile(mol_inp) and os.path.splitext(mol_inp)[-1].lower() != (mol_ext.lower()):
         raise abin_errors.AbinError ("  ^ ERROR: This is not an %s file." % mol_fmt)
+
       mol_inp_path = os.path.dirname(mol_inp)
       mol_inp_file = os.path.basename(mol_inp)
       mol_inp_list = [mol_inp_file]
@@ -271,11 +283,12 @@ def main():
 
     config_inp = abin_errors.check_abspath(config_inp,"Command line argument -cf / --config")
 
+    # If the argument config_inp is a directory, we need to look for every YAML configuration file in that directory.
+
     if os.path.isdir(config_inp):
 
-      # If the argument config_inp is a directory, we need to look for every YAML configuration file in that directory.
-
       print("{:<40} {:<100}".format("\nLooking for .yml or .yaml files in", config_inp + " ..."), end="")
+
       config_inp_path = config_inp
 
       # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
@@ -286,20 +299,24 @@ def main():
       # Find all matching files in config_inp directory
 
       config_inp_list = [config for config in os.listdir(config_inp) if (rule.match(config) or rule2.match(config))]
+
       if config_inp_list == []:
         raise abin_errors.AbinError ("ERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
-      if max:
-        config_inp_list = config_inp_list[0:max]
+
+      if max_cf:
+        config_inp_list = config_inp_list[0:max_cf]
+
       print('%12s' % "[ DONE ]")
+
+    # If given a single config file as argument, check its extension.
 
     else:
 
       print ("{:<40} {:<100}".format('\nConfiguration file:',config_inp))
 
-      # If given a single config file as argument, check its extension.
-
       if os.path.isfile(config_inp) and os.path.splitext(config_inp)[-1].lower() != (".yml") and os.path.splitext(config_inp)[-1].lower() != (".yaml"):
         raise abin_errors.AbinError ("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
+
       config_inp_path = os.path.dirname(config_inp)
       config_inp_file = os.path.basename(config_inp)
       config_inp_list = [config_inp_file]
@@ -517,7 +534,7 @@ def main():
 
         # Get the path to the jinja templates directory (a directory named "templates" in the same directory as this script)
         
-        path_tpl_dir = os.path.join(code_dir,"templates")
+        templates_dir = os.path.join(code_dir,"templates")
 
         # Build a dictionary that will contain all information related to the job
 
@@ -539,14 +556,14 @@ def main():
 
         misc = {  
             "code_dir" : code_dir,
-            "path_tpl_dir" : path_tpl_dir,
+            "templates_dir" : templates_dir,
             "mol_name" : mol_name,
             "config_name" : config_name
             }
 
         # Call the rendering function (defined in renderer.py, see the documentation for more information)
 
-        rendered_content = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)
+        rendered_content, rendered_instructions = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)
         
         # ========================================================= #
         # The end step                                              #
@@ -598,8 +615,7 @@ def main():
 
           subcommand = clusters_cfg[cluster_name]['subcommand']
           delay_command = str(jobscale.get("delay_command") or '')   # If delay_command is not defined in the job scales, an empty string is put in its place.
-          job_inst = clusters_cfg[cluster_name]['progs'][prog]['job_instructions']
-          launch_command = subcommand + " " + delay_command + " " + job_inst
+          launch_command = subcommand + " " + delay_command + " " + rendered_instructions
 
           # Execute the command and get the command status
 

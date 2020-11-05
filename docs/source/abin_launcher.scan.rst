@@ -42,7 +42,7 @@ Defined in the ``geom_scan.py`` file, the ``xyz_scan`` function receives the con
 - The first key, ``chemical_formula``, contains a dictionary where each *key:value* pair corresponds to an atom type and the number of atoms of that type in the molecule. For example, the value for the ``chemical_formula`` key for |H3PO4| is *{'H':3, 'P':1, 'O':4}*.
 - The second key, ``atomic_coordinates`` is simply a list of the atomic coordinates lines of the XYZ file.
 
-By making use of `regular expressions`_, the function detects all the lines that have the *<atom type> <x coordinate> <y coordinate> <z coordinate>* pattern and stores them as a list into ``atomic_coordinates``. For ``chemical_formula``, the function counts the number of occurrences of each atom type as it reads it at the beginning of each coordinates line.
+By making use of :ref:`regular expressions <regex>`, the function detects all the lines that have the *<atom type> <x coordinate> <y coordinate> <z coordinate>* pattern and stores them as a list into ``atomic_coordinates``. For ``chemical_formula``, the function counts the number of occurrences of each atom type as it reads it at the beginning of each coordinates line.
 
 .. |H3PO4| replace:: H\ :sub:`3`\ PO\ :sub:`4`\ 
 
@@ -96,7 +96,3 @@ All the scanning functions must be defined in the ``geom_scan.py`` file and need
 - They must return a dictionary (``file_data``), following the pattern :code:`{ 'chemical_formula' : { }, 'atomic_coordinates' : [ ] }` (you can add additional keys if you want).
   
 If a problem arises when scanning the molecule file, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
-
-.. Hyperlink targets
-
-.. _`regular expressions`: https://www.regular-expressions.info/

@@ -87,9 +87,9 @@ There are two main input files for ``ABIN LAUNCHER``:
 - The **geometry files**, given by the ``-m / --mol_inp`` subcommand, are the files presenting the nature and the structure of your molecules. They contain the type and number of the constituting atoms and their respective coordinates.
 - The **configuration files**, given by the ``-cf / --config`` subcommand, are the YAML files containing the parameters specific to your calculations and your programs (job type, basis set, etc.). Those files must have the .yml or .yaml extension.
 
-In both cases, you can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple input files, ``ABIN LAUNCHER`` will create the input files and launch the jobs corresponding to each geometry-configuration combination. For example, if you have 5 geometry files and 3 configuration files, you will end up with 15 launched jobs on your cluster.
+In both cases, you can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple input files, ``ABIN LAUNCHER`` will process each geometry-configuration combination. For example, if you have 5 geometry files and 3 configuration files, you will end up with 15 launched jobs on your cluster.
 
-By default, every input file that has been *successfully* processed by ``ABIN LAUNCHER`` will be **archived** in a ``launched`` directory created in the same directory as the input files. This has been designed this way so that you can repeatedly use the same directory as "source" for those input files without repeating jobs. If you want to turn off this behavior, you can use the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively.
+By default, every input file that has been *successfully* processed by ``ABIN LAUNCHER`` will be **archived** in a ``launched`` directory created in the same directory as the input files. This has been designed this way so that you can repeatedly use the same directory as "source" for those input files without repeating jobs. If you want to turn off this behavior, you can use the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively. Note that if a problem occurs when processing a particular geometry-configuration combination, both the geometry file and the configuration file will be kept in place.
 
 Other arguments
 ---------------
@@ -152,16 +152,7 @@ where
      subcommand: <subcommand>
 
 - ``<delay_command>`` is an optional command that can delay the submission of this particular job, which can prove useful if you want to prioritize certain job sizes, consult the :doc:`abin_launcher.job_scale` specific documentation for details.
-- ``<job instructions file>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster. This name must be specified in the :ref:`clusters configuration file <clusters_file>`:
-
-.. code-block:: yaml
-
-   mycluster:
-     progs:
-       myprog1:
-         job_instructions: <job instructions file>
-       myprog2:
-         job_instructions: <another job instructions file>
+- ``<job instructions file>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.
 
 where ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_).
 

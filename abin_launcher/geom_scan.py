@@ -35,16 +35,20 @@ def xyz_scan(mol_content:list):
     
     nb_atoms = int(mol_content[0])
 
+    # Initialize a variable will be used to check if the number of coordinate lines matches the number of atoms of the molecule
+
+    checksum_nlines = 0 
+
     # Define the pattern of the atomic coordinates lines (They look like 'Si   -0.31438   1.89081   0.00000')
     # This is based on regular expressions (regex), consult https://docs.python.org/3/library/re.html for details
+    # You can also paste everything inside the raw string (r'<here>') on https://regex101.com for an explanation of this particular regex (use your .xyz file as a test string on the site)
 
-    pattern = re.compile(r'^\s*(?P<atomSymbol>[a-zA-Z]{0,3})\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+\s+[-]?\d+\.\d+\s*$')
+    pattern = re.compile(r'^\s*(?P<atomSymbol>[a-zA-Z]{1,3})(?:\s+-?\d+\.\d+){3}\s*$')
 
     # Scanning the content of the XYZ file to determine the chemical formula and atomic coordinates of the molecule
+    # We only start at the 3rd line ([2:]) because the first two won't contain any coordinates
     
-    checksum_nlines = 0                                                 # This variable will be used to check if the number of coordinate lines matches the number of atoms of the molecule 
-    
-    for line in mol_content[2:]:                                        # We only start at the 3rd line ([2:]) because the first two won't contain any coordinates
+    for line in mol_content[2:]:                                        
       
       matching_line = pattern.match(line)
 
@@ -71,4 +75,6 @@ def xyz_scan(mol_content:list):
     if checksum_nlines != nb_atoms:
       raise abin_errors.AbinError("ERROR: Number of atomic coordinates lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, nb_atoms))
   
+    # Scanning complete, now return file_data
+
     return file_data

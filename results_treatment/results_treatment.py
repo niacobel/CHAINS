@@ -31,14 +31,14 @@ import errors
 # ===================================================================
 # ===================================================================
 
-def jinja_render(path_tpl_dir, tpl, render_vars):
+def jinja_render(templates_dir, template_file, render_vars):
     """Renders a file based on its jinja template.
 
     Parameters
     ----------
-    path_tpl_dir : str
+    templates_dir : str
         The path towards the directory where the jinja template is located
-    tpl : str
+    template_file : str
         The name of the jinja template file
     render_vars : dict
         Dictionary containing the definitions of all the variables present in the jinja template
@@ -49,8 +49,8 @@ def jinja_render(path_tpl_dir, tpl, render_vars):
         Content of the rendered file
     """
    
-    environment = jinja2.Environment(loader=jinja2.FileSystemLoader(path_tpl_dir))
-    output_text = environment.get_template(tpl).render(render_vars)
+    environment = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
+    output_text = environment.get_template(template_file).render(render_vars)
     
     return output_text
 
@@ -165,11 +165,11 @@ print('%12s' % "[ DONE ]")
 # =========================================================
 
 # Get the path to jinja templates folder (a folder named "templates" in the same folder as this script)
-path_tpl_dir = os.path.join(code_dir,"templates")
+templates_dir = os.path.join(code_dir,"templates")
 
 # Check if all the files specified in the config file exist in the templates folder of results_treatment.
 for filename in config["jinja_templates"].values():
-  errors.check_abspath(os.path.join(path_tpl_dir,filename),"Jinja template","file")
+  errors.check_abspath(os.path.join(templates_dir,filename),"Jinja template","file")
 
 # =========================================================
 # Check gnuplot scripts
@@ -466,7 +466,7 @@ for mol_name in mol_inp_list:
 
     rendered_file_path = os.path.join(out_dir, rnd_states)
     with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-      result_file.write(jinja_render(path_tpl_dir, tpl_states, render_vars))
+      result_file.write(jinja_render(templates_dir, tpl_states, render_vars))
 
     created_files.append(rnd_states)
 
@@ -505,7 +505,7 @@ for mol_name in mol_inp_list:
 
     rendered_file_path = os.path.join(out_dir, rnd_coupling)
     with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-      result_file.write(jinja_render(path_tpl_dir, tpl_coupling, render_vars))
+      result_file.write(jinja_render(templates_dir, tpl_coupling, render_vars))
 
     created_files.append(rnd_coupling)
 
@@ -544,7 +544,7 @@ for mol_name in mol_inp_list:
 
     rendered_file_path = os.path.join(out_dir, rnd_momdip)
     with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-      result_file.write(jinja_render(path_tpl_dir, tpl_momdip, render_vars))
+      result_file.write(jinja_render(templates_dir, tpl_momdip, render_vars))
 
     created_files.append(rnd_momdip)
 
@@ -632,7 +632,7 @@ for mol_name in mol_inp_list:
 
       rendered_file_path = os.path.join(out_dir, pop_script)
       with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-        result_file.write(jinja_render(path_tpl_dir, tpl_pop, render_vars))
+        result_file.write(jinja_render(templates_dir, tpl_pop, render_vars))
 
       created_files.append(pop_script)
 
@@ -788,7 +788,7 @@ for mol_name in mol_inp_list:
 
     rendered_file_path = os.path.join(out_dir, rnd_pdf)
     with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-      result_file.write(jinja_render(path_tpl_dir, tpl_pdf, render_vars))
+      result_file.write(jinja_render(templates_dir, tpl_pdf, render_vars))
 
     created_files.append(rnd_pdf)
 

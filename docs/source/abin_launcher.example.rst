@@ -192,7 +192,7 @@ If we take a look at the directory structure, it now looks like:
             ├── orca_job.sh
             └── c3h8_tzvp.log
 
-As you can see, the geometry files and the configuration files have both been archived into a ``launched`` directory created by ``ABIN LAUNCHER``. This is the default behavior, allowing you to reuse the same directories for other geometries and configurations, making it easier to create an alias for the execution command. If you want to turn it off, just add the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively.
+As you can see, since they have been successfully processed, the geometry files and the configuration files have both been archived into a ``launched`` directory created by ``ABIN LAUNCHER``. This is the default behavior, allowing you to reuse the same directories for other geometries and configurations, making it easier for example to create an alias for the execution command. If you want to turn it off, just add the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively.
 
 A subdirectory has also been created in ``orca_jobs`` for each of the six jobs. Those subdirectories contain the copies of the geometry and the configuration files, the rendered input file and job instructions file, as well as a log file containing the details of the treatment of this geometry-configuration combination by ``ABIN LAUNCHER``. *(The output files created by ORCA will also end up in those subdirectories.)*
 

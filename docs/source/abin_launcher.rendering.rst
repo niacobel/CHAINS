@@ -229,8 +229,10 @@ All the rendering functions must be defined in the ``renderer.py`` file and need
 
 - They need to be called *prog_render*, where *prog* is the name of the program as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. 
 - They take six dictionaries as arguments: ``mendeleev``, ``clusters_cfg``, ``config``, ``file_data``, ``job_specs`` and ``misc`` (see the next subsection for details).
-- They must return a dictionary where each key is the name of the file and each value the rendered content of that file, e.g. {name_of_input_file:content_of_input_file ; name_of_job_file:content_of_job_file}.
-- The name of the rendered job instructions file must be taken from the ``job_instructions`` key in the :ref:`clusters configuration file <clusters_file>`.
+- They must return two variables : 
+
+   - A dictionary where each key is the name of the file and each associated value the rendered content of that file, for example {input_filename:input_content ; job_filename:job_content}.
+   - The name of the rendered job instructions file, needed by the main script to launch the job on the cluster.
 
 If a problem arises when rendering the templates, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
 
@@ -255,7 +257,7 @@ As said in the previous section, the rendering functions take six dictionaries a
 - ``misc`` contains all other pertinent details:
 
    - ``code_dir`` is the path towards the ``ABIN LAUNCHER`` directory
-   - ``path_tpl_dir`` is the path towards the ``templates`` directory in the ``ABIN LAUNCHER`` directory.
+   - ``templates_dir`` is the path towards the ``templates`` directory in the ``ABIN LAUNCHER`` directory.
    - ``mol_name`` is the name of the geometry file (minus the extension)
    - ``config_name`` is the name of the configuration file
 
@@ -270,13 +272,13 @@ In essence, the rendering functions have a pretty simple structure: their task i
 
       # Define the names of the templates
 
-      tpl_inp = "name_of_input_template"
-      tpl_inst = "name_of_job_instructions_template"
+      template_input = "name_of_input_template"
+      template_instructions = "name_of_job_instructions_template"
 
       # Define the names of the rendered files
 
-      rnd_input = "name_of_created_input_file"
-      rnd_inst = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['job_instructions']
+      rendered_input = "name_of_created_input_file"
+      rendered_instructions = "name_of_created_job_instructions_file"
 
       # Initialize the dictionary that will be returned by the function
 
@@ -291,7 +293,7 @@ In essence, the rendering functions have a pretty simple structure: their task i
          ...
       }
 
-      rendered_content[rnd_input] = jinja_render(misc['path_tpl_dir'], tpl_inp, render_vars)
+      rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
 
       # Render the template for the job instructions file
 
@@ -302,11 +304,11 @@ In essence, the rendering functions have a pretty simple structure: their task i
          ...
       }
 
-      rendered_content[rnd_inst] = jinja_render(misc['path_tpl_dir'], tpl_inst, render_vars)
+      rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
 
-      # Return the content of the rendered files
+      # Return the content of the rendered files and the name of the rendered job instructions file
 
-      return rendered_content
+      return rendered_content, rendered_instructions
 
 A concrete example of rendering function is presented in the next subsection. Note however that some additional steps might be required depending on each specific case.
 
@@ -342,7 +344,6 @@ Finally, let's consider that we have the following clusters configuration file:
    myclusterA: 
      progs:
        orca:
-         job_instructions: orca_job.sh
          set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
          command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca           
          scaling_function: total_nb_elec
@@ -393,15 +394,15 @@ We first have to define the names of our Jinja templates.
 
 .. code-block:: python
 
-    tpl_inp = "sample_orca.inp.jinja"
-    tpl_inst = "sample_orca_job.sh.jinja"
+    template_input = "sample_orca.inp.jinja"
+    template_instructions = "sample_orca_job.sh.jinja"
 
 Then we have to define the names of our rendered files.
 
 .. code-block:: python
 
-    rnd_input = misc['mol_name'] + ".inp"
-    rnd_inst = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['job_instructions']
+    rendered_input = misc['mol_name'] + ".inp"
+    rendered_instructions = "orca_job.sh"
 
 Next comes the initialization of the ``rendered_content`` dictionary, where each key will be the name of the file and each value the rendered content of that file. (This is what the function will return.)
 
@@ -422,11 +423,11 @@ Now, let's define the content of our input file. This content is stored in the `
          "coordinates" : file_data['atomic_coordinates']
       }
 
-Our first template is now ready to be rendered, let's call the ``jinja_render`` function and store the result into ``rendered_content`` under the key ``rnd_input`` (the name of our rendered file):
+Our first template is now ready to be rendered, let's call the ``jinja_render`` function and store the result into ``rendered_content`` under the key ``rendered_input`` (the name of our rendered file):
 
 .. code-block:: python
 
-    rendered_content[rnd_input] = jinja_render(misc['path_tpl_dir'], tpl_inp, render_vars)
+    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
 
 Let's proceed with the second template in the same manner:
      
@@ -446,13 +447,13 @@ Let's proceed with the second template in the same manner:
          "prog" : job_specs['prog']
       }
 
-      rendered_content[rnd_inst] = jinja_render(misc['path_tpl_dir'], tpl_inst, render_vars)
+      rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
 
-Finally, we just need to return ``rendered_content`` to the main script so that the rendered content can be printed to the respective files:
+Finally, we just need to return ``rendered_content`` and ``rendered_instructions`` to the main script, so that the rendered content can be printed to the different files and the job can be launched on the cluster:
 
 .. code-block:: python
 
-    return rendered_content
+    return rendered_content, rendered_instructions
 
 Our function is now ready. This is what it ends up looking like with proper comments and documentation:
 

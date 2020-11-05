@@ -12,14 +12,14 @@ from jinja2 import Environment, FileSystemLoader
 import abin_errors
 
 
-def jinja_render(path_tpl_dir:str, tpl:str, render_vars:dict):
+def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
     """Renders a file based on its jinja template.
 
     Parameters
     ----------
-    path_tpl_dir : str
+    templates_dir : str
         The path towards the directory where the jinja template is located.
-    tpl : str
+    template_file : str
         The name of the jinja template file.
     render_vars : dict
         Dictionary containing the definitions of all the variables present in the jinja template.
@@ -30,9 +30,9 @@ def jinja_render(path_tpl_dir:str, tpl:str, render_vars:dict):
         Content of the rendered file.
     """
    
-    file_loader = FileSystemLoader(path_tpl_dir)
+    file_loader = FileSystemLoader(templates_dir)
     env = Environment(loader=file_loader)
-    template = env.get_template(tpl)
+    template = env.get_template(template_file)
     output_text = template.render(render_vars)
     
     return output_text
@@ -66,6 +66,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     -------
     rendered_content : dict
         Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
+    rendered_instructions : str
+        Name of the rendered job instructions file, necessary to launch the job.
     
     Notes
     -----
@@ -74,13 +76,13 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     
     # Define the names of the templates
     
-    tpl_inp = "sample_orca.inp.jinja"
-    tpl_inst = "sample_orca_job.sh.jinja"
+    template_input = "sample_orca.inp.jinja"
+    template_instructions = "sample_orca_job.sh.jinja"
     
     # Define the names of the rendered files
     
-    rnd_input = misc['mol_name'] + ".inp"
-    rnd_inst = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['job_instructions']
+    rendered_input = misc['mol_name'] + ".inp"
+    rendered_instructions = "orca_job.sh"
     
     # Initialize the dictionary that will be returned by the function
     
@@ -99,7 +101,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
       "coordinates" : file_data['atomic_coordinates']
     }
     
-    rendered_content[rnd_input] = jinja_render(misc['path_tpl_dir'], tpl_inp, render_vars)
+    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
     
     print('%12s' % "[ DONE ]")
 
@@ -121,10 +123,10 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
       "prog" : job_specs['prog']
     }
     
-    rendered_content[rnd_inst] = jinja_render(misc['path_tpl_dir'], tpl_inst, render_vars)
+    rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
     
     print('%12s' % "[ DONE ]")
 
-    # Return the content of the rendered files
+    # Return the content of the rendered files and the name of the rendered job instructions file
     
-    return rendered_content
+    return rendered_content, rendered_instructions
