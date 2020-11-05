@@ -52,3 +52,10 @@ venv/Scripts/*
 
 ### ReadTheDocs/Sphinx ###
 docs/build/
+
+### Other ###
+
+Documentation/
+chains_workflow.drawio 
+chains_workflow.png
+readme_old.md
