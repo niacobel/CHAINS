@@ -33,8 +33,9 @@ __pycache__/
 # MANIFEST
 
 # venv Scripts (path are specific to each user/machine)
-venv/Scripts/*
-!venv/Scripts/*.exe
+#venv/Scripts/*
+#!venv/Scripts/*.exe
+venv/
 
 
 
