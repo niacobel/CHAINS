@@ -1,6 +1,6 @@
 .. badges
 
-|GitHub Page| |Documentation Status| |GitHub License| |DOI| |size|
+|GitHub Page| |Documentation Status| |GitHub License| |DOI|
 
 .. |GitHub Page| image:: https://img.shields.io/website-up-down-green-red/https/github.com/niacobel/CHAINS.svg
    :alt: GitHub Page
@@ -18,8 +18,6 @@
 
 .. .. |DOI| image:: https://zenodo.org/badge/DOI/10.1007/978-3-319-76207-4_15.svg
    :target: https://doi.org/10.1007/978-3-319-76207-4_15
-
-.. |size| image:: https://github-size-badge.herokuapp.com/niacobel/CHAINS.svg
 
 What is CHAINS?
 ===============
