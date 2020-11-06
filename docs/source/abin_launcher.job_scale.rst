@@ -44,7 +44,7 @@ For example, let's say we want to run a geometry optimization on the |Si36Ge11H6
 
 The ``scale_limit`` key defines the upper limit of that job scale for the scale index. This means our molecule is too big for the ``tiny`` and ``small`` scales, which have an upper limit of 50 and 500, respectively. It will then uses the resources defined in the ``medium`` scale, which are: a time limit of 2 days, 8 CPUs and 2 GB of memory per CPU.
 
-Obviously, the key part of this process lies in the quality of the job scales definition. The finer they are, the better the scaling will be. Since this is highly dependent on the program you want to run and the machine on which it will be running, you will need to do extensive testing on your part. If your machine uses SLURM as a job scheduler, you might want to take a look at the :doc:`abin_launcher.benchmark` section.
+Obviously, the key part of this process lies in the quality of the job scales definition. The finer they are, the better the scaling will be. Since this is highly dependent on the program you want to run and the cluster on which it will be running, you will need to do extensive testing on your part. If your cluster uses SLURM as a job scheduler, you might want to take a look at the :doc:`abin_launcher.benchmark` section.
 
 .. |Si36Ge11H60| replace:: Si\ :sub:`36`\ Ge\ :sub:`11`\ H\ :sub:`60`\ 
 
@@ -79,7 +79,7 @@ If you want to change the scaling function that will be called via ``ABIN LAUNCH
          myprog2:
             scaling_function: name-of-scaling-function
 
-where ``mycluster`` corresponds to the name of your machine (given as a :ref:`command line argument <abin_arguments>`) while ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_). This way, a different scaling function can be assigned to each program.
+where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <abin_arguments>`) while ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_). This way, a different scaling function can be assigned to each program.
 
 Total number of electrons
 -------------------------
@@ -112,19 +112,17 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
            - 
              label: scale1
              scale_limit: value
-             partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
-             delay_command: value
            - 
              label: scale2
              scale_limit: value
-             partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
-             delay_command: value
+             partition_name: value  # This is optional
+             delay_command: value   # This is optional
            - 
              ...
        myprog2:
@@ -133,19 +131,17 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
            - 
              label: scale1
              scale_limit: value
-             partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
-             delay_command: value
            - 
              label: scale2
              scale_limit: value
-             partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
-             delay_command: value
+             partition_name: value  # This is optional
+             delay_command: value   # This is optional
            - 
              ...
  
@@ -157,48 +153,46 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
            - 
              label: scale1
              scale_limit: value
-             partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
-             delay_command: value
+             partition_name: value  # This is optional
            - 
              label: scale2
              scale_limit: value
-             partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
-             delay_command: value
+             delay_command: value   # This is optional
            - 
              ...
+  
        myprog2:
          scaling_function: name-of-scaling-function
          job_scales:     
            - 
-             label: scale1
+             label: scale2
              scale_limit: value
-             partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
-             delay_command: value
+             partition_name: value  # This is optional
+             delay_command: value   # This is optional
            - 
              label: scale2
              scale_limit: value
-             partition_name: value
              time: value
              cores: value
              mem_per_cpu: value
-             delay_command: value
            - 
              ...
 
 where
 
 - ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each cluster.
-- ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each program. 
-- ``partition_name`` contains the name of the cluster partition on which the job will be running. If you don't need it, you can just set the value to "default".
+- ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each program.
+- ``label``, ``scale_limit``, ``time``, ``cores`` and ``mem_per_cpu`` are all **mandatory keys**, specifying the resources requirements of the jobs.
+- ``partition_name`` is an optional key containing the name of the cluster partition on which the job will be running.
 - ``delay_command`` is an optional key that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` flag of the ``sbatch`` command, see here_.
 
 You can have as many job scales as you want, and they don't need to be defined in ascending order of scale index limits. ``ABIN LAUNCHER`` will automatically sort them before starting to scan the geometry files. Just remember to adjust the ``scale_limit`` of your job scales if you change your scaling function. Otherwise, those numbers won't make sense.

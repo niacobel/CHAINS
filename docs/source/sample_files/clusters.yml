@@ -9,7 +9,6 @@ lemaitre3:
         - 
           label: tiny
           scale_limit: 50
-          partition_name: batch
           time: 0-00:10:00
           cores: 4
           mem_per_cpu: 500 # in MB

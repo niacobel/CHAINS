@@ -124,7 +124,7 @@ This is what appears on the console screen:
     :alt: Running ABIN LAUNCHER
     :figclass: align-center
     
-    Console output when running ``ABIN LAUNCHER`` (click to zoom in)
+    Console output when running ``ABIN LAUNCHER``
 
 And if we take a look at the job queue, we can see that our 6 ORCA jobs have indeed been submitted to the job scheduler:
 
@@ -134,7 +134,7 @@ And if we take a look at the job queue, we can see that our 6 ORCA jobs have ind
     :alt: Jobs queue after running ABIN LAUNCHER
     :figclass: align-center
     
-    Jobs queue after running ``ABIN LAUNCHER`` (click to zoom in)
+    Jobs queue after running ``ABIN LAUNCHER``
 
 Directory structure after execution
 -----------------------------------

@@ -132,18 +132,6 @@ def main():
     print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 
     # ========================================================= #
-    # Check and load the YAML clusters configuration file       #
-    # ========================================================= #
-
-    # Loading the clusters_file for the information about the clusters
-
-    clusters_file = abin_errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"YAML clusters configuration file","file")
-    print ("{:<40} {:<100}".format('\nLoading the clusters file',clusters_file + " ..."), end="")
-    with open(clusters_file, 'r') as f_clusters:
-      clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
-    print('%12s' % "[ DONE ]")
-
-    # ========================================================= #
     # Load Mendeleev's periodic table                           #
     # ========================================================= #
 
@@ -156,22 +144,102 @@ def main():
     print('%12s' % "[ DONE ]")
 
     # ========================================================= #
-    # Check the name of the cluster                             #
+    # Check and load the YAML clusters configuration file       #
     # ========================================================= #
 
+    # Loading the clusters_file 
+
+    clusters_file = abin_errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"YAML clusters configuration file","file")
+    print ("{:<141}".format('\nLoading the clusters configuration file "clusters.yml" ...'), end="")
+    with open(clusters_file, 'r') as f_clusters:
+      clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
+    # Check the name of the cluster                             #
+
     if cluster_name not in clusters_cfg:
-      raise abin_errors.AbinError ("ERROR: There is no information about the %s cluster in the %s file. Please add relevant information or change the cluster before proceeding further." % (cluster_name.upper(),clusters_file))
+      raise abin_errors.AbinError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name.upper())
 
     print("\nThis script is running on the %s cluster" % cluster_name.upper())
 
-    # ========================================================= #
-    # Check program and subfunctions                            #
-    # ========================================================= #
+    # Check if the subcommand key has been defined
 
-    # Check if the program exists in our clusters database. 
+    subcommand = clusters_cfg[cluster_name].get("subcommand")
+
+    if subcommand is None:
+      raise abin_errors.AbinError ("ERROR: There is no defined subcommand for the %s cluster in the clusters configuration file." % cluster_name.upper()) 
+
+    # Check if the program exists 
+
+    if "progs" not in clusters_cfg[cluster_name]:
+        raise abin_errors.AbinError ('ERROR: There is no "progs" block defined for the %s cluster in the clusters configuration file. Consult official documentation for details: ' % cluster_name.upper())    
 
     if prog not in clusters_cfg[cluster_name]["progs"]:
       raise abin_errors.AbinError ("ERROR: The specified program (%s) is unknown on this cluster. Possible programs include: %s \nPlease use one of those, change cluster or add information for this program to the YAML cluster file." % (prog, ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys())))
+    
+    # Get the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py and specified in the clusters configuration file
+
+    scaling_fct = clusters_cfg[cluster_name]["progs"][prog].get("scaling_function")
+
+    if scaling_fct is None:
+      raise abin_errors.AbinError ("ERROR: There is no defined scaling function for the %s program in the %s cluster in the clusters configuration file." % (prog, cluster_name.upper()))
+    if (scaling_fct) not in dir(scaling_fcts) or not callable(getattr(scaling_fcts, scaling_fct)):
+      raise abin_errors.AbinError ("ERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
+
+    # ========================================================= #
+    # Establishing the different job scales                     #
+    # ========================================================= #
+
+    # Gather all the different job scales from the clusters configuration file in a temporary dictionary
+
+    job_scales_tmp = clusters_cfg[cluster_name]['progs'][prog].get('job_scales')
+
+    if job_scales_tmp is None:
+      raise abin_errors.AbinError ("ERROR: There is no defined job_scales for the %s program in the %s cluster in the clusters configuration file." % (prog, cluster_name.upper())) 
+
+    # Defined the required keys in our job scales
+
+    required_keys = frozenset({"label", "scale_limit", "time", "cores", "mem_per_cpu" })
+
+    # Define an array for correct English spelling during printing
+
+    special_numbers = {1:"st", 2:"nd", 3:"rd"}
+
+    # Initialize the final dictionary where the job scales will be sorted by their upper limit
+
+    job_scales = {}
+
+    # Check the job scales
+
+    for scale in job_scales_tmp:
+
+      # Check if all the required keys are present
+
+      for key in required_keys:
+        if key not in scale:
+          raise abin_errors.AbinError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s program in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), prog, cluster_name.upper()))           
+
+      # Extract the scale upper limit from the job scales
+
+      scale_limit = scale.pop('scale_limit')
+      job_scales[scale_limit] = scale
+
+    # Sort the different job scales by their upper limit and store them in the job_scales dictionary
+
+    job_scales = OrderedDict(sorted(job_scales.items()))
+
+    print("\nJob scales for %s on %s:" % (prog,cluster_name.upper()))
+    print("")
+    print(''.center(146, '-'))
+    print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)','Delay Command'))
+    print(''.center(146, '-'))
+    for scale_limit, scale in job_scales.items():
+      print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format(scale_limit, scale['label'], scale.get('partition_name', "not specified"), scale['time'], scale['cores'], scale['mem_per_cpu'], scale.get('delay_command', "not specified")))
+    print(''.center(146, '-'))
+
+    # ========================================================= #
+    # Check other important functions                           #
+    # ========================================================= #
 
     # Define the scanning function that will extract informations about the molecule from the molecule file (depends on the file format) - defined in geom_scan.py
 
@@ -180,48 +248,12 @@ def main():
     if (scan_fct) not in dir(geom_scan) or not callable(getattr(geom_scan, scan_fct)):
       raise abin_errors.AbinError ("ERROR: There is no function defined for the %s format in geom_scan.py." % mol_fmt)
 
-    # Define the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py
-
-    scaling_fct = clusters_cfg[cluster_name]["progs"][prog]["scaling_function"]
-
-    if (scaling_fct) not in dir(scaling_fcts) or not callable(getattr(scaling_fcts, scaling_fct)):
-      raise abin_errors.AbinError ("ERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
-
     # Define the rendering function that will render the job instructions file and the input file (depends on the program)  - defined in renderer.py
 
     render_fct = prog + "_render"
 
     if (render_fct) not in dir(renderer) or not callable(getattr(renderer, render_fct)):
       raise abin_errors.AbinError ("ERROR: There is no function defined for the %s program in renderer.py." % prog)
-
-    # ========================================================= #
-    # Establishing the different job scales                     #
-    # ========================================================= #
-
-    # Gather all the different job scales from the clusters configuration file in a temporary dictionary
-
-    job_scales_tmp = clusters_cfg[cluster_name]['progs'][prog]['job_scales']
-
-    # Initialize the final dictionary where the job scales will be sorted by their upper limit
-
-    job_scales = {}
-
-    # Sort the different job scales by their upper limit and store them in the job_scales dictionary
-
-    for scale in job_scales_tmp:
-      scale_limit = scale.pop('scale_limit')
-      job_scales[scale_limit] = scale
-
-    job_scales = OrderedDict(sorted(job_scales.items()))
-
-    print("\nJob scales for %s on %s:" % (prog,cluster_name.upper()))
-    print("")
-    print(''.center(106, '-'))
-    print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)'))
-    print(''.center(106, '-'))
-    for scale_limit, scale in job_scales.items():
-      print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20}".format(scale_limit, scale['label'], scale['partition_name'], scale['time'], scale['cores'], scale['mem_per_cpu']))
-    print(''.center(106, '-'))
 
     # ========================================================= #
     # Check other arguments                                     #
@@ -439,10 +471,11 @@ def main():
       
       # Obtaining the informations associated to our job scale
       
-      job_partition = jobscale['partition_name']
+      job_partition = jobscale.get('partition_name')
       job_walltime = jobscale['time']
       job_cores = jobscale['cores']
       job_mem_per_cpu = jobscale['mem_per_cpu']
+      delay_command = jobscale.get("delay_command", '')
 
       print("")
       print(''.center(50, '-'))
@@ -452,10 +485,11 @@ def main():
       print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
       print("{:<20} {:<30}".format("Job scale limit: ", jobscale_limit))
       print(''.center(50, '-'))
-      print("{:<20} {:<30}".format("Job partition: ", job_partition))
+      print("{:<20} {:<30}".format("Job partition: ", (job_partition or "not specified")))
       print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
       print("{:<20} {:<30}".format("Number of cores: ", job_cores))
       print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
+      print("{:<20} {:<30}".format("Delay command : ", ("not specified" if delay_command == '' else delay_command)))
       print(''.center(50, '-'))
 
       # ========================================================= #
@@ -608,13 +642,11 @@ def main():
         
         if not dry_run:
 
-          print("\nLaunching the job ...", end="")
+          print("{:<80}".format("\nLaunching the job ..."), end="")
           os.chdir(job_dir)
 
           # Define the launch command
 
-          subcommand = clusters_cfg[cluster_name]['subcommand']
-          delay_command = str(jobscale.get("delay_command") or '')   # If delay_command is not defined in the job scales, an empty string is put in its place.
           launch_command = subcommand + " " + delay_command + " " + rendered_instructions
 
           # Execute the command and get the command status

@@ -102,7 +102,9 @@ Now, we need to replace every variable part of this input by a Jinja variable:
    #SBATCH --time={{ job_walltime }}
    #SBATCH --ntasks={{ job_cores }}
    #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
-   #SBATCH --partition={{ partition }}
+   {% if partition != None %}
+   #SBATCH --partition={{  partition  }}
+   {% endif %}
 
    echo -e "\n================= ORCA execution begins now =================="
 
@@ -111,7 +113,9 @@ Now, we need to replace every variable part of this input by a Jinja variable:
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
-We are almost done, but there is one more thing we need to take into consideration here: ``ABIN LAUNCHER`` puts a copy of the geometry file inside the job subdirectory (see :ref:`out_dir_struct`). If we don't want that file to be overwrought by the new optimized geometery, we need to rename it before ORCA starts running:
+Note that since the partition value is optional, we need to check if it has been specified before putting it in the instructions. Otherwise, we might end up with a ``partition=None`` wich won't be recognized by the cluster.
+
+We are almost done, but there is one more thing we need to take into consideration here: ``ABIN LAUNCHER`` puts a copy of the geometry file inside the job subdirectory (see :ref:`out_dir_struct`). If we don't want that file to be overwrought by the new optimized geometry, we need to rename it before ORCA starts running:
 
 .. code-block:: jinja
 
@@ -124,7 +128,9 @@ We are almost done, but there is one more thing we need to take into considerati
    #SBATCH --time={{ job_walltime }}
    #SBATCH --ntasks={{ job_cores }}
    #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
-   #SBATCH --partition={{ partition }}
+   {% if partition != None %}
+   #SBATCH --partition={{  partition  }}
+   {% endif %}
 
    echo -e "Renaming the original .xyz file to avoid overwriting it with the new one."
    cd $SLURM_SUBMIT_DIR
@@ -351,11 +357,9 @@ Finally, let's consider that we have the following clusters configuration file:
            - 
              label: tiny
              scale_limit: 50
-             partition_name: default
              time: 0-00:10:00
              cores: 4 
              mem_per_cpu: 500 # in MB
-             delay_command:
            - 
              label: small
              scale_limit: 1000
@@ -363,7 +367,6 @@ Finally, let's consider that we have the following clusters configuration file:
              time: 2-00:00:00
              cores: 4
              mem_per_cpu: 1000 # in MB
-             delay_command:
            - 
              label: medium
              scale_limit: 1500

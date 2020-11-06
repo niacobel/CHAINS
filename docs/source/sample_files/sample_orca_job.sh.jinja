@@ -7,7 +7,9 @@
 #SBATCH --time={{ job_walltime }}
 #SBATCH --ntasks={{ job_cores }}
 #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
-#SBATCH --partition={{ partition }}
+{% if partition != None %}
+#SBATCH --partition={{  partition  }}
+{% endif %}
 
 echo -e "Renaming the original .xyz file to avoid overwriting it with the new one."
 cd $SLURM_SUBMIT_DIR
