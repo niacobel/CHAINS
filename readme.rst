@@ -57,7 +57,7 @@ Languages and Dependencies
 
 The main language of CHAINS is Python 3.5+ but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. However, there is no need for an in-depth knowledge of anything but Python in order to customize CHAINS, as we only use the basic features of the other languages.
 
-If your Python distribution does not include YAML and Jinja2, you can install them using
+If your Python distribution does not include PyYAML (version 5.1+) and Jinja2 (version 2.10+), you can install them using
 
 .. code-block:: shell
 
