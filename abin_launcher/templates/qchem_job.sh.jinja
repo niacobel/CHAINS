@@ -67,7 +67,7 @@ mkdir -p $res_dir
 cp {{  mol_name  }}.in {{  mol_name  }}.out {{  job_manifest  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log $res_dir
 
 {# Job instructions for compiling data about the job for benchmarking. #}
-{% include "benchmark.sh.jinja" if benchmark %}
+{% include "benchmark.jinja" if benchmark %}
 
 echo -e "\n******************************************************************************"
 echo -e "*****************************   End of the job   *****************************"

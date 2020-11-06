@@ -9,7 +9,7 @@ general:
   mail-type: FAIL
 # Benchmarking options
   benchmark: True
-  benchmark-folder: $CECIHOME/BENCHMARK
+  benchmark_dir: $CECIHOME/BENCHMARK
 
 # Orca information
 orca:

@@ -33,7 +33,7 @@ This methodology includes three big phases:
 CHAINS can assist this whole methodology by automatically preparing the input files and launching the ORCA_, Q-CHEM_ and QOCT-RA_ calculations for each molecule, allowing the user to treat a big number of molecules much faster, thus making the scanning more efficient. It can also work with multiple clusters, in order to split the workload. In our case, all those calculations (jobs) are performed on the different clusters provided by the *Consortium des Équipements de Calcul Intensif* (CECI_). 
 
 .. note::
-   Although the global development has been aimed at a specific problematic, **each individual script can easily be adapted** to deal with other similar problems, programs and clusters, as will be explained in each of the different sections of this documentation.
+   Although the global development has been aimed at a specific problematic, **each individual script can easily be adapted** to deal with other similar problems, programs and clusters, as will be explained in each of the different sections of the documentation.
 
 Design Philosophy
 =================
@@ -55,7 +55,7 @@ Languages and Dependencies
 
     The different languages used by CHAINS
 
-The main language of CHAINS is Python 3.5+ but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. However, there is no need for an in-depth knowledge of anything but Python in order to customize CHAINS, as we only use the basic features of the other languages.
+The main language of CHAINS is Python 3.5+ but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. However, there is no need for an in-depth knowledge of anything but Python in order to customize CHAINS, as we only use the basic features of the other languages (consult the "What you need to know" section of the documentation for details).
 
 If your Python distribution does not include PyYAML (version 5.1+) and Jinja2 (version 2.10+), you can install them using
 
