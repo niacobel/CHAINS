@@ -61,6 +61,19 @@ With that, you know everything you need to know about Jinja2 in order to use CHA
 
 .. _regex:
 
+About Crontab and Cron tasks
+============================
+
+In order to link the different clusters and to automate certain parts of CHAINS, we need to periodically execute some commands, this is done through Cron_ tasks established via the ``crontab`` command. 
+
+You don't really need to know anything about them prior to reading this documentation as the exact commands will be explicitly given each time you will need to use them. Nonetheless, if you prefer to know what you are dealing with, here is a small YouTube tutorial made by Corey Schafer explaining what Cron tasks are:
+
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/QZJ1drMQz1A" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+|
+
 About Regular Expressions
 =========================
 
@@ -81,6 +94,7 @@ Regular Expressions can present themselves as incredibly unintuitive but their v
 
 .. Hyperlink targets
 
+.. _Cron: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html
 .. _Gaussian: https://gaussian.com/
 .. _Jinja: https://jinja.palletsprojects.com/en/2.11.x/ 
 .. _Molpro: https://www.molpro.net/

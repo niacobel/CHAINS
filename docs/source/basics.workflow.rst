@@ -41,11 +41,11 @@ There is no calculation involved in this phase. As its name implies, ``RESULTS T
 Link between scripts (Steps 4, 7 and 10)
 ========================================
 
-In order to link all those scripts together and allow communication between clusters, CHAINS makes use of the common CECI storage, known as ``CECIHOME``. Every important file is copied and stored into the ``CECIHOME``, then different Shell scripts on different clusters are periodically executed through crontab_ tasks to scan the ``CECIHOME`` and launch the various tasks.
+In order to link all those scripts together and allow communication between clusters, CHAINS makes use of the common CECI storage, known as ``CECIHOME``. Every important file is copied and stored into the ``CECIHOME``, then different Shell scripts on different clusters are periodically executed through Cron_ tasks to scan the ``CECIHOME`` and execute the various scripts.
 
 .. Hyperlink targets
 
-.. _crontab: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html
+.. _Cron: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html
 .. _ORCA: https://www.faccts.de/orca/
 .. _Q-CHEM: https://www.q-chem.com/
 .. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA

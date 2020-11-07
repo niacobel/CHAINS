@@ -22,7 +22,7 @@ The ``seff`` command: a possible alternative
 The first option is the ``seff`` command (see `source code <https://github.com/SchedMD/slurm/blob/master/contribs/seff/seff>`_ and `example <https://sites.google.com/a/case.edu/hpcc/jobs/slurm-command-overview/seff>`_). While it pretty much does exactly what we want, there are some problems with it:
 
 - It requires SLURM 15.08 or a more recent version, which might cause problems with some older machines.
-- It does not give reliable statistics when the job is running, so a crontab task or similar* will be needed in order to automatically check the resources usage after the job has ended.
+- It does not give reliable statistics when the job is running, so a cron task or similar* will be needed in order to automatically check the resources usage after the job has ended.
 - It computes the CPU and memory efficiencies, but nothing is done about the time efficiency.
 
 Other than that, it still is a good option so feel free to use it if it satisfies your needs!
@@ -43,7 +43,7 @@ This process requires three files:
 
 - A Jinja template, named ``benchmark.jinja``, placed in the ``templates`` directory of ``ABIN LAUNCHER``. It is an extension of the job instructions template.
 - A Python script, named ``benchmark.py``, which must be placed in ``ABIN LAUNCHER``'s directory.
-- A Shell script, named ``cron_benchmark.sh``, which must also be placed in ``ABIN LAUNCHER``'s directory. It will be executed through a crontab task and make the link between the first two files.
+- A Shell script, named ``cron_benchmark.sh``, which must also be placed in ``ABIN LAUNCHER``'s directory. It will be executed through a cron task and make the link between the first two files.
 
 How does it work?
 =================
@@ -65,7 +65,7 @@ Some of those information are provided directly by ``ABIN LAUNCHER`` while the o
 The role of the crontab script
 ------------------------------
 
-Meanwhile, on the cluster, the ``cron_benchmark.sh`` Shell script will be periodically executed through a crontab task to check the existence of that temporary CSV file. If the file exists, the script will archive it then execute the ``benchmark.py`` Python script to scan and process its content.
+Meanwhile, on the cluster, the ``cron_benchmark.sh`` Shell script will be periodically executed through a cron task to check the existence of that temporary CSV file. If the file exists, the script will archive it then execute the ``benchmark.py`` Python script to scan and process its content.
 
 The role of the Python script
 -----------------------------
@@ -114,10 +114,10 @@ where ``path/to/benchmark_dir`` is the path towards the directory where you want
 
 Now, at the end of your jobs, a new temporary CSV file will be created in your ``benchmark_dir`` directory, named ``<prog>_<cluster_name>_tmp.csv``, where ``<prog>`` and ``<cluster_name>`` are the names of your program and your cluster, respectively. If the file already exists, a new line will simply be added to it.
 
-Configure the crontab task
---------------------------
+Configure the cron task
+-----------------------
 
-Use the ``crontab -e`` command to edit your crontab tasks and add the following line:
+Use the ``crontab -e`` command in your terminal to edit your cron tasks and add the following line:
 
 .. code-block::
 
