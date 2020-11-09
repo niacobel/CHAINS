@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#SBATCH --output=slurm_output.log
+#SBATCH --job-name={{ prog }}_{{ mol_name }}_{{ config_name }}
+#SBATCH --mail-user={{ user_email }}
+#SBATCH --mail-type={{ mail_type }}
+#SBATCH --time={{ job_walltime }}
+#SBATCH --ntasks={{ job_cores }}
+#SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
+{% if partition != None %}
+#SBATCH --partition={{  partition  }}
+{% endif %}
+
+echo -e "Renaming the original .xyz file to avoid overwriting it with the new one."
+cd $SLURM_SUBMIT_DIR
+mv {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz
+
+echo -e "\n================= {{ prog }} execution begins now =================="
+
+{{ set_env }}
+{{ command }} {{ mol_name }}.inp > {{ mol_name }}.out 
+
+echo -e "\n=================  {{ prog }} execution ends now  =================="
+
+{% include "benchmark.jinja" %}

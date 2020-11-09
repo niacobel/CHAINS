@@ -9,6 +9,8 @@ About your jobs and your job scheduler
 
 First things first, it is important to clarify what CHAINS *does not do*. CHAINS cannot help you in figuring out how to run calculations with your programs, or how to build input files for them. CHAINS (and its main scripts) can help you automate that process, but it cannot guess what it is supposed to do. Start by defining what your methodology is and what it implies. Read the documentation of your programs as well as the one for your job scheduler or cluster. Once you know what to do and how to do it manually, it is time to automate it in order to process more jobs more quickly!
 
+Another thing to note is that, since CHAINS was developed on SLURM clusters, our examples will involve SLURM commands. If you use a different job scheduler, you can use the `rosetta PDF <https://slurm.schedmd.com/rosetta.pdf>`_ from the SLURM documentation to "translate" our examples to your case.
+
 About Python
 ============
 
@@ -59,20 +61,22 @@ Here is a small YouTube tutorial made by Jason Rigden that will cover the basics
 
 With that, you know everything you need to know about Jinja2 in order to use CHAINS! We use the Jinja language to create templates for the input files needed by ORCA_, Q-CHEM_ and QOCT-RA_. We also use it for the job scripts, containing all instructions for the job scheduler (SLURM_ for the CECI clusters). As you may have seen in the video, the Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as Gaussian_ or Molpro_, and any other job scheduler such as Torque_.
 
-.. _regex:
+.. _cron_tuto:
 
 About Crontab and Cron tasks
 ============================
 
-In order to link the different clusters and to automate certain parts of CHAINS, we need to periodically execute some commands, this is done through Cron_ tasks established via the ``crontab`` command. 
+In order to link the different clusters and to automate certain parts of CHAINS, we need to periodically execute some commands, this is done through cron_ tasks established via the ``crontab`` command. 
 
-You don't really need to know anything about them prior to reading this documentation as the exact commands will be explicitly given each time you will need to use them. Nonetheless, if you prefer to know what you are dealing with, here is a small YouTube tutorial made by Corey Schafer explaining what Cron tasks are:
+You don't really need to know anything about them prior to reading this documentation as the exact commands will be explicitly given each time you will need to use them. Nonetheless, if you prefer to know what you are dealing with, here is a small YouTube tutorial made by Corey Schafer explaining what cron tasks are:
 
 .. raw:: html
 
    <iframe width="560" height="315" src="https://www.youtube.com/embed/QZJ1drMQz1A" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 |
+
+.. _regex:
 
 About Regular Expressions
 =========================

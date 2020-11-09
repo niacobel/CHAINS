@@ -10,11 +10,13 @@
 
 # Define the path to the directory where the benchmark CSV files will be created
 
-benchmark_path="/CECI/home/ulb/cqp/niacobel/BENCHMARK"
+benchmark_path="/home/users/n/i/niacobel/abin_docs_sample/benchmark"
 
 # Load your Python distribution
 
-source /CECI/home/ulb/cqp/niacobel/CHAINS/load_modules.sh
+module --force purge
+module load releases/2018b
+module load Python/3.6.6-foss-2018b
 
 ####################################
 #         Preparation step         #
@@ -28,17 +30,23 @@ prefix=$1
 
 timestamp=$(date +"%Y%m%d_%H%M%S")
 
+# Pretty print for log messages
+
+log_msg () {
+  echo -e "$(date +"%Y-%m-%d %T")\t$1"
+}
+
 # Define the tmp file we want to scan
 
 WATCH_FILE="${benchmark_path}/${prefix}_tmp.csv"
 
 # Define the folder where the tmp file will be archived
 
-archive="${benchmark_path}/archive"
+ARCHIVE="${benchmark_path}/archive"
 
 # Define the folder where the log files will be stored
 
-bench_logs="${benchmark_path}/bench_logs"
+BENCH_LOGS="${benchmark_path}/bench_logs"
 
 # Define the path towards the benchmark.py script (same directory as this script)
 
@@ -60,14 +68,14 @@ else
   # Archive the original tmp file
 
   filename="$(basename -- ${WATCH_FILE})"
-  mkdir -p ${archive}
-  mv ${WATCH_FILE} ${archive}/${filename%.*}_${timestamp}.csv
+  mkdir -p ${ARCHIVE}
+  mv ${WATCH_FILE} ${ARCHIVE}/${filename%.*}_${timestamp}.csv
 
   # Execute benchmark.py
 
-  mkdir -p ${bench_logs}
-  python ${path_script}/benchmark.py --tmp ${archive}/${filename%.*}_${timestamp}.csv --final ${benchmark_path}/${prefix}_final.csv --prob ${benchmark_path}/${prefix}_prob.csv > ${bench_logs}/${prefix}_${timestamp}.log
+  mkdir -p ${BENCH_LOGS}
+  python ${path_script}/benchmark.py --tmp ${ARCHIVE}/${filename%.*}_${timestamp}.csv --final ${benchmark_path}/${prefix}_final.csv > ${BENCH_LOGS}/${prefix}_${timestamp}.log
 
-  echo -e "$(date +"%Y-%m-%d %T")\tINFO - Processed new lines in ${WATCH_FILE}"
+  log_msg "INFO - Processed new lines in ${WATCH_FILE}"
 
 fi

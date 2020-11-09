@@ -52,6 +52,9 @@ extensions.append('sphinx.ext.viewcode')
 # Include source code (https://sphinx-code-include.readthedocs.io/en/latest/)
 extensions.append('code_include.extension')
 
+# Toggle hidden/shown code block (http://scopatz.github.io/hiddencode/)
+# extensions.append('hidden_code_block')
+
 # Embed youtube videos (https://github.com/divi255/sphinxcontrib.youtube)
 # extensions.append('sphinxcontrib.yt')
 
@@ -84,7 +87,9 @@ html_static_path = ['_static']
 
 # Define a CSS file for specific modifications to the Sphinx RTD theme (see https://stackoverflow.com/questions/23211695/modifying-content-width-of-the-sphinx-theme-read-the-docs for reference)
 def setup(app):
+    app.add_css_file('custom.css')
     app.add_css_file('my_theme.css')
+
 
 # Other options
 

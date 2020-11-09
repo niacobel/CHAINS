@@ -151,259 +151,228 @@ def slurm_time_to_seconds(time:str) -> int:
 parser = argparse.ArgumentParser(add_help=False, description="")
 
 required = parser.add_argument_group('Required arguments')
-required.add_argument("--tmp", type=str, help="CSV file name you want to enrich", required=True)
-required.add_argument("--final", type=str, help="Destination CSV file name", required=True)
+required.add_argument("-t", "--tmp", type=str, help="Path towards the CSV file you want to enrich.", required=True)
+required.add_argument("-f", "--final", type=str, help="Path towards the final CSV file that will contain the enriched lines.", required=True)
+required.add_argument("-p", "--prob", type=str, help="Path towards a separate CSV file that will contain the problematic lines.", required=True)
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
 
-args = parser.parse_args()
-
-# Define the variables corresponding to those arguments
-
-csv_tmp = args.tmp                      # Name of the CSV file that needs to be processed (likely created by benchmark.jinja)
-csv_final = args.final                  # Name of the new CSV file that will be created, with completed lines
-
 # =================================================================== #
 # =================================================================== #
-#                           PREPARATION STEP                          #
+#                            MAIN FUNCTION                            #
 # =================================================================== #
 # =================================================================== #
 
-# Get the size of the terminal in order to have a prettier output, if you need something more robust, go check http://granitosaurus.rocks/getting-terminal-size.html
+# We encapsulate all the instructions in a main function, this is done so that the documentation (or other scripts) can import this file without immediately executing it (see https://realpython.com/python-main-function/ for details)
+def main(): 
 
-columns, rows = shutil.get_terminal_size()
+  # =================================================================== #
+  # =================================================================== #
+  #                           PREPARATION STEP                          #
+  # =================================================================== #
+  # =================================================================== #
 
-# Output Header
+  # Get the size of the terminal in order to have a prettier output, if you need something more robust, go check http://granitosaurus.rocks/getting-terminal-size.html
 
-print("".center(columns,"*"))
-print("")
-print("EXECUTION OF THE BENCHMARKING SCRIPT FOR CECI CLUSTERS JOBS BEGINS NOW".center(columns))
-print("")
-print("".center(columns,"*"))
+  columns, rows = shutil.get_terminal_size()
 
-section_title = "0. Preparation step"
+  # Output Header
 
-print("")
-print("")
-print(''.center(len(section_title)+10, '*'))
-print(section_title.center(len(section_title)+10))
-print(''.center(len(section_title)+10, '*'))
+  print("".center(columns,"*"))
+  print("")
+  print("EXECUTION OF THE BENCHMARKING SCRIPT FOR SLURM CLUSTERS JOBS BEGINS NOW".center(columns))
+  print("")
+  print("".center(columns,"*"))
 
-# ========================================================= #
-# Initialize some variables                                 #
-# ========================================================= #
+  section_title = "0. Preparation step"
 
-tmp_list = []
-csv_tmp_header = ""
+  print("")
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
 
-final_list = []
-csv_final_header = ""
+  # ========================================================= #
+  # Read command line arguments                               #
+  # ========================================================= #
 
-errors_list = []
+  args = parser.parse_args()
 
-# ========================================================= #
-# Check and load temporary CSV file                         #
-# ========================================================= #
+  csv_tmp = args.tmp                      # CSV file that needs to be processed (likely created by benchmark.jinja)
+  csv_final = args.final                  # Path towards the enriched, final CSV file that will be created, with completed lines
+  csv_prob = args.prob                    # Path towards a separate, "problematic" CSV file that will contain the problematic lines that couldn't be correctly processed
 
-csv_tmp = abin_errors.check_abspath(csv_tmp,"temporary CSV file","file")
+  # ========================================================= #
+  # Initialize some variables                                 #
+  # ========================================================= #
 
-print("\nScanning tmp file {} ... ".format(csv_tmp))
+  tmp_list = []
+  csv_tmp_header = ""
 
-with open(csv_tmp, 'r', newline='') as inputfile:
+  final_list = []
+  csv_final_header = ""
 
-  csv_content = csv.DictReader(inputfile, delimiter=';')
-  tmp_list = list(csv_content)
-  csv_tmp_header = csv_content.fieldnames
-  dialect = csv_content.dialect
+  errors_list = []
 
-  print("    Detected CSV dialect in tmp file: {}".format(dialect))
-  print("    Detected CSV header in tmp file : {}".format(csv_tmp_header))
+  # ========================================================= #
+  # Check and load temporary CSV file                         #
+  # ========================================================= #
 
-# =================================================================== #
-# =================================================================== #
-#                          GETTING THE VALUES                         #
-# =================================================================== #
-# =================================================================== #
+  csv_tmp = abin_errors.check_abspath(csv_tmp,"temporary CSV file","file")
 
-section_title = "1. Get benchmarking values"
+  print("\nScanning tmp file {} ... ".format(csv_tmp))
 
-print("")
-print("")
-print(''.center(len(section_title)+10, '*'))
-print(section_title.center(len(section_title)+10))
-print(''.center(len(section_title)+10, '*'))
+  with open(csv_tmp, 'r', newline='') as inputfile:
 
-print("\nProcessing lines ...")
+    csv_content = csv.DictReader(inputfile, delimiter=';')
+    tmp_list = list(csv_content)
+    csv_tmp_header = csv_content.fieldnames
+    dialect = csv_content.dialect
 
-for line in tmp_list:
+    print("    Detected CSV dialect in tmp file: {}".format(dialect))
+    print("    Detected CSV header in tmp file : {}".format(csv_tmp_header))
 
-  new_line = line.copy()
-  
-  # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-  try:
+  # =================================================================== #
+  # =================================================================== #
+  #                          GETTING THE VALUES                         #
+  # =================================================================== #
+  # =================================================================== #
 
-    # Print header for log file
+  section_title = "1. Get benchmarking values"
 
-    print("")
-    print(''.center(60, '-'))
-    mol_name = str(line['Mol Name'])
-    print("{:>20}: {:<}".format("Mol Name",mol_name))
+  print("")
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
 
-    # Check Job ID
+  print("\nProcessing lines ...")
 
-    jobID = str(line['Job ID'])
-    if (jobID is ""):
-      print("No JobID found. Skipping line... \n")
+  for line in tmp_list:
+
+    new_line = line.copy()
+    
+    # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+    try:
+
+      # Print header for log file
+
+      print("")
+      print(''.center(60, '-'))
+      job_name = str(line['Job Name'])
+      print("{:>20}: {:<}".format("Job Name",job_name))
+
+      # Check Job ID
+
+      jobID = str(line['Job ID'])
+      if (jobID is ""):
+        print("No JobID found. Skipping line... \n")
+        continue
+      print("{:>20}: {:<}".format("Job ID",jobID))
+      
+      print(''.center(60, '-'))
+
+      # ========================================================= #
+      # Time information                                          #
+      # ========================================================= #
+
+      reserved = get_Reserved(jobID)
+      print("{:>20}: {:<}".format("Reserved",reserved))
+      new_line['Reserved'] = reserved
+
+      elapsed = get_Elapsed(jobID)
+      print("{:>20}: {:<}".format("Elapsed",elapsed))
+      new_line['Elapsed'] = elapsed
+
+      walltime = get_Timelimit(jobID)
+      print("{:>20}: {:<}".format("Walltime",walltime))
+
+      # Compute time efficiency
+
+      elapsed_raw = slurm_time_to_seconds(elapsed)
+      walltime_raw = slurm_time_to_seconds(walltime)
+
+      time_eff = round(elapsed_raw / walltime_raw, 4)
+      
+      print("{:>20}: {:<}".format("Time Efficiency","{:.0%}".format(time_eff)))
+      new_line['Time Efficiency'] = time_eff
+
+      print(''.center(60, '-'))
+
+      # ========================================================= #
+      # Memory information                                        #
+      # ========================================================= #
+
+      maxRSS = get_MaxRSS(jobID)
+      print("{:>20}: {:<} MB".format("MaxRSS",maxRSS))
+      new_line['Max RSS (MB)'] = maxRSS
+
+      nb_cpus = get_ReqCPUs(jobID)
+      mem_per_cpu = get_ReqMem(jobID)
+      tot_mem = nb_cpus * mem_per_cpu
+      print("{:>20}: {:<} MB ({} MB for each of {} CPUs)".format("Total MEM",tot_mem,mem_per_cpu,nb_cpus))
+
+      # Compute RAM efficiency
+
+      mem_eff = round(maxRSS / tot_mem, 4)
+
+      print("{:>20}: {:<}".format("RAM Efficiency","{:.0%}".format(mem_eff)))
+      new_line['RAM Efficiency'] = mem_eff
+
+      print(''.center(60, '-'))
+
+      # ========================================================= #
+      # CPU Information                                           #
+      # ========================================================= #
+
+      totCPU = get_TotCPU(jobID)
+      print("{:>20}: {:<}".format("TotalCPU",totCPU))
+      new_line['Total CPU'] = totCPU
+
+      wallCPU = get_CPUTime(jobID)
+      print("{:>20}: {:<}".format("Wall CPU",wallCPU))
+      new_line['Wall CPU'] = wallCPU
+
+      # Compute CPU efficiency
+
+      totCPU_raw = slurm_time_to_seconds(totCPU)
+      wallCPU_raw = slurm_time_to_seconds(wallCPU)
+
+      cpu_eff = round(totCPU_raw / wallCPU_raw, 4)
+      
+      print("{:>20}: {:<}".format("CPU Efficiency","{:.0%}".format(cpu_eff)))
+      new_line['CPU Efficiency'] = cpu_eff
+
+      print(''.center(60, '-'))
+      print("")
+
+      # ========================================================= #
+      # Store the new line                                        #
+      # ========================================================= #
+
+      final_list.append(new_line)
+
+    # If there is any kind of problem with the current line, store it into errors_list and skip it
+
+    except Exception as error:
+      print(error)
+      errors_list.append(line)
       continue
-    print("{:>20}: {:<}".format("Job ID",jobID))
-    
-    print(''.center(60, '-'))
 
-    # ========================================================= #
-    # Time information                                          #
-    # ========================================================= #
+  print("\nEnd of processing")
 
-    reserved = get_Reserved(jobID)
-    print("{:>20}: {:<}".format("Reserved",reserved))
-    new_line['Reserved'] = reserved
+  # =================================================================== #
+  # =================================================================== #
+  #                             THE END STEP                            #
+  # =================================================================== #
+  # =================================================================== #
 
-    elapsed = get_Elapsed(jobID)
-    print("{:>20}: {:<}".format("Elapsed",elapsed))
-    new_line['Elapsed'] = elapsed
+  # ========================================================= #
+  # Add information to final CSV file                         #
+  # ========================================================= #
 
-    walltime = get_Timelimit(jobID)
-    print("{:>20}: {:<}".format("Walltime",walltime))
-
-    # Compute time efficiency
-
-    elapsed_raw = slurm_time_to_seconds(elapsed)
-    walltime_raw = slurm_time_to_seconds(walltime)
-
-    time_eff = round(elapsed_raw / walltime_raw, 4)
-    
-    print("{:>20}: {:<}".format("Time Efficiency","{:.0%}".format(time_eff)))
-    new_line['Time Efficiency'] = time_eff
-
-    print(''.center(60, '-'))
-
-    # ========================================================= #
-    # Memory information                                        #
-    # ========================================================= #
-
-    maxRSS = get_MaxRSS(jobID)
-    print("{:>20}: {:<} MB".format("MaxRSS",maxRSS))
-    new_line['Max RSS (MB)'] = maxRSS
-
-    nb_cpus = get_ReqCPUs(jobID)
-    mem_per_cpu = get_ReqMem(jobID)
-    tot_mem = nb_cpus * mem_per_cpu
-    print("{:>20}: {:<} MB ({} MB for each of {} CPUs)".format("Total MEM",tot_mem,mem_per_cpu,nb_cpus))
-
-    # Compute RAM efficiency
-
-    mem_eff = round(maxRSS / tot_mem, 4)
-
-    print("{:>20}: {:<}".format("RAM Efficiency","{:.0%}".format(mem_eff)))
-    new_line['RAM Efficiency'] = mem_eff
-
-    print(''.center(60, '-'))
-
-    # ========================================================= #
-    # CPU Information                                           #
-    # ========================================================= #
-
-    totCPU = get_TotCPU(jobID)
-    print("{:>20}: {:<}".format("TotalCPU",totCPU))
-    new_line['Total CPU'] = totCPU
-
-    wallCPU = get_CPUTime(jobID)
-    print("{:>20}: {:<}".format("Wall CPU",wallCPU))
-    new_line['Wall CPU'] = wallCPU
-
-    # Compute CPU efficiency
-
-    totCPU_raw = slurm_time_to_seconds(totCPU)
-    wallCPU_raw = slurm_time_to_seconds(wallCPU)
-
-    cpu_eff = round(totCPU_raw / wallCPU_raw, 4)
-    
-    print("{:>20}: {:<}".format("CPU Efficiency","{:.0%}".format(cpu_eff)))
-    new_line['CPU Efficiency'] = cpu_eff
-
-    print(''.center(60, '-'))
-    print("")
-
-    # ========================================================= #
-    # Store the new line                                        #
-    # ========================================================= #
-
-    final_list.append(new_line)
-
-  # If there is any kind of problem with the current line, store it into errors_list and skip it
-
-  except Exception as error:
-    print(error)
-    errors_list.append(line)
-    continue
-
-print("\nEnd of processing")
-
-# =================================================================== #
-# =================================================================== #
-#                             THE END STEP                            #
-# =================================================================== #
-# =================================================================== #
-
-# ========================================================= #
-# Add information to final CSV file                         #
-# ========================================================= #
-
-section_title = "2. Writing new information to final CSV file"
-
-print("")
-print("")
-print(''.center(len(section_title)+10, '*'))
-print(section_title.center(len(section_title)+10))
-print(''.center(len(section_title)+10, '*'))
-print("")
-
-if final_list == []:
-  print("ERROR: None of the lines were processed correctly.")
-else:
-
-  # Define the final CSV header
-
-  csv_final_header = csv_tmp_header + ["Reserved", "Elapsed", "Time Efficiency", "Max RSS (MB)", "RAM Efficiency", "Total CPU", "Wall CPU", "CPU Efficiency"]
-  print("Used dialect in the final CSV file: {}".format(dialect))
-  print("Header used in final CSV file: {}".format(csv_final_header))
-
-  # Define if we have to write the header or not (only write it if the file does not exist or is empty)
-
-  write_header = True
-  if (os.path.exists(csv_final) and os.path.isfile(csv_final)):
-    with open(csv_final, 'r') as f:
-      write_header = (not f.readline()) # If the file is empty, write_header = True. Otherwise, write_header = False
-
-  # Open the final CSV file in 'Append' mode and add processed lines (+ write header if required)
-
-  print("\nWriting newly processed lines to the final file {} ...".format(csv_final), end='')
-
-  with open(csv_final, 'a', newline='') as final_f:
-    csv_writer = csv.DictWriter(final_f, fieldnames=csv_final_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
-    if write_header:
-      csv_writer.writeheader()
-    for line in final_list:
-      csv_writer.writerow(line)
-
-  print("{:>12}".format("[DONE]"))
-
-# ========================================================= #
-# Add problematic lines to a separate CSV file              #
-# ========================================================= #
-
-if errors_list != []:
-  section_title = "2bis. Writing problematic lines to a separate CSV file"
+  section_title = "2. Writing new information to final CSV file"
 
   print("")
   print("")
@@ -412,35 +381,90 @@ if errors_list != []:
   print(''.center(len(section_title)+10, '*'))
   print("")
 
-  # Define the separate CSV header
+  if final_list == []:
+    print("ERROR: None of the lines were processed correctly.")
+  else:
 
-  print("Used dialect in the separate CSV file: {}".format(dialect))
-  print("Header used in the separate CSV file: {}".format(csv_tmp_header))
+    # Define the final CSV header
 
-  # Define if we have to write the header or not (only write it if the file does not exist or is empty)
+    csv_final_header = csv_tmp_header + ["Reserved", "Elapsed", "Time Efficiency", "Max RSS (MB)", "RAM Efficiency", "Total CPU", "Wall CPU", "CPU Efficiency"]
+    print("Used dialect in the final CSV file: {}".format(dialect))
+    print("Header used in final CSV file: {}".format(csv_final_header))
 
-  csv_prob = os.path.splitext(csv_final)[0] + "_prob" + os.path.splitext(csv_final)[1]
-  write_header = True
-  if (os.path.exists(csv_prob) and os.path.isfile(csv_prob)):
-    with open(csv_prob, 'r') as f:
-      write_header = (not f.readline()) # If the file is empty, write_header = True. Otherwise, write_header = False
+    # Define if we have to write the header or not (only write it if the file does not exist or is empty)
 
-  # Open the separate CSV file in 'Append' mode and add problematic lines (+ write header if required)
+    write_header = True
+    if (os.path.exists(csv_final) and os.path.isfile(csv_final)):
+      with open(csv_final, 'r') as f:
+        write_header = (not f.readline()) # If the file is empty, write_header = True. Otherwise, write_header = False
 
-  print("\nWriting problematic lines to a separate CSV file {} ...".format(csv_prob), end='')
+    # Open the final CSV file in 'Append' mode and add processed lines (+ write header if required)
 
-  with open(csv_prob, 'a', newline='') as prob_f:
-    csv_writer = csv.DictWriter(prob_f, fieldnames=csv_tmp_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
-    if write_header:
-      csv_writer.writeheader()
-    for line in errors_list:
-      csv_writer.writerow(line)
+    print("\nWriting newly processed lines to the final file {} ...".format(csv_final), end='')
 
-  print("{:>12}".format("[DONE]"))
+    with open(csv_final, 'a', newline='') as final_f:
+      csv_writer = csv.DictWriter(final_f, fieldnames=csv_final_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+      if write_header:
+        csv_writer.writeheader()
+      for line in final_list:
+        csv_writer.writerow(line)
 
-print("")
-print("".center(columns,"*"))
-print("")
-print("END OF EXECUTION".center(columns))
-print("")
-print("".center(columns,"*"))
+    print("{:>12}".format("[DONE]"))
+
+  # ========================================================= #
+  # Add problematic lines to a separate CSV file              #
+  # ========================================================= #
+
+  if errors_list != []:
+    section_title = "2bis. Writing problematic lines to a separate CSV file"
+
+    print("")
+    print("")
+    print(''.center(len(section_title)+10, '*'))
+    print(section_title.center(len(section_title)+10))
+    print(''.center(len(section_title)+10, '*'))
+    print("")
+
+    # Define the separate CSV header
+
+    csv_prob_header = csv_tmp_header
+    print("Used dialect in the separate CSV file: {}".format(dialect))
+    print("Header used in the separate CSV file: {}".format(csv_prob_header))
+
+    # Define if we have to write the header or not (only write it if the file does not exist or is empty)
+
+    write_header = True
+    if (os.path.exists(csv_prob) and os.path.isfile(csv_prob)):
+      with open(csv_prob, 'r') as f:
+        write_header = (not f.readline()) # If the file is empty, write_header = True. Otherwise, write_header = False
+
+    # Open the separate CSV file in 'Append' mode and add problematic lines (+ write header if required)
+
+    print("\nWriting problematic lines to a separate CSV file {} ...".format(csv_prob), end='')
+
+    with open(csv_prob, 'a', newline='') as prob_f:
+      csv_writer = csv.DictWriter(prob_f, fieldnames=csv_prob_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+      if write_header:
+        csv_writer.writeheader()
+      for line in errors_list:
+        csv_writer.writerow(line)
+
+    print("{:>12}".format("[DONE]"))
+
+  print("")
+  print("".center(columns,"*"))
+  print("")
+  print("END OF EXECUTION".center(columns))
+  print("")
+  print("".center(columns,"*"))
+
+# =================================================================== #
+# =================================================================== #
+#                          CALL MAIN FUNCTION                         #
+# =================================================================== #
+# =================================================================== #
+
+# If this script is executed through the command line, call the main function (see https://realpython.com/python-main-function/ for details)
+
+if __name__ == "__main__":
+    main()     

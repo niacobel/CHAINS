@@ -2,10 +2,6 @@
 Benchmarking tool
 *****************
 
-.. warning::
-
-   This section is still a work in progress and some information might be missing or temporarily erroneous.
-
 Why is it useful?
 =================
 
@@ -29,7 +25,7 @@ The ``seff`` command: a possible alternative
 An alternative option is the ``seff`` command (see `source code <https://github.com/SchedMD/slurm/blob/master/contribs/seff/seff>`_ and `example <https://sites.google.com/a/case.edu/hpcc/jobs/slurm-command-overview/seff>`_). While it pretty much does exactly what we want, there are however some problems with it:
 
 - It requires SLURM 15.08 or a more recent version, which might cause problems with some older machines.
-- It does not give reliable statistics when the job is running, so a cron task or similar* will be needed in order to automatically check the resources usage after the job has ended.
+- It does not give reliable statistics when the job is running, so a :ref:`cron task <cron_tuto>` or similar* will be needed in order to automatically check the resources usage after the job has ended.
 - It computes the CPU and memory efficiencies, but nothing is done about the time efficiency.
 
 Other than that, it still is a good option so feel free to use it if it satisfies your needs!
@@ -46,7 +42,7 @@ This process requires three files:
 
 - A Jinja template, named ``benchmark.jinja``, placed in the ``templates`` directory of ``ABIN LAUNCHER``. It is an extension of the job instructions template.
 - A Python script, named ``benchmark.py``, which must be placed in ``ABIN LAUNCHER``'s directory.
-- A Shell script, named ``cron_benchmark.sh``, which must also be placed in ``ABIN LAUNCHER``'s directory. It will be executed through a cron task and make the link between the first two files.
+- A Shell script, named ``cron_benchmark.sh``, which must also be placed in ``ABIN LAUNCHER``'s directory. It will be executed through a :ref:`cron task <cron_tuto>` and make the link between the first two files.
 
 The role of the Jinja template
 ------------------------------
@@ -61,6 +57,10 @@ At the end of the job instructions, some additional commands, provided by the ``
 - Four dates: the submit date, the eligible date, the start date and the end date (which is the current date at which the job ends since those instructions are executed at the end of the job script)
 
 Some of that information is provided directly by ``ABIN LAUNCHER`` while the others are obtained through the ``squeue`` command. The Jinja template will then store that information by either creating or updating a **temporary CSV file**.
+
+.. warning::
+
+   The job ID and name are the crucial parts of this file. No matter how you want to customize it, you *must* keep that information in the temporary CSV file. Otherwise, the Python script won't be able to fetch its data.
 
 The role of the crontab script
 ------------------------------
@@ -83,10 +83,15 @@ The ``benchmark.py`` Python script will read the content of the temporary CSV fi
 
 Then the script will store that information by either creating or updating a **final CSV file**. That file is a repeat of what was already present in the temporary file, enriched by the new data provided by the ``sacct`` command.
 
-The only thing left to do is then to make a copy of that final CSV file on your local computer and open it in your favorite spreadsheet like Microsoft Excel!
+The only thing left to do is then to make a copy of that final CSV file on your local computer and open it in your favorite spreadsheet! (like Microsoft Excel)
 
 Usage and configuration
 =======================
+
+Before starting to edit the files, you need to decide two important values:
+
+- ``benchmark_path``, which is the location of your benchmark directory, i.e the directory where all the output files of this benchmarking tool will be stored.
+- ``prefix``, which is the prefix that will be common to all the files created by this tool.
 
 Prepare the Jinja template
 --------------------------
@@ -102,7 +107,8 @@ Since that template requires some specific variables, add the following code to 
 .. code-block:: python
 
     render_vars.update({
-        "benchmark_dir" : "path/to/benchmark_dir",
+        "benchmark_path" : <value>,
+        "prefix": <value>,
         "prog" : job_specs['prog'],
         "cluster_name" : job_specs['cluster_name'],
         "jobscale_label" : job_specs['scale_label'],
@@ -112,9 +118,9 @@ Since that template requires some specific variables, add the following code to 
         "scale_index" : job_specs['scale_index']
         })
 
-where ``path/to/benchmark_dir`` is the path towards the directory where you want your benchmark files to be stored.
+where ``benchmark_path`` is the path towards your benchmark directory and ``prefix`` the desired prefix for your benchmarking output files.
 
-Now, at the end of your jobs, a new temporary CSV file will be created in your ``benchmark_dir`` directory, named ``<prog>_<cluster_name>_tmp.csv``, where ``<prog>`` and ``<cluster_name>`` are the names of your program and your cluster, respectively. If the file already exists, a new line will simply be added to it.
+Now, at the end of your job, a new temporary CSV file will be created in your benchmark directory, named ``<prefix>_tmp.csv``. If the file already exists, a new line will simply be added to it.
 
 Configure the cron task
 -----------------------
@@ -123,21 +129,15 @@ Use the ``crontab -e`` command in your terminal to edit your cron tasks and add 
 
 .. code-block::
 
-   */15 * * * * bash -l -c "/path/to/cron_benchmark.sh <prog> <cluster_name>" >> path/to/benchmark_dir/crontab_<prog>_<cluster_name>.log 2>&1
+   */15 * * * * bash -l -c "/path/to/cron_benchmark.sh <prefix>" >> benchmark_path/<prefix>_crontab.log 2>&1
 
 where
 
-- 15 is the number of minutes between two consecutive executions of this command (feel free to adjust it at will).
+- ``*/15 * * * *`` defines the frequency of execution of this command (at every 15th minutes). Feel free to adjust this value.
 - ``/path/to/cron_benchmark.sh`` is the path towards the crontab script.
-- ``crontab_<prog>_<cluster_name>.log`` is a log file that will contain the output of the execution of this crontab script.
+- ``<prefix>_crontab`` is a log file that will contain the output of the execution of this crontab script.
 
-Don't forget to also make the ``cron_benchmark.sh`` script executable by entering the following command in your terminal:
-
-.. code-block:: shell
-
-   chmod u+x /path/to/cron_benchmark.sh
-
-Now, every 15 minutes, the ``cron_benchmark.sh`` script will be executed.
+Don't forget to also make the ``cron_benchmark.sh`` script executable (``chmod u+x``) !
 
 Configure the crontab script
 ----------------------------
@@ -146,22 +146,222 @@ In the ``cron_benchmark.sh`` script itself, at the beginning of the file, you wi
 
 .. code-block:: shell
 
-   benchmark_dir="path/to/benchmark_dir"
+   benchmark_path="<value>"
+
+When executed, the ``cron_benchmark.sh`` script will look if there is a file named ``<prefix>_tmp.csv`` (the temporary CSV file) in your benchmark directory. If there is, the script will archive it into an ``archive`` subdirectory and rename it with the current date. It will then execute ``benchmark.py`` on that file.
 
 .. note::
 
    If it is not loaded by default in your user profile configuration, remember to also add instructions to load your Python distribution at the beginning of the crontab script, in order to execute ``benchmark.py``.
 
-When executed, the ``cron_benchmark.sh`` script wiil look if there is a file named ``<prog>_<cluster_name>_tmp.csv`` (the temporary CSV file) in your benchmark directory. If there is, the script wil archive it into an ``archive`` subdirectory and rename it with the current date. It will then execute ``benchmark.py`` on that file.
-
 The Python script
 -----------------
 
-You don't need to edit the Python script, this one will either create or update the final csv file, named ``<prog>_<cluster_name>.csv`` and placed inside the benchmark directory. The log file of this Python execution can be found in a ``bench_logs`` subdirectory, named ``<prog>_<cluster_name>_<current_date>.log``.
+.. argparse::
+   :module: benchmark
+   :func: parser
+   :prog: benchmark.py
+   :nodescription:
+
+How to use it?
+~~~~~~~~~~~~~~
+
+You don't need to edit the Python script, it will be automatically executed by the crontab script with the following arguments:
+
+- ``<benchmark_path>/<prefix>_tmp.csv`` for the ``-t, --tmp`` argument
+- ``<benchmark_path>/<prefix>_final.csv`` for the ``-f, --final`` argument
+- ``<benchmark_path>/<prefix>_prob.csv`` for the ``-p, --prob`` argument
+
+This will either create or update the final csv file, named ``<prefix>_final.csv`` and placed inside the benchmark directory. The log file of this Python execution, named ``<prefix>_<current_date>.log``, can be found inside a ``bench_logs`` subdirectory created by the crontab script. 
+
+How to deal with problematic lines?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If some lines of the temporary CSV files were to cause any kind of problem, they will be stored inside a **problematic CSV file**, named ``<prefix>_prob.csv`` and placed inside the benchmark directory. After having consulted the log file and diagnosed the problem, you might then wish to rerun the Python script on this file. In this case, you can just either:
+
+- manually execute ``benchmark.py`` using the path towards the problematic CSV file for the ``-t, --tmp`` argument (and something else for the ``-p, --prob`` one)
+- rename ``<prefix>_prob.csv`` into ``<prefix>_tmp.csv``\*, then manually execute ``cron_benchmark.sh`` (with ``<prefix>`` as a command line argument).
+
+\* Be careful to not erase a *real* temporary CSV file by doing so.
 
 Sample run
 ==========
 
-.. todo::
+Let's end this section with a sample run of the benchmarking tool. We will use our example from the :doc:`previous section <abin_launcher.example>`, with the three molecules (or geometry files) and the two configuration files. Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/benchmark_sample_files>`_.
 
-   COMING SOON (don't forget the benchmark directory structure)
+Preparation
+-----------
+
+Our ``benchmark_path`` will be ``/home/users/n/i/niacobel/abin_docs_sample/benchmark`` and our prefix will be ``orca_lemaitre3``.
+
+This is our starting directory structure:
+
+.. code-block::
+
+   abin_docs_sample/
+      └── abin_launcher/ 
+            ├── benchmark.py
+            ├── cron_benchmark.sh
+            ├── abin_launcher.py
+            ├── geom_scan.py
+            ├── scaling_fcts.py
+            ├── renderer.py
+            ├── abin_errors.py
+            ├── clusters.yml
+            ├── mendeleev.yml
+            └── templates/
+                  ├── benchmark.jinja
+                  ├── sample_orca.inp.jinja
+                  └── sample_orca_job.sh.jinja
+      └── molecules/ 
+            ├── ch4.xyz
+            ├── c2h6.xyz
+            └── c3h8.xyz
+      └── configs/ 
+            ├── svp.yml
+            └── tzvp.yml
+      └── orca_jobs/ 
+            └── currently empty
+
+Note that our benchmark directory does not exist yet, but this is not necessary since the instructions contained in the Jinja template can create it if needed.
+
+The Jinja template
+~~~~~~~~~~~~~~~~~~
+
+At the end of ``sample_orca_job.sh.jinja``, we add the following line:
+
+.. code-block:: jinja
+
+   {% include "benchmark.jinja" %}
+
+and in the ``orca_render`` function of ``renderer.py``, we add
+
+.. code-block:: python
+
+    render_vars.update({
+        "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
+        "prefix": "orca_lemaitre3",
+        "prog" : job_specs['prog'],
+        "cluster_name" : job_specs['cluster_name'],
+        "jobscale_label" : job_specs['scale_label'],
+        "job_walltime" : job_specs['walltime'],
+        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+        "scaling_function" : job_specs['scaling_fct'],
+        "scale_index" : job_specs['scale_index']
+        })
+
+.. container:: toggle
+
+   .. container:: header
+
+      If you are not sure of where exactly you need to add this portion of code, you can click on the arrow below to see the complete source code of ``renderer.py``.
+
+   .. literalinclude:: benchmark_sample_files/renderer.py
+      :emphasize-lines: 126-138
+
+|
+
+The cron task and the crontab script
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Now we execute the ``crontab -e`` command in our terminal to edit our cron tasks and add the following line:
+
+.. code-block::
+
+   */15 * * * * bash -l -c "/home/users/n/i/niacobel/abin_docs_sample/abin_launcher/cron_benchmark.sh orca_lemaitre3" >> /home/users/n/i/niacobel/abin_docs_sample/benchmark/orca_lemaitre3_crontab.log 2>&1
+
+Finally, we need to edit our ``cron_benchmark.sh`` file. Here is what the beginning of this file looks like in our case:
+
+.. literalinclude:: benchmark_sample_files/cron_benchmark.sh
+   :lines: 7-19
+
+and we make sure it is executable by entering the following command in our terminal:
+
+.. code-block:: shell
+
+   chmod u+x /home/users/n/i/niacobel/abin_docs_sample/abin_launcher/cron_benchmark.sh
+
+Now our benchmarking tool is ready to run!
+
+Execution
+---------
+
+We just run ``ABIN LAUNCHER`` as normal, by executing the main script (from ``abin_docs_sample``):
+
+.. code-block:: shell
+
+   python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
+
+We obtain the same results than before, with the six launched jobs. 
+
+As soon as each job finishes, the temporary CSV file, ``orca_lemaitre3_tmp.csv``, will either be created or updated with a new line. After the six jobs have finished, this is what the raw file looks like:
+
+.. literalinclude:: benchmark_sample_files/orca_lemaitre3_tmp.csv
+
+and in a more human-readable fashion:
+
+.. csv-table::
+   :file: benchmark_sample_files/orca_lemaitre3_tmp.csv
+   :delim: ;
+
+As you can see, a different line has been written for each of our jobs, containing the different data that have been collected so far.
+
+After at most 15 minutes, the crontab task executes the crontab script, which archives the temporary CSV file and then runs the Python script on that file to either create or update the final CSV file. The directory structure now looks like:
+
+.. code-block::
+
+   abin_docs_sample/
+      └── abin_launcher/ 
+            └── no changes
+      └── benchmark/
+            ├── orca_lemaitre3_crontab.log
+            ├── orca_lemaitre3_final.csv
+            └── archive/
+                  └── orca_lemaitre3_tmp_20201109_171504.csv
+            └── bench_logs/
+                  └── orca_lemaitre3_20201109_171504.log
+      └── molecules/
+            └── launched/
+      └── configs/ 
+            └── launched/
+      └── orca_jobs/ 
+            └── ch4_svp/
+            └── ch4_tzvp/
+            └── c2h6_svp/
+            └── c2h6_tzvp/
+            └── c3h8_svp/
+            └── c3h8_tzvp/
+
+where our final CSV file, ``orca_lemaitre3_final.csv``, contains:
+
+.. csv-table::
+   :file: benchmark_sample_files/orca_lemaitre3_final.csv
+   :delim: ;
+
+The temporary CSV file has been archived into the ``archive`` directory, as ``orca_lemaitre3_tmp_20201109_171504.csv``. This copy is kept purely as backup for the data. Once you've make sure those jobs have been correctly benchmarked, you can remove the copy.
+
+Content of the log files
+------------------------
+
+As you can see in the directory structure above, the benchmarking tool creates two log files:
+
+- The log file from the crontab script, ``orca_lemaitre3_crontab.log``, which contains a line for each time a temporary CSV file has been processed. At this point, its content is simply:
+
+.. literalinclude:: benchmark_sample_files/orca_lemaitre3_crontab.log
+   :language: text
+
+- 
+   .. container:: toggle
+
+      .. container:: header
+
+         The log file from the Python script, ``orca_lemaitre3_20201109_171504.log``, placed inside the ``bench_logs`` directory. Click on the arrow below to see its content.
+
+      .. literalinclude:: benchmark_sample_files/orca_lemaitre3_20201109_171504.log
+         :language: text
+
+.. .. todo::
+
+..    excel view and conclusion
+
+..    add out_line parameter and explanation

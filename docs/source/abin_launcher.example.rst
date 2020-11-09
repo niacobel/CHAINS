@@ -78,30 +78,31 @@ For our two configuration files, we want to perform a geometry optimization usin
 
 Let's store those files in two distinct directories: one for the molecule geometries, named ``molecules``, and one for the configuration files, named ``configs``. We will also create a directory for the jobs, named ``orca_jobs``.
 
-This is what our home directory on the cluster now looks like:
+This is what our directory on the cluster, named ``abin_docs_sample``, now looks like:
 
 .. code-block::
 
-    abin_launcher/ 
-      ├── abin_launcher.py
-      ├── geom_scan.py
-      ├── scaling_fcts.py
-      ├── renderer.py
-      ├── abin_errors.py
-      ├── clusters.yml
-      ├── mendeleev.yml
-      └── templates/
-            ├── sample_orca.inp.jinja
-            └── sample_orca_job.sh.jinja
-    molecules/ 
-      ├── ch4.xyz
-      ├── c2h6.xyz
-      └── c3h8.xyz
-    configs/ 
-      ├── svp.yml
-      └── tzvp.yml
-    orca_jobs/ 
-      └── currently empty
+   abin_docs_sample/
+      └── abin_launcher/ 
+            ├── abin_launcher.py
+            ├── geom_scan.py
+            ├── scaling_fcts.py
+            ├── renderer.py
+            ├── abin_errors.py
+            ├── clusters.yml
+            ├── mendeleev.yml
+            └── templates/
+                  ├── sample_orca.inp.jinja
+                  └── sample_orca_job.sh.jinja
+      └── molecules/ 
+            ├── ch4.xyz
+            ├── c2h6.xyz
+            └── c3h8.xyz
+      └── configs/ 
+            ├── svp.yml
+            └── tzvp.yml
+      └── orca_jobs/ 
+            └── currently empty
 
 Running ABIN LAUNCHER
 ---------------------
@@ -110,7 +111,7 @@ Running ABIN LAUNCHER
 
    Before executing ``ABIN LAUNCHER``, remember to load (manually or through your user profile configuration) your Python distribution, which must include YAML and Jinja2.
 
-We can now execute ``abin_launcher.py`` by running the command
+We can now execute ``abin_launcher.py`` by running the command (from ``abin_docs_sample``):
 
 .. code-block:: shell
 
@@ -143,54 +144,55 @@ If we take a look at the directory structure, it now looks like:
 
 .. code-block::
 
-    abin_launcher/ 
-      └── no changes
-    molecules/
-      └── launched/
-            ├── ch4.xyz
-            ├── c2h6.xyz
-            └── c3h8.xyz
-    configs/ 
-      └── launched/
-            ├── svp.yml
-            └── tzvp.yml
-    orca_jobs/ 
-      └── ch4_svp/
-            ├── ch4.xyz
-            ├── svp.yml
-            ├── ch4.inp
-            ├── orca_job.sh
-            └── ch4_svp.log
-      └── ch4_tzvp/
-            ├── ch4.xyz
-            ├── tzvp.yml
-            ├── ch4.inp
-            ├── orca_job.sh
-            └── ch4_tzvp.log
-      └── c2h6_svp/
-            ├── c2h6.xyz
-            ├── svp.yml
-            ├── c2h6.inp
-            ├── orca_job.sh
-            └── c2h6_svp.log
-      └── c2h6_tzvp/
-            ├── c2h6.xyz
-            ├── tzvp.yml
-            ├── c2h6.inp
-            ├── orca_job.sh
-            └── c2h6_tzvp.log
-      └── c3h8_svp/
-            ├── c3h8.xyz
-            ├── svp.yml
-            ├── c3h8.inp
-            ├── orca_job.sh
-            └── c3h8_svp.log
-      └── c3h8_tzvp/
-            ├── c3h8.xyz
-            ├── tzvp.yml
-            ├── c3h8.inp
-            ├── orca_job.sh
-            └── c3h8_tzvp.log
+   abin_docs_sample/
+      └── abin_launcher/ 
+            └── no changes
+      └── molecules/
+            └── launched/
+                  ├── ch4.xyz
+                  ├── c2h6.xyz
+                  └── c3h8.xyz
+      └── configs/ 
+            └── launched/
+                  ├── svp.yml
+                  └── tzvp.yml
+      └── orca_jobs/ 
+            └── ch4_svp/
+                  ├── ch4.xyz
+                  ├── svp.yml
+                  ├── ch4.inp
+                  ├── orca_job.sh
+                  └── ch4_svp.log
+            └── ch4_tzvp/
+                  ├── ch4.xyz
+                  ├── tzvp.yml
+                  ├── ch4.inp
+                  ├── orca_job.sh
+                  └── ch4_tzvp.log
+            └── c2h6_svp/
+                  ├── c2h6.xyz
+                  ├── svp.yml
+                  ├── c2h6.inp
+                  ├── orca_job.sh
+                  └── c2h6_svp.log
+            └── c2h6_tzvp/
+                  ├── c2h6.xyz
+                  ├── tzvp.yml
+                  ├── c2h6.inp
+                  ├── orca_job.sh
+                  └── c2h6_tzvp.log
+            └── c3h8_svp/
+                  ├── c3h8.xyz
+                  ├── svp.yml
+                  ├── c3h8.inp
+                  ├── orca_job.sh
+                  └── c3h8_svp.log
+            └── c3h8_tzvp/
+                  ├── c3h8.xyz
+                  ├── tzvp.yml
+                  ├── c3h8.inp
+                  ├── orca_job.sh
+                  └── c3h8_tzvp.log
 
 As you can see, since they have been successfully processed, the geometry files and the configuration files have both been archived into a ``launched`` directory created by ``ABIN LAUNCHER``. This is the default behavior, allowing you to reuse the same directories for other geometries and configurations, making it easier for example to create an alias for the execution command. If you want to turn it off, just add the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively.
 

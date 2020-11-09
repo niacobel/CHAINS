@@ -1,0 +1,14 @@
+/* Show/hide block (see https://stackoverflow.com/questions/2454577/sphinx-restructuredtext-show-hide-code-snippets) */
+
+.toggle .header {
+    display: block;
+    clear: both;
+}
+
+.toggle .header:after {
+    content: " ▶";
+}
+
+.toggle .header.open:after {
+    content: " ▼";
+}

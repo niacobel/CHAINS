@@ -1,0 +1,153 @@
+********************************************************************************
+
+     EXECUTION OF THE BENCHMARKING SCRIPT FOR SLURM CLUSTERS JOBS BEGINS NOW     
+
+********************************************************************************
+
+
+*****************************
+     0. Preparation step     
+*****************************
+
+Scanning tmp file /home/users/n/i/niacobel/abin_docs_sample/benchmark/archive/orca_lemaitre3_tmp_20201109_171504.csv ... 
+    Detected CSV dialect in tmp file: excel
+    Detected CSV header in tmp file : ['Program', 'Cluster', 'Jobscale', 'Partition', 'Cores', 'MB/CPU', 'Walltime', 'Job ID', 'Job Name', 'Scaling Function', 'Scale Index', 'Submit Date', 'Eligible Date', 'Start Date', 'End Date', 'Nodes', 'Nodes List']
+
+
+************************************
+     1. Get benchmarking values     
+************************************
+
+Processing lines ...
+
+------------------------------------------------------------
+            Job Name: orca_ch4_svp
+              Job ID: 69232077
+------------------------------------------------------------
+            Reserved: 00:00:00
+             Elapsed: 00:00:14
+            Walltime: 00:10:00
+     Time Efficiency: 2%
+------------------------------------------------------------
+              MaxRSS: 1 MB
+           Total MEM: 2000 MB (500 MB for each of 4 CPUs)
+      RAM Efficiency: 0%
+------------------------------------------------------------
+            TotalCPU: 00:08.479
+            Wall CPU: 00:00:56
+      CPU Efficiency: 14%
+------------------------------------------------------------
+
+
+------------------------------------------------------------
+            Job Name: orca_ch4_tzvp
+              Job ID: 69232076
+------------------------------------------------------------
+            Reserved: 00:00:00
+             Elapsed: 00:00:17
+            Walltime: 00:10:00
+     Time Efficiency: 3%
+------------------------------------------------------------
+              MaxRSS: 1 MB
+           Total MEM: 2000 MB (500 MB for each of 4 CPUs)
+      RAM Efficiency: 0%
+------------------------------------------------------------
+            TotalCPU: 00:11.338
+            Wall CPU: 00:01:08
+      CPU Efficiency: 16%
+------------------------------------------------------------
+
+
+------------------------------------------------------------
+            Job Name: orca_c2h6_svp
+              Job ID: 69232081
+------------------------------------------------------------
+            Reserved: 00:00:01
+             Elapsed: 00:00:36
+            Walltime: 00:10:00
+     Time Efficiency: 6%
+------------------------------------------------------------
+              MaxRSS: 235 MB
+           Total MEM: 2000 MB (500 MB for each of 4 CPUs)
+      RAM Efficiency: 12%
+------------------------------------------------------------
+            TotalCPU: 00:22.476
+            Wall CPU: 00:02:24
+      CPU Efficiency: 15%
+------------------------------------------------------------
+
+
+------------------------------------------------------------
+            Job Name: orca_c3h8_svp
+              Job ID: 69232079
+------------------------------------------------------------
+            Reserved: 00:00:02
+             Elapsed: 00:00:42
+            Walltime: 00:10:00
+     Time Efficiency: 7%
+------------------------------------------------------------
+              MaxRSS: 79 MB
+           Total MEM: 2000 MB (500 MB for each of 4 CPUs)
+      RAM Efficiency: 4%
+------------------------------------------------------------
+            TotalCPU: 00:36.502
+            Wall CPU: 00:02:48
+      CPU Efficiency: 21%
+------------------------------------------------------------
+
+
+------------------------------------------------------------
+            Job Name: orca_c2h6_tzvp
+              Job ID: 69232080
+------------------------------------------------------------
+            Reserved: 00:00:02
+             Elapsed: 00:01:02
+            Walltime: 00:10:00
+     Time Efficiency: 10%
+------------------------------------------------------------
+              MaxRSS: 243 MB
+           Total MEM: 2000 MB (500 MB for each of 4 CPUs)
+      RAM Efficiency: 12%
+------------------------------------------------------------
+            TotalCPU: 00:55.619
+            Wall CPU: 00:04:08
+      CPU Efficiency: 22%
+------------------------------------------------------------
+
+
+------------------------------------------------------------
+            Job Name: orca_c3h8_tzvp
+              Job ID: 69232078
+------------------------------------------------------------
+            Reserved: 00:00:02
+             Elapsed: 00:02:27
+            Walltime: 00:10:00
+     Time Efficiency: 24%
+------------------------------------------------------------
+              MaxRSS: 234 MB
+           Total MEM: 2000 MB (500 MB for each of 4 CPUs)
+      RAM Efficiency: 12%
+------------------------------------------------------------
+            TotalCPU: 02:21.569
+            Wall CPU: 00:09:48
+      CPU Efficiency: 24%
+------------------------------------------------------------
+
+
+End of processing
+
+
+******************************************************
+     2. Writing new information to final CSV file     
+******************************************************
+
+Used dialect in the final CSV file: excel
+Header used in final CSV file: ['Program', 'Cluster', 'Jobscale', 'Partition', 'Cores', 'MB/CPU', 'Walltime', 'Job ID', 'Job Name', 'Scaling Function', 'Scale Index', 'Submit Date', 'Eligible Date', 'Start Date', 'End Date', 'Nodes', 'Nodes List', 'Reserved', 'Elapsed', 'Time Efficiency', 'Max RSS (MB)', 'RAM Efficiency', 'Total CPU', 'Wall CPU', 'CPU Efficiency']
+
+Writing newly processed lines to the final file /home/users/n/i/niacobel/abin_docs_sample/benchmark/orca_lemaitre3_final.csv ...      [DONE]
+
+********************************************************************************
+
+                                END OF EXECUTION                                
+
+********************************************************************************

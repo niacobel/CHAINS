@@ -9,29 +9,33 @@ echo -e "===================================================================="
 
 # Define the name of the directory where the benchmark CSV files will be created
 
-benchmark_dir="{{ benchmark_dir }}"
+benchmark_path="{{ benchmark_path }}"
 
-# Define the name of the temporary CSV file where data will be stored
+# Define the prefix of the name of the temporary CSV file where data will be stored
 
-filename="{{ prog }}_{{ cluster_name }}_tmp.csv"
-
-echo -e "\nCompiling data for benchmarking in ${benchmark_dir}/${filename}."
+prefix="{{ prefix }}"
 
 ####################################
 #         Preparation step         #
 ####################################
 
+# Define the name of temporary CSV file
+
+filename="${prefix}_tmp.csv"
+
+echo -e "\nCompiling data for benchmarking in ${benchmark_path}/${filename}."
+
 # Create the directory where the file will be created, if needed
 
-mkdir -p ${benchmark_dir}
+mkdir -p ${benchmark_path}
 
 # If the file doesn't already exist, create it with a header as first line
 
 header="Program;Cluster;Jobscale;Partition;Cores;MB/CPU;Walltime;Job ID;Job Name;Scaling Function;Scale Index;Submit Date;Eligible Date;Start Date;End Date;Nodes;Nodes List"
 
-if [ ! -f "${benchmark_dir}/${filename}" ]; then
-    echo -e "\nFile ${filename} does not exist in ${benchmark_dir}, a new one will be created."
-    echo ${header} >> ${benchmark_dir}/${filename}
+if [ ! -f "${benchmark_path}/${filename}" ]; then
+    echo -e "\nFile ${filename} does not exist in ${benchmark_path}, a new one will be created."
+    echo ${header} >> ${benchmark_path}/${filename}
 fi
 
 echo -e "\nFormat:"
@@ -81,4 +85,4 @@ echo -e "${infos}"
 
 # Add line to file
 
-echo ${infos} >> ${benchmark_dir}/${filename}
+echo ${infos} >> ${benchmark_path}/${filename}
