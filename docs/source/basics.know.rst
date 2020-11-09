@@ -12,7 +12,7 @@ First things first, it is important to clarify what CHAINS *does not do*. CHAINS
 About Python
 ============
 
-Python 3.5 is the main language of CHAINS. If you just want to use the scripts without customizing them, a beginner's knowledge of Python should be more than enough. Otherwise, you might need to delve just a bit deeper into that language, although we tried to stick with the basics as much as possible. If some lines of code use anything a bit unusual, a link is usually given in the comments for reference.
+Python_ 3.5 is the main language of CHAINS. If you just want to use the scripts without customizing them, a beginner's knowledge of Python should be more than enough. Otherwise, you might need to delve just a bit deeper into that language, although we tried to stick with the basics as much as possible. If some lines of code use anything a bit unusual, a link is usually given in the comments for reference.
 
 In order to learn Python, here is a YouTube tutorials playlist made by Corey Schafer:
 
@@ -99,6 +99,7 @@ Regular Expressions can present themselves as incredibly unintuitive but their v
 .. _Jinja: https://jinja.palletsprojects.com/en/2.11.x/ 
 .. _Molpro: https://www.molpro.net/
 .. _ORCA: https://www.faccts.de/orca/
+.. _Python: https://www.python.org/
 .. _Q-CHEM: https://www.q-chem.com/
 .. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA
 .. _`Regular Expressions`: https://www.regular-expressions.info/

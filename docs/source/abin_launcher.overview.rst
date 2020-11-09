@@ -59,7 +59,7 @@ where
 
 .. note::
 
-   There are three supplementary files: ``benchmark.py``, ``cron_benchmark.sh`` and, in the ``templates`` directory, ``benchmark.jinja``. Those files are not part of ``ABIN LAUNCHER`` itself but they introduce a :doc:`benchmarking option <abin_launcher.benchmark>`.
+   There are three supplementary files: ``benchmark.py``, ``cron_benchmark.sh`` and, in the ``templates`` directory, ``benchmark.jinja``. Those files are not part of ``ABIN LAUNCHER`` itself but they introduce a :doc:`benchmarking tool <abin_launcher.benchmark>`.
 
 .. _abin_arguments:
 

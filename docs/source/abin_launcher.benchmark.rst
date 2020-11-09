@@ -1,6 +1,6 @@
-*******************
-Benchmarking option
-*******************
+*****************
+Benchmarking tool
+*****************
 
 .. warning::
 
@@ -11,15 +11,22 @@ Why is it useful?
 
 As mentioned in the :doc:`abin_launcher.job_scale` section, one of the key parts of the scaling process is the definition of your job scales. A good amount of finely tuned job scales will allow you to avoid wasting resources, thus diminishing your fairshare usage of the cluster, making your jobs spend less time waiting in the queue. Since this is highly dependent on the program you want to run and the cluster on which it will be running, you will need to do extensive testing on your part. 
 
-With that said, if your cluster uses SLURM as a job scheduler, we might be able to offer some help in that regard through a benchmarking option. This option will allow us to see the efficiency of our resources requirements, by calculating how much of the allocated resources were actually used by the job.
+With that said, if your cluster uses SLURM as a job scheduler, we might be able to offer some help in that regard through a benchmarking tool. This tool allows you to see the efficiency of your resources requirements, by calculating how much of the allocated resources were actually used by the job.
 
 Important SLURM commands
 ========================
 
+The ``sacct`` and ``squeue`` commands
+-------------------------------------
+
+The two key SLURM commands we use here are ``sacct`` and ``squeue``. The ``sacct`` command can directly fetch job accounting data from the SLURM database. Depending on your cluster configuration however, reaching the SLURM database can necessitate an Internet access, which the computing nodes might not have. This command will then only be used from the login nodes, when the job has finished. On the other hand, the ``squeue`` command gets its information locally, which means we can use it for the information that will be obtained through the job instructions file, while the job is still running.
+
+Every data about our jobs will be obtained through those two commands. If you want to customize the benchmarking procedure, you should familiarize yourself with them on SLURM's official documentation (`sacct docs <https://slurm.schedmd.com/sacct.html>`_ and `squeue docs <https://slurm.schedmd.com/squeue.html>`_). 
+
 The ``seff`` command: a possible alternative
 --------------------------------------------
 
-The first option is the ``seff`` command (see `source code <https://github.com/SchedMD/slurm/blob/master/contribs/seff/seff>`_ and `example <https://sites.google.com/a/case.edu/hpcc/jobs/slurm-command-overview/seff>`_). While it pretty much does exactly what we want, there are some problems with it:
+An alternative option is the ``seff`` command (see `source code <https://github.com/SchedMD/slurm/blob/master/contribs/seff/seff>`_ and `example <https://sites.google.com/a/case.edu/hpcc/jobs/slurm-command-overview/seff>`_). While it pretty much does exactly what we want, there are however some problems with it:
 
 - It requires SLURM 15.08 or a more recent version, which might cause problems with some older machines.
 - It does not give reliable statistics when the job is running, so a cron task or similar* will be needed in order to automatically check the resources usage after the job has ended.
@@ -29,15 +36,11 @@ Other than that, it still is a good option so feel free to use it if it satisfie
 
 \* If your cluster administrator allows it, you can also use the ``strigger`` command to trigger a script executing the ``seff`` command at the end of the job, consult the `documentation <https://slurm.schedmd.com/strigger.html>`_ for details.
 
-Our choice: the ``sacct`` and ``squeue`` commands
--------------------------------------------------
-
-Given ``seff``'s limitations, we decided to go with two other commands here, ``sacct`` and ``squeue``. The ``sacct`` command can directly fetch job accounting data from the SLURM database. Depending on your cluster configuration however, reaching the SLURM database can necessitate an Internet access, which the computing nodes might not have. This command will then only be used from the login nodes, when the job has finished. On the other hand, the ``squeue`` command gets its information locally, which means we can use it for the information that will be obtained through the job instructions file, while the job is still running.
-
-Every data about our jobs will be obtained through those two commands. If you want to customize the benchmarking procedure, you should familiarize yourself with them on SLURM's official documentation (`sacct docs <https://slurm.schedmd.com/sacct.html>`_ and `squeue docs <https://slurm.schedmd.com/squeue.html>`_). 
+How does it work?
+=================
 
 Required files
-==============
+--------------
 
 This process requires three files:
 
@@ -45,13 +48,10 @@ This process requires three files:
 - A Python script, named ``benchmark.py``, which must be placed in ``ABIN LAUNCHER``'s directory.
 - A Shell script, named ``cron_benchmark.sh``, which must also be placed in ``ABIN LAUNCHER``'s directory. It will be executed through a cron task and make the link between the first two files.
 
-How does it work?
-=================
-
 The role of the Jinja template
 ------------------------------
 
-At the end of the job instructions, some additional commands, provided by the ``benchmark.jinja`` template, will write a new line in a **temporary CSV file**, containing the following information:
+At the end of the job instructions, some additional commands, provided by the ``benchmark.jinja`` template, will fetch the following information:
 
 - The name of the program and the name of the cluster
 - The chosen job scale and its associated resources requirements
@@ -60,7 +60,7 @@ At the end of the job instructions, some additional commands, provided by the ``
 - The number of nodes and the nodes list
 - Four dates: the submit date, the eligible date, the start date and the end date (which is the current date at which the job ends since those instructions are executed at the end of the job script)
 
-Some of those information are provided directly by ``ABIN LAUNCHER`` while the others are obtained through the ``squeue`` command.
+Some of that information is provided directly by ``ABIN LAUNCHER`` while the others are obtained through the ``squeue`` command. The Jinja template will then store that information by either creating or updating a **temporary CSV file**.
 
 The role of the crontab script
 ------------------------------
@@ -70,7 +70,7 @@ Meanwhile, on the cluster, the ``cron_benchmark.sh`` Shell script will be period
 The role of the Python script
 -----------------------------
 
-The ``benchmark.py`` Python script will write a new line in a **final CSV file**. That line is a repeat of what was already present in the temporary file, with the following additions:
+The ``benchmark.py`` Python script will read the content of the temporary CSV file, then fetch the following data using the ``sacct`` command: 
 
 - The "reserved", or queued, time (time between the submit date and the eligible date)
 - The elapsed time (duration of the job)
@@ -81,10 +81,12 @@ The ``benchmark.py`` Python script will write a new line in a **final CSV file**
 - The "wall CPU", which is the total amount of time CPUs could have used (derived from the duration of the job and the number of CPUs)
 - The **CPU efficiency** (percentage of total time used by the CPUs vs "wall CPU")
 
+Then the script will store that information by either creating or updating a **final CSV file**. That file is a repeat of what was already present in the temporary file, enriched by the new data provided by the ``sacct`` command.
+
 The only thing left to do is then to make a copy of that final CSV file on your local computer and open it in your favorite spreadsheet like Microsoft Excel!
 
-How do I use it?
-================
+Usage and configuration
+=======================
 
 Prepare the Jinja template
 --------------------------
@@ -135,6 +137,8 @@ Don't forget to also make the ``cron_benchmark.sh`` script executable by enterin
 
    chmod u+x /path/to/cron_benchmark.sh
 
+Now, every 15 minutes, the ``cron_benchmark.sh`` script will be executed.
+
 Configure the crontab script
 ----------------------------
 
@@ -144,8 +148,20 @@ In the ``cron_benchmark.sh`` script itself, at the beginning of the file, you wi
 
    benchmark_dir="path/to/benchmark_dir"
 
-and you will need to **load your Python distribution** (if it is not loaded by default in your user profile configuration).
+.. note::
 
-Now, every 15 minutes, the ``cron_benchmark.sh`` script will be executed. If there is a file named ``<prog>_<cluster_name>_tmp.csv`` in your benchmark directory, it wil archive it into an ``archive`` subdirectory and rename it with the current date. It will then execute ``benchmark.py`` on that file. 
+   If it is not loaded by default in your user profile configuration, remember to also add instructions to load your Python distribution at the beginning of the crontab script, in order to execute ``benchmark.py``.
 
-That last script will either create or update the final csv file, named ``<prog>_<cluster_name>.csv`` and placed inside the benchmark directory. The log file of this Python execution can be found in a ``bench_logs`` subdirectory, named ``<prog>_<cluster_name>_<current_date>.log``.
+When executed, the ``cron_benchmark.sh`` script wiil look if there is a file named ``<prog>_<cluster_name>_tmp.csv`` (the temporary CSV file) in your benchmark directory. If there is, the script wil archive it into an ``archive`` subdirectory and rename it with the current date. It will then execute ``benchmark.py`` on that file.
+
+The Python script
+-----------------
+
+You don't need to edit the Python script, this one will either create or update the final csv file, named ``<prog>_<cluster_name>.csv`` and placed inside the benchmark directory. The log file of this Python execution can be found in a ``bench_logs`` subdirectory, named ``<prog>_<cluster_name>_<current_date>.log``.
+
+Sample run
+==========
+
+.. todo::
+
+   COMING SOON (don't forget the benchmark directory structure)
