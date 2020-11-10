@@ -15,14 +15,12 @@ lemaitre3:
         - 
           label: small
           scale_limit: 700
-          partition_name: batch
           time: 1-00:00:00
           cores: 8
           mem_per_cpu: 500 # in MB
         - 
           label: medium
           scale_limit: 1000
-          partition_name: batch
           time: 2-00:00:00
           cores: 8
           mem_per_cpu: 2000 # in MB
@@ -30,7 +28,6 @@ lemaitre3:
         - 
           label: big
           scale_limit: 1500
-          partition_name: batch
           time: 2-00:00:00
           cores: 8
           mem_per_cpu: 4000 # in MB
