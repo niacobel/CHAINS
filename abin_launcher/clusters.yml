@@ -13,7 +13,7 @@ shared:
   progs:
     orca:
       jinja_templates: &orca_jinja
-        input: orca.inp.jinja                          # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
+        input: orca.inp.jinja                          # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the geometry file
         job_instructions: orca_job.sh.jinja                                           
       scaling_function: &scl_fct total_nb_elec         # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
       job_scales: &tiny_orca
@@ -149,7 +149,7 @@ hercules:
   progs:
     qchem:
       jinja_templates:
-        input: qchem.in.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
+        input: qchem.in.jinja                        # The rendered file will be named <mol_name>.in, where <mol_name> is the name of the geometry file
         job_instructions: qchem_job.sh.jinja              
       set_env: 
         - module purge

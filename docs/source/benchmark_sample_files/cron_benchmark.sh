@@ -27,23 +27,17 @@ benchmark_path=$2
 
 timestamp=$(date +"%Y%m%d_%H%M%S")
 
-# Pretty print for log messages
-
-log_msg () {
-  echo -e "$(date +"%Y-%m-%d %T")\t$1"
-}
-
-# Define the tmp file we want to scan
+# Define the temporary CSV file we want to scan
 
 WATCH_FILE="${benchmark_path}/${prefix}_tmp.csv"
 
-# Define the folder where the tmp file will be archived
+# Define the directory where the temporary file will be archived
 
-ARCHIVE="${benchmark_path}/archive"
+archive="${benchmark_path}/archive"
 
-# Define the folder where the log files will be stored
+# Define the directory where the log files will be stored
 
-BENCH_LOGS="${benchmark_path}/bench_logs"
+bench_logs="${benchmark_path}/bench_logs"
 
 # Define the path towards the benchmark.py script (same directory as this script)
 
@@ -62,17 +56,17 @@ if [ ! -f "${WATCH_FILE}" ]; then
 
 else
 
-  # Archive the original tmp file
+  # Archive the temporary file
 
   filename="$(basename -- ${WATCH_FILE})"
-  mkdir -p ${ARCHIVE}
-  mv ${WATCH_FILE} ${ARCHIVE}/${filename%.*}_${timestamp}.csv
+  mkdir -p ${archive}
+  mv ${WATCH_FILE} ${archive}/${filename%.*}_${timestamp}.csv
 
   # Execute benchmark.py
 
-  mkdir -p ${BENCH_LOGS}
-  python ${path_script}/benchmark.py --tmp ${ARCHIVE}/${filename%.*}_${timestamp}.csv --final ${benchmark_path}/${prefix}_final.csv > ${BENCH_LOGS}/${prefix}_${timestamp}.log
+  mkdir -p ${bench_logs}
+  python ${path_script}/benchmark.py --tmp ${archive}/${filename%.*}_${timestamp}.csv --final ${benchmark_path}/${prefix}_final.csv --prob ${benchmark_path}/${prefix}_prob.csv > ${bench_logs}/${prefix}_${timestamp}.log
 
-  log_msg "INFO - Processed new lines in ${WATCH_FILE}"
+  echo -e "$(date +"%Y-%m-%d %T")\tINFO - Processed new lines in ${WATCH_FILE}"
 
 fi

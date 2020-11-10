@@ -25,15 +25,15 @@ benchmark_path=$2
 
 timestamp=$(date +"%Y%m%d_%H%M%S")
 
-# Define the tmp file we want to scan
+# Define the temporary CSV file we want to scan
 
 WATCH_FILE="${benchmark_path}/${prefix}_tmp.csv"
 
-# Define the folder where the tmp file will be archived
+# Define the directory where the temporary file will be archived
 
 archive="${benchmark_path}/archive"
 
-# Define the folder where the log files will be stored
+# Define the directory where the log files will be stored
 
 bench_logs="${benchmark_path}/bench_logs"
 
@@ -54,7 +54,7 @@ if [ ! -f "${WATCH_FILE}" ]; then
 
 else
 
-  # Archive the original tmp file
+  # Archive the temporary file
 
   filename="$(basename -- ${WATCH_FILE})"
   mkdir -p ${archive}
