@@ -56,7 +56,7 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
     Returns
     -------
     abspath : str
-        Normalized absolutized version of the path.
+        Normalized absolute version of the path.
 
     Raises
     ------
@@ -68,6 +68,7 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
 
     # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
+
       if type not in ["file","directory","either"]:
         raise ValueError ("The specified type for which the check_abspath function has been called is not one of 'file', 'directory' or 'either'")
       if not os.path.exists(path):
@@ -81,7 +82,9 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
       elif type == "either":
         if not os.path.isdir(path) and not os.path.isfile(path):
           raise AbinError ("ERROR: %s is neither a file nor a directory" % path)
+
     except AbinError as error:
+
         print("Something went wrong when checking the path ", path)
         print("Context: ",context)
         if not SkipError:
@@ -90,7 +93,8 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
         else:
           raise
 
-    # If everything went well, get the normalized absolutized version of the path
+    # If everything went well, get the normalized absolute version of the path
+    
     abspath = os.path.abspath(path)
 
     return abspath

@@ -191,7 +191,7 @@ Multiple programs can share the same crontab task if you don't mind their lines 
 Sample run
 ==========
 
-Let's end this section with a sample run of the benchmarking tool. We will use our example from the :doc:`previous section <abin_launcher.example>`, with the three molecules (or geometry files) and the two configuration files. Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/benchmark_sample_files>`_.
+Let's end this section with a sample run of the benchmarking tool. We will use our example from the :doc:`previous section <abin_launcher.example>`, with the three molecules (or geometry files) and the two configuration files. Every file presented in this subsection can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/benchmark_sample_files>`_.
 
 Preparation
 -----------
@@ -378,6 +378,3 @@ As you can see in the directory structure above, the benchmarking tool creates t
       .. literalinclude:: benchmark_sample_files/sample_orca_20201109_171504.log
          :language: text
 
-.. .. todo::
-
-..    add out_line parameter and explanation

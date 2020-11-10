@@ -113,9 +113,9 @@ Now, we need to replace every variable part of this input by a Jinja variable:
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
-Note that since the partition value is optional, we need to check if it has been specified before putting it in the instructions. Otherwise, we might end up with a ``partition=None`` wich won't be recognized by the cluster.
+Note that since the partition value is optional, we need to check if it has been specified before putting it in the instructions. Otherwise, we might end up with a ``partition=None`` which won't be recognized by the cluster.
 
-We are almost done, but there is one more thing we need to take into consideration here: ``ABIN LAUNCHER`` puts a copy of the geometry file inside the job subdirectory (see :ref:`out_dir_struct`). If we don't want that file to be overwrought by the new optimized geometry, we need to rename it before ORCA starts running:
+We are almost done, but there is one more thing we need to take into consideration here: ``ABIN LAUNCHER`` puts a copy of the geometry file inside the job subdirectory (see :ref:`out_dir_struct`). If we don't want that file to be overwritten by the new optimized geometry, we need to rename it before ORCA starts running:
 
 .. code-block:: jinja
 
@@ -210,7 +210,7 @@ For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are depend
          set_env: another-module
          command: another-command
 
-Note that for intuitivity purposes, the name of the YAML keys is identical to the name of the Jinja variables (``method`` for ``{{ method }}``, ``basis_set`` for ``{{ basis_set }}``, etc.), but nothing prevents you from doing things differently.
+Note that for intuitiveness purposes, the name of the YAML keys is identical to the name of the Jinja variables (``method`` for ``{{ method }}``, ``basis_set`` for ``{{ basis_set }}``, etc.), but nothing prevents you from doing things differently.
 
 .. _rendering_fct:
 

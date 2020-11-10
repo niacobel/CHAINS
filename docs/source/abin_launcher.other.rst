@@ -200,7 +200,7 @@ Feel free to raise it when you want to prevent predictable errors from happening
 
    raise abin_errors.AbinError ("my message here")
 
-Those raised exceptions wil be catched by ``ABIN LAUNCHER``, which will then either abort the execution or skip the incriminated geometry or configuration file, depending on where the error occurred.
+Those raised exceptions wil be caught by ``ABIN LAUNCHER``, which will then either abort the execution or skip the incriminated geometry or configuration file, depending on where the error occurred.
 
 Checking the existence of files and directories
 -----------------------------------------------
