@@ -94,8 +94,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     
     render_vars = {
       "method" : config['method'],
-      "basis_set" : config['basis-set'],
-      "job_type" : config['job-type'],
+      "basis_set" : config['basis_set'],
+      "job_type" : config['job_type'],
       "charge" : config['charge'],
       "multiplicity" : config['multiplicity'],
       "coordinates" : file_data['atomic_coordinates']
@@ -112,8 +112,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     render_vars = {
       "mol_name" : misc['mol_name'],
       "config_name" : misc['config_name'],
-      "user_email" : config['user-email'],
-      "mail_type" : config['mail-type'],
+      "user_email" : config['user_email'],
+      "mail_type" : config['mail_type'],
       "job_walltime" : job_specs['walltime'],
       "job_cores" : job_specs['cores'],
       "job_mem_per_cpu" : job_specs['mem_per_cpu'],
@@ -126,15 +126,15 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     # Add variables specific to the benchmarking template
    
     render_vars.update({
-    "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
-    "prefix": "orca_lemaitre3",
-    "prog" : job_specs['prog'],
-    "cluster_name" : job_specs['cluster_name'],
-    "jobscale_label" : job_specs['scale_label'],
-    "job_walltime" : job_specs['walltime'],
-    "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
-    "scaling_function" : job_specs['scaling_fct'],
-    "scale_index" : job_specs['scale_index']
+      "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
+      "prefix": "orca_lemaitre3",
+      "prog" : job_specs['prog'],
+      "cluster_name" : job_specs['cluster_name'],
+      "jobscale_label" : job_specs['scale_label'],
+      "job_walltime" : job_specs['walltime'],
+      "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+      "scaling_function" : job_specs['scaling_fct'],
+      "scale_index" : job_specs['scale_index']
     })
     
     rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)

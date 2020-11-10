@@ -1,38 +1,49 @@
-# This is the main configuration file, this file will contain every information you need to provide to the different scripts and programs your molecule will run through.
-# This is a YAML database, see https://yaml.org/ for more informations
+# This is the program configuration file, it contains every information about the configurations of the different scripts and programs your molecule will run through.
+# This is a YAML file, see https://yaml.org/ for more informations
+
+# ========================================================= #
+#                    General Information                    #
+# ========================================================= #
 
 # General information that is not specific to any program in particular.
+
 general: 
   charge: 0
   multiplicity: 1
-  user-email: niacobel@ulb.ac.be
-  mail-type: FAIL
-# Benchmarking options
-  benchmark: True
-  benchmark_dir: $CECIHOME/BENCHMARK
+  user_email: niacobel@ulb.ac.be
+  mail_type: FAIL
 
-# Orca information
+# ========================================================= #
+#                      ORCA Information                     #
+# ========================================================= #
+
 orca:
 # The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
-  job-type: Opt
+  job_type: Opt
   method: B3LYP
-  basis-set: def2-TZVP
-  aux-basis-set: def2/J
+  basis_set: def2-TZVP
+  aux_basis_set: def2/J
   other: RIJCOSX
 # Folder where the orca output files needed for the next step will be sent.
-  output-folder: $CECIHOME/ORCA_OUT               
+  output-dir: $CECIHOME/ORCA_OUT               
 
-# Q-Chem information
+# ========================================================= #
+#                     Q-CHEM Information                    #
+# ========================================================= #
+
 qchem:
 # The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
-  job-type: sp
+  job_type: sp
   exchange: b3lyp
-  basis-set: def2-tzvp
+  basis_set: def2-tzvp
   cis-n-roots: 4
 # Folder where the q-chem output files needed for the next step will be sent.
-  output-folder: $CECIHOME/QCHEM_OUT             
+  output-dir: $CECIHOME/QCHEM_OUT             
 
-# QOCT-RA information
+# ========================================================= #
+#                    QOCT-RA Information                    #
+# ========================================================= #
+
 qoctra:
 # Name of the script that will be used to extract relevant informations for QOCT-RA (it must have an extension ".py" but don't include it in this value)
   parser_script: qchem_parser
@@ -67,6 +78,10 @@ qoctra:
       ndump2: 1000                                  # Number of steps between each analysis of the populations, phases, positions and energies
 # Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
   output-folder: $CECIHOME/CONTROL_OUT   
+
+# ========================================================= #
+#               Results Treatment Information               #
+# ========================================================= #
 
 # Name of the files and folders containing the results
 results:

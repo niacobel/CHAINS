@@ -1,7 +1,7 @@
 method: B3LYP
-basis-set: def2-SVP
-job-type: Opt
+basis_set: def2-SVP
+job_type: Opt
 charge: 0
 multiplicity: 1
-user-email: your@email.com
-mail-type: FAIL
+user_email: your@email.com
+mail_type: FAIL

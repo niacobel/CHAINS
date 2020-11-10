@@ -74,85 +74,117 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template.
     """
 
-    # Check if all the files specified in the clusters YAML file exists in the templates directory of abin_launcher.
+    # ========================================================= #
+    #                      Preparation step                     #
+    # ========================================================= #
+
+    # Check if all the files specified in the clusters YAML file exists in the "templates" directory of ABIN LAUNCHER.
     
     for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
         abin_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
 
-    # Define the names of all the template and rendered files, given in the YAML clusters configuration file.
+    # Define the names of the templates, given in the YAML clusters configuration file.
 
-    template_input = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']                     # Jinja template file for the orca input
-    template_instructions = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_instructions']         # Jinja template file for the orca job instructions file
+    template_input = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']
+    template_instructions = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_instructions']
 
-    rendered_input = misc['mol_name'] + ".inp"                                                                                         # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
-    rendered_instructions = "orca_job.sh"                            # Name of the rendered job instructions file
+    # Define the names of the rendered files, given in the YAML clusters configuration file.
 
-    # Initialize our dictionary that will contain all the text of the rendered files
+    rendered_input = misc['mol_name'] + ".inp"
+    rendered_instructions = "orca_job.sh"
+
+    # Initialize the dictionary that will be returned by the function
 
     rendered_content = {}
 
-    # Get the path to the chains directory and the check_scripts directory because the job instructions file needs to execute check_orca.py and source load_modules.sh
-
-    chains_path = os.path.dirname(misc['code_dir'])                      # Get the parent directory from the codes_dir (which is the abin_launcher directory)                         
-    check_script_path = os.path.join(chains_path,"check_scripts")
-
-    # Rendering the jinja template for the orca job instructions file
-  
-    print("{:<80}".format("\nRendering the jinja template for the orca job instructions file ..."), end="")
-
-    render_vars = {  
-        "mol_name" : misc['mol_name'],
-        "user_email" : config['general']['user-email'],
-        "mail_type" : config['general']['mail-type'],
-        "job_walltime" : job_specs['walltime'],
-        "job_cores" : job_specs['cores'],
-        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
-        "partition" : job_specs['partition'],     
-        "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
-        "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-        "output_folder" : config[job_specs['prog']]['output-folder'],
-        "results_folder" : config['results']['main_folder'],
-        "chains_folder" : chains_path,
-        "check_folder" : check_script_path,
-        "results_subfolder" : config['results'][job_specs['prog']]['folder_name'],
-        "job_manifest" : rendered_instructions,
-        "config_file" : misc['config_name'],
-        "benchmark" : config['general']['benchmark'],
-        "benchmark_folder" : config['general']['benchmark-folder'],
-        "prog" : job_specs['prog'],
-        "jobscale_label" : job_specs['scale_label'],
-        "scaling_function" : job_specs['scaling_fct'],
-        "scale_index" : job_specs['scale_index']
-        }
-    
-    rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
-
-    print('%12s' % "[ DONE ]")
-   
-    # Rendering the jinja template for the orca input file
+    # ========================================================= #
+    #                  Rendering the input file                 #
+    # ========================================================= #
   
     print("{:<80}".format("\nRendering the jinja template for the orca input file ...  "), end="")
 
+    # It is recommended to set the memory per CPU to 75% of the physical memory available (see https://sites.google.com/site/orcainputlibrary/orca-common-problems)
+
     orca_mem_per_cpu = int(0.75 * job_specs['mem_per_cpu']) # in MB
     
+    # Defining the Jinja variables
+
     render_vars = {
         "method" : config[job_specs['prog']]['method'],
-        "basis_set" : config[job_specs['prog']]['basis-set'],
-        "aux_basis_set" : config[job_specs['prog']]['aux-basis-set'],
-        "job_type" : config[job_specs['prog']]['job-type'],
+        "basis_set" : config[job_specs['prog']]['basis_set'],
+        "aux_basis_set" : config[job_specs['prog']]['aux_basis_set'],
+        "job_type" : config[job_specs['prog']]['job_type'],
         "other" : config[job_specs['prog']]['other'],
         "job_cores" : job_specs['cores'],
         "orca_mem_per_cpu" : orca_mem_per_cpu,
         "charge" : config['general']['charge'],
         "multiplicity" : config['general']['multiplicity'],
         "coordinates" : file_data['atomic_coordinates']
-        }
-      
+    }
+
+    # Rendering the file
+     
     rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
 
     print('%12s' % "[ DONE ]")
 
+    # ========================================================= #
+    #            Rendering the job instructions file            #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the orca job instructions file ..."), end="")
+
+    # Get the path to CHAINS root directory and the "check_scripts" directory because the job instructions file needs to execute check_orca.py and source load_modules.sh
+
+    chains_path = os.path.dirname(misc['code_dir'])
+    check_script_path = os.path.join(chains_path,"check_scripts")
+
+    # Defining the Jinja variables
+  
+    render_vars = {  
+        "mol_name" : misc['mol_name'],
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type'],
+        "job_walltime" : job_specs['walltime'],
+        "job_cores" : job_specs['cores'],
+        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+        "partition" : job_specs['partition'],     
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
+        "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
+        "output_dir" : config[job_specs['prog']]['output-dir'],
+        "results_dir" : config['results']['main_dir'],
+        "chains_dir" : chains_path,
+        "check_dir" : check_script_path,
+        "results_subdir" : config['results'][job_specs['prog']]['dir_name'],
+        "job_manifest" : rendered_instructions,
+        "config_file" : misc['config_name']
+    }
+
+    # Add variables specific to the benchmarking template
+   
+    render_vars.update({
+        "benchmark_path" : "${CECIHOME}/BENCHMARK",
+        "prefix": job_specs['prog'] + "_" + job_specs['cluster_name'],
+        "prog" : job_specs['prog'],
+        "cluster_name" : job_specs['cluster_name'],
+        "jobscale_label" : job_specs['scale_label'],
+        "job_walltime" : job_specs['walltime'],
+        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+        "scaling_function" : job_specs['scaling_fct'],
+        "scale_index" : job_specs['scale_index']
+    })
+    
+    # Rendering the file
+
+    rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+
+    print('%12s' % "[ DONE ]")
+
     return rendered_content, rendered_instructions
+
+
+######################################################################################################################################
+
 
 def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
     """Renders the job instructions file and the input file associated with the Q-CHEM program.
@@ -185,77 +217,103 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template.
     """
 
-    # Check if all the files specified in the clusters YAML file exists in the templates directory of abin_launcher.
+    # ========================================================= #
+    #                      Preparation step                     #
+    # ========================================================= #
+
+    # Check if all the files specified in the clusters YAML file exists in the "templates" directory of ABIN LAUNCHER.
     
     for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
         abin_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
 
-    # Define the names of all the template and rendered files, given in the YAML clusters configuration file.
+    # Define the names of the templates, given in the YAML clusters configuration file.
 
-    template_input = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']                     # Jinja template file for the qchem input
-    template_instructions = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_instructions']         # Jinja template file for the qchem job instructions file
+    template_input = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']
+    template_instructions = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_instructions']
 
-    rendered_input = misc['mol_name'] + ".in"                                                                                          # Name of the rendered input file (automatically named after the molecule and not defined in the clusters file)
-    rendered_instructions = "qchem_job.sh"                            # Name of the rendered job instructions file
+    # Define the names of the rendered files, given in the YAML clusters configuration file.
 
-    # Initialize our dictionary that will contain all the text of the rendered files
+    rendered_input = misc['mol_name'] + ".in"
+    rendered_instructions = "qchem_job.sh"
+
+    # Initialize the dictionary that will be returned by the function
 
     rendered_content = {}
 
-    # Get the path to the chains directory and the check_scripts directory because the job instructions file needs to execute check_qchem.py and source load_modules.sh
+    # ========================================================= #
+    #                  Rendering the input file                 #
+    # ========================================================= #
 
-    chains_path = os.path.dirname(misc['code_dir'])                      # Get the parent directory from the codes_dir (which is the abin_launcher directory)                         
+    print("{:<80}".format("\nRendering the jinja template for the qchem input file ...  "), end="")
+    
+    # Defining the Jinja variables
+
+    render_vars = {
+        "job_type" : config[job_specs['prog']]['job_type'],
+        "exchange" : config[job_specs['prog']]['exchange'],
+        "basis_set" : config[job_specs['prog']]['basis_set'],
+        "cis_n_roots" : config[job_specs['prog']]['cis-n-roots'],
+        "charge" : config['general']['charge'],
+        "multiplicity" : config['general']['multiplicity'],
+        "coordinates" : file_data['atomic_coordinates']
+    }
+
+    # Rendering the file
+
+    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #            Rendering the job instructions file            #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the qchem job instructions file ..."), end="")
+
+    # Get the path to CHAINS root directory and the "check_scripts" directory because the job instructions file needs to execute check_qchem.py and source load_modules.sh
+
+    chains_path = os.path.dirname(misc['code_dir'])
     check_script_path = os.path.join(chains_path,"check_scripts")
 
-    # Rendering the jinja template for the qchem job instructions file
-  
-    print("{:<80}".format("\nRendering the jinja template for the qchem job instructions file ..."), end="")
-  
+    # Defining the Jinja variables
+    
     render_vars = {
         "mol_name" : misc['mol_name'],
-        "user_email" : config['general']['user-email'],
-        "mail_type" : config['general']['mail-type'],
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type'],
         "job_walltime" : job_specs['walltime'],
         "job_cores" : job_specs['cores'],
         "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
         "partition" : job_specs['partition'],     
         "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
         "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-        "output_folder" : config[job_specs['prog']]['output-folder'],
-        "results_folder" : config['results']['main_folder'],
-        "chains_folder" : chains_path,
-        "check_folder" : check_script_path,
-        "results_subfolder" : config['results'][job_specs['prog']]['folder_name'],
+        "output_dir" : config[job_specs['prog']]['output-dir'],
+        "results_dir" : config['results']['main_dir'],
+        "chains_dir" : chains_path,
+        "check_dir" : check_script_path,
+        "results_subdir" : config['results'][job_specs['prog']]['dir_name'],
         "job_manifest" : rendered_instructions,
-        "config_file" : misc['config_name'],
-        "benchmark" : config['general']['benchmark'],
-        "benchmark_folder" : config['general']['benchmark-folder'],
+        "config_file" : misc['config_name']
+    }
+
+    # Add variables specific to the benchmarking template
+   
+    render_vars.update({
+        "benchmark_path" : "${CECIHOME}/BENCHMARK",
+        "prefix": job_specs['prog'] + "_" + job_specs['cluster_name'],
         "prog" : job_specs['prog'],
+        "cluster_name" : job_specs['cluster_name'],
         "jobscale_label" : job_specs['scale_label'],
+        "job_walltime" : job_specs['walltime'],
+        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
         "scaling_function" : job_specs['scaling_fct'],
         "scale_index" : job_specs['scale_index']
-        }
+    })
     
+    # Rendering the file
+
     rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
 
     print('%12s' % "[ DONE ]")
    
-    # Rendering the jinja template for the qchem input file
-  
-    print("{:<80}".format("\nRendering the jinja template for the qchem input file ...  "), end="")
-    
-    render_vars = {
-        "job_type" : config[job_specs['prog']]['job-type'],
-        "exchange" : config[job_specs['prog']]['exchange'],
-        "basis_set" : config[job_specs['prog']]['basis-set'],
-        "cis_n_roots" : config[job_specs['prog']]['cis-n-roots'],
-        "charge" : config['general']['charge'],
-        "multiplicity" : config['general']['multiplicity'],
-        "coordinates" : file_data['atomic_coordinates']
-        }
-      
-    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
-
-    print('%12s' % "[ DONE ]")
-
     return rendered_content, rendered_instructions

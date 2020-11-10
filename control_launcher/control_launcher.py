@@ -758,8 +758,8 @@ param_render_vars = {
 
 manifest_render_vars = {
   "mol_name" : mol_name,
-  "user_email" : config['general']['user-email'],
-  "mail_type" : config['general']['mail-type'],
+  "user_email" : config['general']['user_email'],
+  "mail_type" : config['general']['mail_type'],
   "job_walltime" : job_walltime,
   "job_mem_per_cpu" : job_mem_per_cpu, # in MB
   "partition" : job_partition,     

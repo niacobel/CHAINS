@@ -49,8 +49,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     
     render_vars = {
       "method" : config['method'],
-      "basis_set" : config['basis-set'],
-      "job_type" : config['job-type'],
+      "basis_set" : config['basis_set'],
+      "job_type" : config['job_type'],
       "charge" : config['charge'],
       "multiplicity" : config['multiplicity'],
       "coordinates" : file_data['atomic_coordinates']
@@ -67,8 +67,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     render_vars = {
       "mol_name" : misc['mol_name'],
       "config_name" : misc['config_name'],
-      "user_email" : config['user-email'],
-      "mail_type" : config['mail-type'],
+      "user_email" : config['user_email'],
+      "mail_type" : config['mail_type'],
       "job_walltime" : job_specs['walltime'],
       "job_cores" : job_specs['cores'],
       "job_mem_per_cpu" : job_specs['mem_per_cpu'],

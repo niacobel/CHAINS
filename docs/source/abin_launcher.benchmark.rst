@@ -106,17 +106,17 @@ Since that template requires some specific variables, add the following code to 
 
 .. code-block:: python
 
-    render_vars.update({
-        "benchmark_path" : <value>,
-        "prefix": <value>,
-        "prog" : job_specs['prog'],
-        "cluster_name" : job_specs['cluster_name'],
-        "jobscale_label" : job_specs['scale_label'],
-        "job_walltime" : job_specs['walltime'],
-        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
-        "scaling_function" : job_specs['scaling_fct'],
-        "scale_index" : job_specs['scale_index']
-        })
+   render_vars.update({
+      "benchmark_path" : <value>,
+      "prefix": <value>,
+      "prog" : job_specs['prog'],
+      "cluster_name" : job_specs['cluster_name'],
+      "jobscale_label" : job_specs['scale_label'],
+      "job_walltime" : job_specs['walltime'],
+      "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+      "scaling_function" : job_specs['scaling_fct'],
+      "scale_index" : job_specs['scale_index']
+   })
 
 where ``benchmark_path`` is the path towards your benchmark directory and ``prefix`` the desired prefix for your benchmarking output files.
 
@@ -242,17 +242,17 @@ and in the ``orca_render`` function of ``renderer.py``, we add
 
 .. code-block:: python
 
-    render_vars.update({
-        "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
-        "prefix": "sample_orca",
-        "prog" : job_specs['prog'],
-        "cluster_name" : job_specs['cluster_name'],
-        "jobscale_label" : job_specs['scale_label'],
-        "job_walltime" : job_specs['walltime'],
-        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
-        "scaling_function" : job_specs['scaling_fct'],
-        "scale_index" : job_specs['scale_index']
-        })
+   render_vars.update({
+      "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
+      "prefix": "sample_orca",
+      "prog" : job_specs['prog'],
+      "cluster_name" : job_specs['cluster_name'],
+      "jobscale_label" : job_specs['scale_label'],
+      "job_walltime" : job_specs['walltime'],
+      "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+      "scaling_function" : job_specs['scaling_fct'],
+      "scale_index" : job_specs['scale_index']
+   })
 
 .. container:: toggle
 
@@ -352,7 +352,7 @@ Once loaded into Microsoft Excel, we can then get a nice view of every important
     
     Excel view of the final CSV file ``sample_orca_final.csv`` (click to zoom in)
     
-Here we can see that our job scale definition does not look that good with all those low efficiency percentages. However, those were really small jobs made purely for illustrations puposes and they do not have to be taken too seriously. For real, bigger jobs though, you should aim for higher efficiencies.
+Here we can see that our job scale definition does not look that good with all those low efficiency percentages. However, those were really small jobs made purely for illustration purposes and they do not have to be taken too seriously. For real, bigger jobs though, you should aim for higher efficiencies.
 
 .. note::
 

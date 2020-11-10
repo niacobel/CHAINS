@@ -30,8 +30,8 @@ Tests
    general: 
       charge: 0
       multiplicity: 1
-      user-email: niacobel@ulb.ac.be
-      mail-type: FAIL
+      user_email: niacobel@ulb.ac.be
+      mail_type: FAIL
    # Benchmarking options
       benchmark: True
       benchmark-folder: $CECIHOME/BENCHMARK

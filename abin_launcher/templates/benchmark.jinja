@@ -45,10 +45,11 @@ echo -e "${header}"
 
 export SLURM_TIME_FORMAT="%Y-%m-%d_%H:%M:%S"
 
-# /!\ Specific to the lemaitre3 cluster from CECI /!\
-# On lemaitre3, the output from squeue has a useless first line, so we need to remove it
+# Taking into account the number of lines before the squeue header
 
 {% if cluster_name == 'lemaitre3' -%}
+# /!\ Specific to the lemaitre3 cluster from CECI /!\
+# On lemaitre3, the output from squeue has a useless first line, so we need to remove it
 out_line=2
 {%- else -%}
 out_line=1

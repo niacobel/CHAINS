@@ -29,7 +29,7 @@ mv {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz
 
 SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
 
-echo -e "\nCreating temporary folder $SCRATCH for handling temporary files."
+echo -e "\nCreating temporary directory $SCRATCH for handling temporary files."
 srun mkdir -p $SCRATCH || exit $?
 srun -n $SLURM_NNODES --ntasks-per-node=1 cp -rf $SLURM_SUBMIT_DIR/{{  mol_name  }}.inp $SCRATCH/ || exit $?
 
@@ -44,10 +44,10 @@ echo -e "\n================= ORCA execution begins now =================="
 
 echo -e "\n=================  ORCA execution ends now  =================="
 
-echo -e "\nCopying ORCA output files to the submit folder."
+echo -e "\nCopying ORCA output files to the submit directory."
 cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
 
-echo -e "\nRemoving $SCRATCH folder."
+echo -e "\nRemoving $SCRATCH directory."
 srun -n $SLURM_NNODES --ntasks-per-node=1 rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
 
 echo -e "\n===================================================================="
@@ -56,20 +56,20 @@ echo -e "===================================================================="
 
 # Quality control (was there any problem with ORCA?)
 cd $SLURM_SUBMIT_DIR
-source {{  chains_folder  }}/load_modules.sh
-python {{  check_folder  }}/orca_check.py {{  mol_name  }}.out  || exit $?
+source {{  chains_dir  }}/load_modules.sh
+python {{  check_dir  }}/orca_check.py {{  mol_name  }}.out  || exit $?
 
 # Copying important files
 
-echo -e "\nCopying optimized geometry to {{  output_folder  }}."
-mkdir -p {{  output_folder  }}
-cp {{  mol_name  }}.xyz {{  output_folder  }}/
+echo -e "\nCopying optimized geometry to {{  output_dir  }}."
+mkdir -p {{  output_dir  }}
+cp {{  mol_name  }}.xyz {{  output_dir  }}/
 
-echo -e "\nCopying and renaming main configuration file to {{  results_folder  }}/{{  mol_name  }}."
-mkdir -p {{  results_folder  }}/{{  mol_name  }}
-cp {{ config_file  }}.yml {{  results_folder  }}/{{  mol_name  }}/config.yml
+echo -e "\nCopying and renaming main configuration file to {{  results_dir  }}/{{  mol_name  }}."
+mkdir -p {{  results_dir  }}/{{  mol_name  }}
+cp {{ config_file  }}.yml {{  results_dir  }}/{{  mol_name  }}/config.yml
 
-res_dir="{{  results_folder  }}/{{  mol_name  }}/{{  results_subfolder  }}"
+res_dir="{{  results_dir  }}/{{  mol_name  }}/{{  results_subdir  }}"
 echo -e "\nCopying output files to $res_dir."
 mkdir -p $res_dir
 cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_manifest  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log $res_dir

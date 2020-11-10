@@ -210,7 +210,7 @@ For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are depend
          set_env: another-module
          command: another-command
 
-Note that for intuitivity purposes, the name of the YAML keys is close to identical to the name of the Jinja variables (``method`` for ``{{ method }}``, ``basis-set`` for ``{{ basis_set }}``, etc.), but nothing prevents you from doing things differently.
+Note that for intuitivity purposes, the name of the YAML keys is identical to the name of the Jinja variables (``method`` for ``{{ method }}``, ``basis_set`` for ``{{ basis_set }}``, etc.), but nothing prevents you from doing things differently.
 
 .. _rendering_fct:
 
@@ -419,8 +419,8 @@ Now, let's define the content of our input file. This content is stored in the `
 
       render_vars = {
          "method" : config['method'],
-         "basis_set" : config['basis-set'],
-         "job_type" : config['job-type'],
+         "basis_set" : config['basis_set'],
+         "job_type" : config['job_type'],
          "charge" : config['charge'],
          "multiplicity" : config['multiplicity'],
          "coordinates" : file_data['atomic_coordinates']
@@ -439,8 +439,8 @@ Let's proceed with the second template in the same manner:
       render_vars = {  
          "mol_name" : misc['mol_name'],
          "config_name" : misc['config_name'],
-         "user_email" : config['user-email'],
-         "mail_type" : config['mail-type'],
+         "user_email" : config['user_email'],
+         "mail_type" : config['mail_type'],
          "job_walltime" : job_specs['walltime'],
          "job_cores" : job_specs['cores'],
          "job_mem_per_cpu" : job_specs['mem_per_cpu'],
