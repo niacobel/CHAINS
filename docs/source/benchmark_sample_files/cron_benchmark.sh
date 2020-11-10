@@ -8,10 +8,6 @@
 #       Script configuration       #
 ####################################
 
-# Define the path to the directory where the benchmark CSV files will be created
-
-benchmark_path="/home/users/n/i/niacobel/abin_docs_sample/benchmark"
-
 # Load your Python distribution
 
 module --force purge
@@ -25,6 +21,7 @@ module load Python/3.6.6-foss-2018b
 # Command line arguments
 
 prefix=$1
+benchmark_path=$2
 
 # Define the timestamp
 

@@ -8,10 +8,6 @@
 #       Script configuration       #
 ####################################
 
-# Define the path to the directory where the benchmark CSV files will be created
-
-benchmark_path="/CECI/home/ulb/cqp/niacobel/BENCHMARK"
-
 # Load your Python distribution
 
 source /CECI/home/ulb/cqp/niacobel/CHAINS/load_modules.sh
@@ -23,6 +19,7 @@ source /CECI/home/ulb/cqp/niacobel/CHAINS/load_modules.sh
 # Command line arguments
 
 prefix=$1
+benchmark_path=$2
 
 # Define the timestamp
 

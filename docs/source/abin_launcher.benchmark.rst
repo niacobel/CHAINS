@@ -129,30 +129,21 @@ Use the ``crontab -e`` command in your terminal to edit your cron tasks and add 
 
 .. code-block::
 
-   */15 * * * * bash -l -c "/path/to/cron_benchmark.sh <prefix>" >> benchmark_path/<prefix>_crontab.log 2>&1
+   */15 * * * * bash -l -c "/path/to/cron_benchmark.sh <prefix> <benchmark_path>" >> benchmark_path/<prefix>_crontab.log 2>&1
 
 where
 
 - ``*/15 * * * *`` defines the frequency of execution of this command (at every 15th minutes). Feel free to adjust this value.
 - ``/path/to/cron_benchmark.sh`` is the path towards the crontab script.
-- ``<prefix>_crontab`` is a log file that will contain the output of the execution of this crontab script.
+- ``<prefix>_crontab.log`` is a log file that will contain the output of the execution of this crontab script.
 
 Don't forget to also make the ``cron_benchmark.sh`` script executable (``chmod u+x``) !
-
-Configure the crontab script
-----------------------------
-
-In the ``cron_benchmark.sh`` script itself, at the beginning of the file, you will need to specify the path to your benchmark directory:
-
-.. code-block:: shell
-
-   benchmark_path="<value>"
 
 When executed, the ``cron_benchmark.sh`` script will look if there is a file named ``<prefix>_tmp.csv`` (the temporary CSV file) in your benchmark directory. If there is, the script will archive it into an ``archive`` subdirectory and rename it with the current date. It will then execute ``benchmark.py`` on that file.
 
 .. note::
 
-   If it is not loaded by default in your user profile configuration, remember to also add instructions to load your Python distribution at the beginning of the crontab script, in order to execute ``benchmark.py``.
+   If it is not loaded by default in your user profile configuration, remember to load your Python distribution so that the crontab script can execute ``benchmark.py``. This can for example be done by adding instructions at the beginning of the crontab script, or by executing the loading command in the cron task, right before executing the crontab script.
 
 The Python script
 -----------------
@@ -184,6 +175,19 @@ If some lines of the temporary CSV files were to cause any kind of problem, they
 
 \* Be careful to not erase a *real* temporary CSV file by doing so.
 
+Dealing with multiple programs or clusters
+------------------------------------------
+
+Unfortunately, this tool works with one program and one cluster at a time. If you have multiple programs you want to run with ``ABIN LAUNCHER``, or multiple clusters, you will have to configure the benchmarking tool for each of the program-cluster combination.
+
+This implies that you need to:
+
+- Add the include line to all job instructions file templates.
+- Add the Jinja variables definition (``render_vars.update``) to all the rendering functions.
+- Add the cron task command to the crontab of every cluster 
+
+Multiple programs can share the same crontab task if you don't mind their lines being in the same CSV file.
+
 Sample run
 ==========
 
@@ -192,7 +196,7 @@ Let's end this section with a sample run of the benchmarking tool. We will use o
 Preparation
 -----------
 
-Our ``benchmark_path`` will be ``/home/users/n/i/niacobel/abin_docs_sample/benchmark`` and our prefix will be ``orca_lemaitre3``.
+Our ``benchmark_path`` will be ``/home/users/n/i/niacobel/abin_docs_sample/benchmark`` and our prefix will be ``sample_orca``.
 
 This is our starting directory structure:
 
@@ -240,7 +244,7 @@ and in the ``orca_render`` function of ``renderer.py``, we add
 
     render_vars.update({
         "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
-        "prefix": "orca_lemaitre3",
+        "prefix": "sample_orca",
         "prog" : job_specs['prog'],
         "cluster_name" : job_specs['cluster_name'],
         "jobscale_label" : job_specs['scale_label'],
@@ -268,12 +272,12 @@ Now we execute the ``crontab -e`` command in our terminal to edit our cron tasks
 
 .. code-block::
 
-   */15 * * * * bash -l -c "/home/users/n/i/niacobel/abin_docs_sample/abin_launcher/cron_benchmark.sh orca_lemaitre3" >> /home/users/n/i/niacobel/abin_docs_sample/benchmark/orca_lemaitre3_crontab.log 2>&1
+   */15 * * * * bash -l -c "/home/users/n/i/niacobel/abin_docs_sample/abin_launcher/cron_benchmark.sh sample_orca /home/users/n/i/niacobel/abin_docs_sample/benchmark" >> /home/users/n/i/niacobel/abin_docs_sample/benchmark/sample_orca_crontab.log 2>&1
 
-Finally, we need to edit our ``cron_benchmark.sh`` file. Here is what the beginning of this file looks like in our case:
+Finally, we edit the beginning of our ``cron_benchmark.sh`` file to load our Python distribution:
 
 .. literalinclude:: benchmark_sample_files/cron_benchmark.sh
-   :lines: 7-19
+   :lines: 7-15
 
 and we make sure it is executable by entering the following command in our terminal:
 
@@ -294,14 +298,14 @@ We just run ``ABIN LAUNCHER`` as normal, by executing the main script (from ``ab
 
 We obtain the same results than before, with the six launched jobs. 
 
-As soon as each job finishes, the temporary CSV file, ``orca_lemaitre3_tmp.csv``, will either be created or updated with a new line. After the six jobs have finished, this is what the raw file looks like:
+As soon as each job finishes, the temporary CSV file, ``sample_orca_tmp.csv``, will either be created or updated with a new line. After the six jobs have finished, this is what the raw file looks like:
 
-.. literalinclude:: benchmark_sample_files/orca_lemaitre3_tmp.csv
+.. literalinclude:: benchmark_sample_files/sample_orca_tmp.csv
 
 and in a more human-readable fashion:
 
 .. csv-table::
-   :file: benchmark_sample_files/orca_lemaitre3_tmp.csv
+   :file: benchmark_sample_files/sample_orca_tmp.csv
    :delim: ;
 
 As you can see, a different line has been written for each of our jobs, containing the different data that have been collected so far.
@@ -314,12 +318,12 @@ After at most 15 minutes, the crontab task executes the crontab script, which ar
       └── abin_launcher/ 
             └── no changes
       └── benchmark/
-            ├── orca_lemaitre3_crontab.log
-            ├── orca_lemaitre3_final.csv
+            ├── sample_orca_crontab.log
+            ├── sample_orca_final.csv
             └── archive/
-                  └── orca_lemaitre3_tmp_20201109_171504.csv
+                  └── sample_orca_tmp_20201109_171504.csv
             └── bench_logs/
-                  └── orca_lemaitre3_20201109_171504.log
+                  └── sample_orca_20201109_171504.log
       └── molecules/
             └── launched/
       └── configs/ 
@@ -332,22 +336,36 @@ After at most 15 minutes, the crontab task executes the crontab script, which ar
             └── c3h8_svp/
             └── c3h8_tzvp/
 
-where our final CSV file, ``orca_lemaitre3_final.csv``, contains:
+where our final CSV file, ``sample_orca_final.csv``, contains:
 
 .. csv-table::
-   :file: benchmark_sample_files/orca_lemaitre3_final.csv
+   :file: benchmark_sample_files/sample_orca_final.csv
    :delim: ;
 
-The temporary CSV file has been archived into the ``archive`` directory, as ``orca_lemaitre3_tmp_20201109_171504.csv``. This copy is kept purely as backup for the data. Once you've make sure those jobs have been correctly benchmarked, you can remove the copy.
+Once loaded into Microsoft Excel, we can then get a nice view of every important data about our jobs:
+
+.. figure:: figures/benchmark_csv.png
+    :scale: 50%
+    :align: center
+    :alt: Excel view of the final CSV file
+    :figclass: align-center
+    
+    Excel view of the final CSV file ``sample_orca_final.csv`` (click to zoom in)
+    
+Here we can see that our job scale definition does not look that good with all those low efficiency percentages. However, those were really small jobs made purely for illustrations puposes and they do not have to be taken too seriously. For real, bigger jobs though, you should aim for higher efficiencies.
+
+.. note::
+
+   The temporary CSV file has been archived into the ``archive`` directory, as ``sample_orca_tmp_20201109_171504.csv``. This copy is kept purely as backup for the data. Once you've make sure those jobs have been correctly benchmarked, you can remove the copy.
 
 Content of the log files
 ------------------------
 
 As you can see in the directory structure above, the benchmarking tool creates two log files:
 
-- The log file from the crontab script, ``orca_lemaitre3_crontab.log``, which contains a line for each time a temporary CSV file has been processed. At this point, its content is simply:
+- The log file from the crontab script, ``sample_orca_crontab.log``, which contains a line for each time a temporary CSV file has been processed. At this point, its content is simply:
 
-.. literalinclude:: benchmark_sample_files/orca_lemaitre3_crontab.log
+.. literalinclude:: benchmark_sample_files/sample_orca_crontab.log
    :language: text
 
 - 
@@ -355,13 +373,11 @@ As you can see in the directory structure above, the benchmarking tool creates t
 
       .. container:: header
 
-         The log file from the Python script, ``orca_lemaitre3_20201109_171504.log``, placed inside the ``bench_logs`` directory. Click on the arrow below to see its content.
+         The log file from the Python script, ``sample_orca_20201109_171504.log``, placed inside the ``bench_logs`` directory. Click on the arrow below to see its content.
 
-      .. literalinclude:: benchmark_sample_files/orca_lemaitre3_20201109_171504.log
+      .. literalinclude:: benchmark_sample_files/sample_orca_20201109_171504.log
          :language: text
 
 .. .. todo::
-
-..    excel view and conclusion
 
 ..    add out_line parameter and explanation
