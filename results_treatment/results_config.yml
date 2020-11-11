@@ -1,5 +1,5 @@
 # This is the configuration file for the results treatment, this file will contain every information you need to provide to resuls_treatment.py (outside of any specific molecule data).
-# This is a YAML database, see https://yaml.org/ for more informations
+# This is a YAML database, see https://yaml.org/ for more information
 
 # Define here the name of the jinja template files (and only those), they must be located inside the templates folder of results_treatment
 jinja_templates:

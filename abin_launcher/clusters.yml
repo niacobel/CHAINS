@@ -1,5 +1,5 @@
-# CECI Clusters relevant informations, see http://www.ceci-hpc.be/clusters.html for more details 
-# This is a YAML file, see https://yaml.org/ for more informations
+# CECI Clusters relevant information, see http://www.ceci-hpc.be/clusters.html for more details 
+# This is a YAML file, see https://yaml.org/ for more information
 
 #! Keep in mind the definition of your scaling function when assigning values to the scale_limit keys
 

@@ -65,7 +65,7 @@ def jinja_render(templates_dir, template_file, render_vars):
 parser = argparse.ArgumentParser(add_help=False, description="This script prepares the input files needed to run the QOCT-RA program by extracting information from a given source file and launches the corresponding jobs on the cluster.")
 
 required = parser.add_argument_group('Required arguments')
-required.add_argument("-i","--source", type=str, help="Path to the source file that contains all the necessary informations that need to be processed", required=True)
+required.add_argument("-i","--source", type=str, help="Path to the source file that contains all the necessary information that need to be processed", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job", required=True)
 required.add_argument('-cf', '--config', type=str, help="Path to the YAML config file", required=True)
 
@@ -79,12 +79,12 @@ args = parser.parse_args()
 
 # Define the variables corresponding to those arguments
 
-source = args.source                     # Source file containing all the necessary informations
+source = args.source                     # Source file containing all the necessary information
 out_dir = args.out_dir                   # Folder where all jobs subfolders will be created
 config_file = args.config                # Main configuration file
 
 overwrite = args.overwrite               # Flag for overwriting the files
-clusters_file = args.clusters            # YAML file containing all informations about the clusters
+clusters_file = args.clusters            # YAML file containing all information about the clusters
 dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
 
 # Other important variable
@@ -201,15 +201,15 @@ for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates'].
 # Establishing the different job scales
 # =========================================================
 
-# Check if the relevant informations about QOCT-RA have been provided in the YAML config and clusters files
+# Check if the relevant information about QOCT-RA have been provided in the YAML config and clusters files
 
 if prog not in config:
-  print("\nERROR: No information provided for %s in the YAML config file. Please add informations for %s before attempting to run this script." % (prog,prog))
+  print("\nERROR: No information provided for %s in the YAML config file. Please add information for %s before attempting to run this script." % (prog,prog))
   print("Aborting...")
   exit(3)
 
 if prog not in clusters_cfg[cluster_name]["progs"]:
-  print("\nERROR: There is no information about %s on this cluster, please add informations to the YAML cluster file." % prog)
+  print("\nERROR: There is no information about %s on this cluster, please add information to the YAML cluster file." % prog)
   print("Aborting...")
   exit(3) 
 
@@ -264,7 +264,7 @@ try:
 except ModuleNotFoundError:
   print("ERROR: Unable to find the %s.py file in %s" % (parser_file, code_dir))
   exit(1)
-# For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+# For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
 
 # =========================================================
 # Reading the file

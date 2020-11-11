@@ -43,7 +43,7 @@ extensions.append('sphinx.ext.napoleon')
 extensions.append('sphinx.ext.todo')
 todo_include_todos=True
 
-# Get argparse informations (https://github.com/alex-rudakov/sphinx-argparse)
+# Get argparse information (https://github.com/alex-rudakov/sphinx-argparse)
 extensions.append('sphinxarg.ext')
 
 # View source code (https://www.sphinx-doc.org/en/master/usage/extensions/viewcode.html#module-sphinx.ext.viewcode)

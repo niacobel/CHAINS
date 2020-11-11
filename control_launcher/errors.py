@@ -57,7 +57,7 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
         Normalized absolutized version of the path
     """
 
-    # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+    # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
       if type not in ["file","folder","either"]:
         raise ValueError ("The specified type for which the check_abspath function has been called is not one of 'file', 'folder' or 'either'")

@@ -66,7 +66,7 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
         If the type does not match what is given in the path, or if the path does not exist.
     """
 
-    # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+    # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
 
       if type not in ["file","directory","either"]:

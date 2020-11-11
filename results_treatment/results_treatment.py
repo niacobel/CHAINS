@@ -227,7 +227,7 @@ else:
 
 for mol_name in mol_inp_list:
 
-  # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+  # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
   try:
     
     mol_dir = os.path.join(mol_inp_path, mol_name)

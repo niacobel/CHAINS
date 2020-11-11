@@ -1,5 +1,5 @@
 # This is the program configuration file, it contains every information about the configurations of the different scripts and programs your molecule will run through.
-# This is a YAML file, see https://yaml.org/ for more informations
+# This is a YAML file, see https://yaml.org/ for more information
 
 # ========================================================= #
 #                    General Information                    #
@@ -8,6 +8,7 @@
 # General information that is not specific to any program in particular.
 
 general: 
+
   charge: 0
   multiplicity: 1
   user_email: niacobel@ulb.ac.be
@@ -18,34 +19,44 @@ general:
 # ========================================================= #
 
 orca:
-# The keywords you provide here are the keywords that will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more informations)
+
+# ORCA KEYWORDS
+# They will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more information)
+
   job_type: Opt
   method: B3LYP
   basis_set: def2-TZVP
   aux_basis_set: def2/J
-  other: RIJCOSX
-# Folder where the orca output files needed for the next step will be sent.
-  output-dir: $CECIHOME/ORCA_OUT               
+  other: RIJCOSX                              # You can multiple keywords on this line (separated by a space)
+
+# Directory where the orca output files needed for the next step will be sent.
+
+  output_dir: $CECIHOME/ORCA_OUT               
 
 # ========================================================= #
 #                     Q-CHEM Information                    #
 # ========================================================= #
 
 qchem:
-# The keywords you provide here are the keywords that will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more informations)
+
+# Q-CHEM KEYWORDS
+# They will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more information)
+
   job_type: sp
   exchange: b3lyp
   basis_set: def2-tzvp
   cis-n-roots: 4
-# Folder where the q-chem output files needed for the next step will be sent.
-  output-dir: $CECIHOME/QCHEM_OUT             
+
+# Directory where the q-chem output files needed for the next step will be sent.
+
+  output_dir: $CECIHOME/QCHEM_OUT             
 
 # ========================================================= #
 #                    QOCT-RA Information                    #
 # ========================================================= #
 
 qoctra:
-# Name of the script that will be used to extract relevant informations for QOCT-RA (it must have an extension ".py" but don't include it in this value)
+# Name of the script that will be used to extract relevant information for QOCT-RA (it must have an extension ".py" but don't include it in this value)
   parser_script: qchem_parser
  # Define here the type of states you want to target (must correspond with a type of value stored in the states_list at state[1])
   target_state: Triplet

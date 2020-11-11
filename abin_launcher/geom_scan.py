@@ -19,7 +19,7 @@ def xyz_scan(mol_content:list):
     Returns
     -------
     file_data : dict
-        The extracted informations of the file, following the pattern { 'chemical_formula' : { }, 'atomic_coordinates' : [ ] }
+        The extracted information of the file, following the pattern { 'chemical_formula' : { }, 'atomic_coordinates' : [ ] }
 
     Raises
     ------

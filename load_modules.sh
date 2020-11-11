@@ -34,6 +34,6 @@ elif [ "${CLUSTER_NAME}" = "hercules" ]; then
     module load Python/3.5.2-foss-2016b
 
 else
-    echo "ERROR: Unknown cluster. Corresponding modules can't be loaded. Please add the cluster module informations to load_modules.sh."
+    echo "ERROR: Unknown cluster. Corresponding modules can't be loaded. Please add the cluster module information to load_modules.sh."
 
 fi

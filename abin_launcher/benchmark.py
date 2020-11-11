@@ -253,7 +253,7 @@ def main():
 
     new_line = line.copy()
     
-    # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+    # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
 
       # Print header for log file

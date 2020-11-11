@@ -71,7 +71,7 @@ def main():
   # =================================================================== #
   # =================================================================== #
 
-  # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+  # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
   try:
 
     # Save a reference to the original standard output as it will be modified later on (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
@@ -241,7 +241,7 @@ def main():
     # Check other important functions                           #
     # ========================================================= #
 
-    # Define the scanning function that will extract informations about the molecule from the molecule file (depends on the file format) - defined in geom_scan.py
+    # Define the scanning function that will extract information about the molecule from the molecule file (depends on the file format) - defined in geom_scan.py
 
     scan_fct = mol_fmt + "_scan"
 
@@ -378,7 +378,7 @@ def main():
     # ========================================================= #
     # ========================================================= #
 
-    # For more informations on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+    # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
 
       # Getting rid of the format extension to get the name of the molecule
@@ -469,7 +469,7 @@ def main():
       print(section_title.center(len(section_title)+10))
       print(''.center(len(section_title)+10, '*'))
       
-      # Obtaining the informations associated to our job scale
+      # Obtaining the information associated to our job scale
       
       job_partition = jobscale.get('partition_name')
       job_walltime = jobscale['time']

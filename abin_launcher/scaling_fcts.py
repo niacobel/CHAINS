@@ -15,7 +15,7 @@ def total_nb_elec(mendeleev:dict,file_data:dict):
     mendeleev : dict
         Content of AlexGustafsson's Mendeleev Table YAML file, which can be found at https://github.com/AlexGustafsson/molecular-data.
     file_data : dict
-        The extracted informations of the geometry file.
+        The extracted information of the geometry file.
 
     Returns
     -------
@@ -94,7 +94,7 @@ def total_nb_atoms(mendeleev:dict,file_data:dict):
         Content of AlexGustafsson's Mendeleev Table YAML file, which can be found at https://github.com/AlexGustafsson/molecular-data.
         Unused in this particular function.
     file_data : dict
-        The extracted informations of the geometry file.
+        The extracted information of the geometry file.
 
     Returns
     -------
