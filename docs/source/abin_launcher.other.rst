@@ -12,7 +12,7 @@ The clusters configuration file, named ``clusters.yml``, is the YAML file contai
 .. code-block:: yaml
 
    myclusterA:
-     subcommand: value
+     submit_command: value
      progs:
        myprog1:
          set_env: value
@@ -81,7 +81,7 @@ This is what the file might look like in this situation:
 .. code-block:: yaml
 
    slurm_cluster_A:
-     subcommand: sbatch
+     submit_command: sbatch
      progs:
        orca:
          set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
@@ -119,7 +119,7 @@ This is what the file might look like in this situation:
              delay_command: --begin=now+120
 
    slurm_cluster_B:
-     subcommand: sbatch
+     submit_command: sbatch
      progs:
        orca:
          set_env: module load orca/4.0.1.2

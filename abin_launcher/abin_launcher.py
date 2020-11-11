@@ -51,8 +51,8 @@ optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit.')
 optional.add_argument("-ow","--overwrite",action="store_true",help="If a job subdirectory for a geometry-configuration combination already exists, remove it before creating a new one.")
 optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files and directories.")
-optional.add_argument('--max_mol', type=int, help="Maximum number of geometry files that will be succesfully processed.")
-optional.add_argument('--max_cf', type=int, help="Maximum number of configuration files that will be succesfully processed.")
+optional.add_argument('--max_mol', type=int, help="Maximum number of geometry files that will be succesfully processed, limiting the number of jobs that will then be launched.")
+optional.add_argument('--max_cf', type=int, help="Maximum number of configuration files that will be succesfully processed, limiting the number of jobs that will then be launched.")
 optional.add_argument("-km","--keep_mol",action="store_true",help="Do not archive the geometry files after they have been processed and leave them where they are.")
 optional.add_argument("-kc","--keep_cf",action="store_true",help="Do not archive the configuration files after they have been processed and leave them where they are.")
 
@@ -162,12 +162,12 @@ def main():
 
     print("\nThis script is running on the %s cluster" % cluster_name.upper())
 
-    # Check if the subcommand key has been defined
+    # Check if the submit_command key has been defined
 
-    subcommand = clusters_cfg[cluster_name].get("subcommand")
+    submit_command = clusters_cfg[cluster_name].get("submit_command")
 
-    if subcommand is None:
-      raise abin_errors.AbinError ("ERROR: There is no defined subcommand for the %s cluster in the clusters configuration file." % cluster_name.upper()) 
+    if submit_command is None:
+      raise abin_errors.AbinError ("ERROR: There is no defined submit_command for the %s cluster in the clusters configuration file." % cluster_name.upper()) 
 
     # Check if the program exists 
 
@@ -651,7 +651,7 @@ def main():
 
           # Define the launch command
 
-          launch_command = subcommand + " " + delay_command + " " + rendered_instructions
+          launch_command = submit_command + " " + delay_command + " " + rendered_instructions
 
           # Execute the command and get the command status
 

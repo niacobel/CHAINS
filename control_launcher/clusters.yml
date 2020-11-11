@@ -45,7 +45,7 @@ shared:
 dragon1:
   host: UMons
   address: dragon1.umons.ac.be
-  subcommand: sbatch
+  submit_command: sbatch
   progs:
     orca:
       jinja_templates: *orca_jinja
@@ -91,7 +91,7 @@ dragon1:
 dragon2:
   host: UMons
   address: dragon2.umons.ac.be  
-  subcommand: sbatch
+  submit_command: sbatch
   progs:
     orca:
       jinja_templates: *orca_jinja
@@ -139,7 +139,7 @@ dragon2:
 lemaitre3:
   host: UCL
   address: lemaitre3.cism.ucl.ac.be
-  subcommand: sbatch
+  submit_command: sbatch
   progs:
     orca:
       jinja_templates: *orca_jinja
@@ -187,7 +187,7 @@ lemaitre3:
 hercules:
   host: UNamur
   address: hercules2.ptci.unamur.be
-  subcommand: sbatch
+  submit_command: sbatch
   progs:
     qchem:
       jinja_templates:
@@ -240,7 +240,7 @@ hercules:
 vega:
   host: ULB
   address: vega.ulb.ac.be
-  subcommand: sbatch
+  submit_command: sbatch
   progs:
     orca:
       jinja: *orca_jinja

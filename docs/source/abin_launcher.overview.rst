@@ -17,7 +17,7 @@ However, ``ABIN LAUNCHER`` is **completely autonomous** and does not depend on C
 Directory structure
 ===================
 
-The ``ABIN LAUNCHER`` directory has and must have the following structure:
+The ``ABIN LAUNCHER`` directory has and must keep the following structure:
 
 .. code-block::
 
@@ -35,7 +35,7 @@ As for what each file does, everything will be explained in more details in the 
 
 - ``abin_launcher.py`` is the main script itself, the one that needs to be executed.
 - ``geom_scan.py`` is the library of functions that define how to scan the geometry files, i.e. how to read and interpret them.
-- ``scaling_fcts`` is the library of functions that define how to determine the job size, by calculating what we defined as the scale index.
+- ``scaling_fcts`` is the library of functions that define how to determine the job size, by calculating what we defined as the "scale index".
 - ``renderer.py`` is the library of functions that define how to render the Jinja templates, i.e. how to create the input files and the job instructions file.
 - ``abin_errors.py`` contains all the classes and functions defining :ref:`how to handle errors <abin_errors>`.
 - ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, called the :ref:`clusters configuration file <clusters_file>`.
@@ -84,8 +84,8 @@ Input files
 
 There are two main input files for ``ABIN LAUNCHER``:
 
-- The **geometry files**, given by the ``-m / --mol_inp`` subcommand, are the files presenting the nature and the structure of your molecules. They contain the type and number of the constituting atoms and their respective coordinates.
-- The **configuration files**, given by the ``-cf / --config`` subcommand, are the YAML files containing the parameters specific to your calculations and your programs (job type, basis set, etc.). Those files must have the .yml or .yaml extension.
+- The **geometry files**, given by the ``-m / --mol_inp`` argument, are the files presenting the nature and the structure of your molecules. They contain the type and number of the constituting atoms and their respective coordinates.
+- The **configuration files**, given by the ``-cf / --config`` argument, are the YAML files containing the parameters specific to your calculations and your programs (job type, basis set, etc.). Those files must have the .yml or .yaml extension.
 
 In both cases, you can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple input files, ``ABIN LAUNCHER`` will process each geometry-configuration combination. For example, if you have 5 geometry files and 3 configuration files, you will end up with 15 launched jobs on your cluster.
 
@@ -96,14 +96,14 @@ Other arguments
 
 There are three other required arguments for executing ``ABIN LAUNCHER``:
 
-- The **name of the program** you want to run, given by the ``-p / --program`` subcommand. This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive. 
+- The **name of the program** you want to run, given by the ``-p / --program`` argument. This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive. 
 
 .. note::
 
    This argument does not need to be the same name as the software you actually want to execute on the cluster. It is just a label that is used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different values for this argument that run the same program (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
 
-- The **name of the cluster** you are running on, given by the ``-cl / --cluster_name`` subcommand. This one must also be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
-- The **"output directory"** where each job subdirectory will be created, given by the ``-o / --out_dir`` subcommand. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
+- The **name of the cluster** you are running on, given by the ``-cl / --cluster_name`` argument. This one must also be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+- The **"output directory"** where each job subdirectory will be created, given by the ``-o / --out_dir`` argument. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
 
 There are also a number of optional arguments that can be used to adapt to each specific situation. Their description in the :ref:`command line arguments <abin_arguments>` subsection should be self-explanatory.
 
@@ -140,21 +140,19 @@ Now that everything has been prepared for the job, ``ABIN LAUNCHER`` submits it 
 
 .. code-block::
 
-    <subcommand> <delay_command> <job instructions file>
+    <submit_command> <delay_command> <job instructions file>
 
 where
 
-- ``<subcommand>`` is the command which submits jobs to your job scheduler. In SLURM's case, it is the ``sbatch`` command. This must be indicated in the :ref:`clusters configuration file <clusters_file>`: 
+- ``<submit_command>`` is the command which submits jobs to your job scheduler. In SLURM's case, it is the ``sbatch`` command. This must be indicated in the :ref:`clusters configuration file <clusters_file>`: 
 
 .. code-block:: yaml
 
    mycluster:
-     subcommand: <subcommand>
+     submit_command: <submit_command>
 
 - ``<delay_command>`` is an optional command that can delay the submission of this particular job, which can prove useful if you want to prioritize certain job sizes, consult the :doc:`abin_launcher.job_scale` specific documentation for details.
 - ``<job instructions file>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.
-
-where ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_).
 
 Once the job has been submitted, ``ABIN LAUNCHER`` will proceed to the next configuration file with the same geometry. Once all the configuration files have been treated, it will proceed to the next geometry and treat again all the configuration files for that geometry. At the end of the execution, barring any problems, a job will have been launched for each geometry-configuration combination.
 

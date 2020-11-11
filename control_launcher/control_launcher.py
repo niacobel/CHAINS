@@ -828,7 +828,7 @@ for target in targets_list:
     if not dry_run:
       print("{:<80}".format("    Launching the job ..."), end="")
       os.chdir(job_dir)
-      launch_command = clusters_cfg[cluster_name]['subcommand'] + " " + rnd_manifest
+      launch_command = clusters_cfg[cluster_name]['submit_command'] + " " + rnd_manifest
       retcode = os.system(launch_command)
       if retcode != 0 :
         print("ALERT: Job submit encountered an issue")
