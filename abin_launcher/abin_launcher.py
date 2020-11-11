@@ -51,8 +51,8 @@ optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit.')
 optional.add_argument("-ow","--overwrite",action="store_true",help="If a job subdirectory for a geometry-configuration combination already exists, remove it before creating a new one.")
 optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files and directories.")
-optional.add_argument('--max_mol', type=int, help="Maximum number of geometry files that will be treated.")
-optional.add_argument('--max_cf', type=int, help="Maximum number of configuration files that will be treated.")
+optional.add_argument('--max_mol', type=int, help="Maximum number of geometry files that will be succesfully processed.")
+optional.add_argument('--max_cf', type=int, help="Maximum number of configuration files that will be succesfully processed.")
 optional.add_argument("-km","--keep_mol",action="store_true",help="Do not archive the geometry files after they have been processed and leave them where they are.")
 optional.add_argument("-kc","--keep_cf",action="store_true",help="Do not archive the configuration files after they have been processed and leave them where they are.")
 
@@ -292,9 +292,6 @@ def main():
       if mol_inp_list == []:
         raise abin_errors.AbinError ("ERROR: Can't find any geometry of the %s format in %s" % (mol_ext,mol_inp_path))
 
-      if max_mol:
-        mol_inp_list = mol_inp_list[0:max_mol]
-
       print('%12s' % "[ DONE ]")
 
     # If given a single geometry file as argument, check its extension.
@@ -335,9 +332,6 @@ def main():
       if config_inp_list == []:
         raise abin_errors.AbinError ("ERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
 
-      if max_cf:
-        config_inp_list = config_inp_list[0:max_cf]
-
       print('%12s' % "[ DONE ]")
 
     # If given a single config file as argument, check its extension.
@@ -369,6 +363,11 @@ def main():
   # =================================================================== #
 
   problem_cf = [] # Empty list that will contain the names of the configuration files for which a problem has occurred (those configuration files will not be archived)
+
+  # If a maximum number of geometry files has been given, initialize a geometry files counter
+
+  if max_mol:
+    mol_count = 0
 
   for mol_filename in mol_inp_list:
 
@@ -419,7 +418,7 @@ def main():
 
       for atom in file_data['chemical_formula'].keys():
 
-        # Scan mendeleev looking for the atom symbol. If there is no match, returns None thus raises an exception (see https://stackoverflow.com/questions/8653516/python-list-of-dictionaries-search for more details)
+        # Scan mendeleev looking for the atom symbol. If there is no match, return None thus raise an exception (see https://stackoverflow.com/questions/8653516/python-list-of-dictionaries-search for more details)
 
         if not next((element for element in mendeleev if element["symbol"] == atom), None):
           raise abin_errors.AbinError ("ERROR: Element %s is not defined in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % atom)
@@ -520,6 +519,11 @@ def main():
     # ========================================================= #
 
     keep_mol = args.keep_mol                 # Redefine keep_mol to its original value (this flag will be defined to True if there is a problem with one of the configuration files, as to not archive the geometry file)
+
+    # If a maximum number of configuration files has been given, initialize a configuration files counter
+
+    if max_cf:
+      cf_count = 0
 
     # We are still inside the geometry files "for" loop and we are going to iterate over each configuration file with that geometry
 
@@ -671,6 +675,14 @@ def main():
         log.close()                                             # End of logging for the config file
         shutil.move(os.path.join(out_dir,log_name), job_dir)    # Archive the log file in the job subdirectory
 
+        # If a maximum number of configuration files has been given, increase the configuration counter and check if we have reached the max
+
+        if max_cf:
+          cf_count += 1
+          if cf_count == max_cf:
+            print("\nThe maximum number of configuration files has been reached, no more configuration files will be processed.")
+            break
+
       # ========================================================= #
       # Exception handling for the configuration files            #
       # ========================================================= #
@@ -707,6 +719,14 @@ def main():
     print(''.center(len(console_message)+10, '*'))
     print(console_message.center(len(console_message)+10))
     print(''.center(len(console_message)+10, '*'))
+
+    # If a maximum number of geometry files has been given, increase the geometry counter and check if we have reached the max
+
+    if max_mol:
+      mol_count += 1
+      if mol_count == max_mol:
+        print("\nThe maximum number of geometry files has been reached, no more geometry files will be processed.")
+        break
 
   # ========================================================= #
   # Archiving the configuration files                         #
