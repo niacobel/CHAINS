@@ -103,6 +103,11 @@ There are three other required arguments for executing ``ABIN LAUNCHER``:
    This argument does not need to be the same name as the software you actually want to execute on the cluster. It is just a label that is used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different values for this argument that run the same program (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
 
 - The **name of the cluster** you are running on, given by the ``-cl / --cluster_name`` argument. This one must also be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+
+.. note::
+
+   This argument does not need to be the same name as the actual name of your machine. It is just a label that is used by ``ABIN LAUNCHER`` to know which information to get from its clusters configuration file.
+
 - The **"output directory"** where each job subdirectory will be created, given by the ``-o / --out_dir`` argument. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
 
 There are also a number of optional arguments that can be used to adapt to each specific situation. Their description in the :ref:`command line arguments <abin_arguments>` subsection should be self-explanatory.
@@ -146,13 +151,21 @@ where
 
 - ``<submit_command>`` is the command which submits jobs to your job scheduler. In SLURM's case, it is the ``sbatch`` command. This must be indicated in the :ref:`clusters configuration file <clusters_file>`: 
 
-.. code-block:: yaml
+   .. code-block:: yaml
 
-   mycluster:
-     submit_command: <submit_command>
+      mycluster:
+        submit_command: <submit_command>
 
-- ``<delay_command>`` is an optional command that can delay the submission of this particular job, which can prove useful if you want to prioritize certain job sizes, consult the :doc:`abin_launcher.job_scale` specific documentation for details.
+   where ``mycluster`` is the name of your cluster (given as a :ref:`command line argument <abin_arguments>`).
+
+- ``<delay_command>`` is an optional command that can delay the submission of a particular job, which can prove useful if you want to prioritize certain job sizes (consult the :doc:`abin_launcher.job_scale` specific documentation for details). In SLURM's case, this is covered by the ``--begin`` argument.
 - ``<job instructions file>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.
+
+For example, if we want to run an ORCA calculation on a SLURM cluster, but delay the submission of this job by 60 seconds, the command executed by ``ABIN LAUNCHER`` might look like:
+
+.. code-block::
+
+    sbatch --begin=now+60 orca_job.sh
 
 Once the job has been submitted, ``ABIN LAUNCHER`` will proceed to the next configuration file with the same geometry. Once all the configuration files have been treated, it will proceed to the next geometry and treat again all the configuration files for that geometry. At the end of the execution, barring any problems, a job will have been launched for each geometry-configuration combination.
 
