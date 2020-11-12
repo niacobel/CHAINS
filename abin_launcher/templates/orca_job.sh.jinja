@@ -1,6 +1,6 @@
 #!/bin/bash
 
-{# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html #}
+{# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
 #SBATCH --output=slurm_output.log
 #SBATCH --job-name={{  mol_name  }}_orca
 #SBATCH --mail-user={{  user_email  }}
@@ -8,9 +8,9 @@
 #SBATCH --time={{  job_walltime  }}
 #SBATCH --ntasks={{  job_cores  }}
 #SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
-{% if partition != None %}
+{% if partition != None -%}
 #SBATCH --partition={{  partition  }}
-{% endif %}
+{%- endif %}
 
 echo -e "******************************************************************************"
 echo -e "**************************   Beginning of the job   **************************"
@@ -75,7 +75,7 @@ mkdir -p $res_dir
 cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_manifest  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log $res_dir
 
 {# Job instructions for compiling data about the job for benchmarking. #}
-{% include "benchmark.jinja" if benchmark %}
+{% include "benchmark.jinja" %}
 
 echo -e "\n******************************************************************************"
 echo -e "*****************************   End of the job   *****************************"

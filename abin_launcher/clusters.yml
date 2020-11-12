@@ -119,11 +119,17 @@ lemaitre3:
         - 
           <<: *tiny_orca  
         - 
-          label: small
-          scale_limit: 700
-          time: 1-00:00:00
+          label: very small
+          scale_limit: 500
+          time: 0-16:00:00
           cores: 8
           mem_per_cpu: 500 # in MB
+        - 
+          label: small
+          scale_limit: 750
+          time: 1-00:00:00
+          cores: 8
+          mem_per_cpu: 1000 # in MB
         - 
           label: medium
           scale_limit: 1000

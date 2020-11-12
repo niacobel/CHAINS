@@ -252,7 +252,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
         "job_type" : config[job_specs['prog']]['job_type'],
         "exchange" : config[job_specs['prog']]['exchange'],
         "basis_set" : config[job_specs['prog']]['basis_set'],
-        "cis_n_roots" : config[job_specs['prog']]['cis-n-roots'],
+        "cis_n_roots" : config[job_specs['prog']]['cis_n_roots'],
         "charge" : config['general']['charge'],
         "multiplicity" : config['general']['multiplicity'],
         "coordinates" : file_data['atomic_coordinates']

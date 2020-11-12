@@ -1,0 +1,45 @@
+# This is CHAINS configuration file, it contains every information about the key directories needed by CHAINS to operate smoothly.
+# This is a YAML file, see https://yaml.org/ for more information
+
+# ========================================================= #
+#                  Output files directories                 #
+# ========================================================= #
+
+# Define here the path towards the directories containing the needed output files of each program / calculation
+# The job instructions files will copy the relevant files form the job directories towards those output directories, and the crontab scripts will read the files present in those directories to launch the following step.
+
+output_dir:
+  orca: $CECIHOME/ORCA_OUT
+  qchem: $CECIHOME/QCHEM_OUT
+  qoctra: $CECIHOME/CONTROL_OUT
+
+# Define here the path towards the results directory, a subdirectory will be created in it for each geometry file (molecule)
+
+results_dir: $CECIHOME/RESULTS
+
+# ========================================================= #
+#               Results Treatment Information               #
+# ========================================================= #
+
+# Name of the files and folders containing the results
+results:
+  main_dir: $CECIHOME/RESULTS                    # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+  orca:
+    folder_name: ORCA                               # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+  qchem:
+    folder_name: QCHEM                              # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+  qoctra:
+    folder_name: CONTROL                            # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+    fidelity: obj.res                               # Inside the projector folder (e.g. <main_folder>/<mol_name>/<folder_name>/projector<state_label>/<folder_name>)
+    pulse_folder: 
+      folder_name: Pulse                            # Inside the projector folder (e.g. <main_folder>/<mol_name>/<folder_name>/projector<state_label>/<folder_name>)
+      guess_pulse: Pulse_init
+      guess_pulse_param: Pulse_param_init
+      final_pulse: Pulse_final
+      final_pulse_param: Pulse_param_final
+      final_pulse_heat: Pixel_heat_final
+    pcp_folder:
+      folder_name: PCP                              # Inside the projector folder
+      pop_zero: popzero1
+      pop_eigen: pop1
+      pop_schrodinger: popzero_Sch1

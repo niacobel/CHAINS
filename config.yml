@@ -5,8 +5,6 @@
 #                    General Information                    #
 # ========================================================= #
 
-# General information that is not specific to any program in particular.
-
 general: 
 
   charge: 0
@@ -27,7 +25,7 @@ orca:
   method: B3LYP
   basis_set: def2-TZVP
   aux_basis_set: def2/J
-  other: RIJCOSX                              # You can multiple keywords on this line (separated by a space)
+  other: RIJCOSX                              # You can put multiple keywords on this line (separated by a space)
 
 # Directory where the orca output files needed for the next step will be sent.
 
@@ -45,7 +43,7 @@ qchem:
   job_type: sp
   exchange: b3lyp
   basis_set: def2-tzvp
-  cis-n-roots: 4
+  cis_n_roots: 4
 
 # Directory where the q-chem output files needed for the next step will be sent.
 
@@ -96,13 +94,13 @@ qoctra:
 
 # Name of the files and folders containing the results
 results:
-  main_folder: $CECIHOME/RESULTS                    # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+  main_dir: $CECIHOME/RESULTS                    # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
   orca:
-    folder_name: ORCA                               # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+    dir_name: ORCA                               # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
   qchem:
-    folder_name: QCHEM                              # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+    dir_name: QCHEM                              # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
   qoctra:
-    folder_name: CONTROL                            # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
+    dir_name: CONTROL                            # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
     fidelity: obj.res                               # Inside the projector folder (e.g. <main_folder>/<mol_name>/<folder_name>/projector<state_label>/<folder_name>)
     pulse_folder: 
       folder_name: Pulse                            # Inside the projector folder (e.g. <main_folder>/<mol_name>/<folder_name>/projector<state_label>/<folder_name>)

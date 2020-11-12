@@ -135,7 +135,7 @@ where
 
 - ``*/15 * * * *`` defines the frequency of execution of this command (at every 15th minutes). Feel free to adjust this value.
 - ``/path/to/cron_benchmark.sh`` is the path towards the crontab script.
-- ``<prefix>_crontab.log`` is a log file that will contain the output of the execution of this crontab script.
+- ``<prefix>_crontab.log`` is a log file that will contain the output of the execution of this crontab script. This is just a suggested name, feel free to change it however you like.
 
 Don't forget to also make the ``cron_benchmark.sh`` script executable (``chmod u+x``) !
 
