@@ -80,11 +80,13 @@ by
 
    mol_fmt = args.format
 
-and it's done! Now you will be able to specify the format of your geometry files by using ``-f <format>`` or ``--format <format>`` when executing ``abin_launcher.py``.
+and it's done! 
+
+Now you will be able to specify the format of your geometry files by using the :guilabel:`-f / \\--format` command line argument when executing ``abin_launcher.py``.
 
 .. warning::
 
-   The extension of the geometry files must be the same as the value given in the ``--format`` argument.
+   The extension of the geometry files must be the same as the value given in the :guilabel:`-f / \\--format` argument.
 
 Defining a new scanning function
 --------------------------------

@@ -15,9 +15,9 @@ The rendering process makes use of three main elements:
 
 Those elements are presented in more details in the following subsections. 
 
-.. note::
+.. Important::
 
-   This part of the process must almost entirely be defined by the user themselves: you will have to create your templates, your configuration files and your rendering functions in order to deal with your specific problematic.
+   This part of the process must almost entirely be **defined by the user themselves**: you will have to create your templates, your configuration files and your rendering functions in order to deal with your specific problematic. This may look a bit bothersome, but it is also what makes the great flexibility of ``ABIN LAUNCHER``, and you will only need to set it up once.
 
 Jinja templates
 ===============

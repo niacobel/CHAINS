@@ -107,7 +107,7 @@ This is what our directory on the cluster, named ``abin_docs_sample``, now looks
 Running ABIN LAUNCHER
 ---------------------
 
-.. note::
+.. Tip::
 
    Before executing ``ABIN LAUNCHER``, remember to load (manually or through your user profile configuration) your Python distribution, which must include YAML and Jinja2.
 

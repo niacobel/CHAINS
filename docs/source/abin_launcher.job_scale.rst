@@ -193,7 +193,7 @@ where
 - ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each program.
 - ``label``, ``scale_limit``, ``time``, ``cores`` and ``mem_per_cpu`` are all **mandatory keys**, specifying the resources requirements of the jobs.
 - ``partition_name`` is an optional key containing the name of the cluster partition on which the job will be running.
-- ``delay_command`` is an optional key that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` flag of the ``sbatch`` command, see here_.
+- ``delay_command`` is an optional key that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` argument of the ``sbatch`` command, see here_.
 
 You can have as many job scales as you want, and they don't need to be defined in ascending order of scale index limits. ``ABIN LAUNCHER`` will automatically sort them before starting to scan the geometry files. Just remember to adjust the ``scale_limit`` of your job scales if you change your scaling function. Otherwise, those numbers won't make sense.
 

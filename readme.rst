@@ -32,7 +32,7 @@ This methodology includes three big phases:
 
 CHAINS can assist this whole methodology by automatically preparing the input files and launching the ORCA_, Q-CHEM_ and QOCT-RA_ calculations for each molecule, allowing the user to treat a big number of molecules much faster, thus making the scanning more efficient. It can also work with multiple clusters, in order to split the workload. In our case, all those calculations (jobs) are performed on the different clusters provided by the *Consortium des Équipements de Calcul Intensif* (CECI_). 
 
-.. note::
+.. Important::
    Although the global development has been aimed at a specific problematic, **each individual script can easily be adapted** to deal with other similar problems, programs and clusters, as will be explained in each of the different sections of the documentation.
 
 Design Philosophy

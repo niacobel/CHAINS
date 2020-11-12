@@ -141,7 +141,7 @@ Don't forget to also make the ``cron_benchmark.sh`` script executable (``chmod u
 
 When executed, the ``cron_benchmark.sh`` script will look if there is a file named ``<prefix>_tmp.csv`` (the temporary CSV file) in your benchmark directory. If there is, the script will archive it into an ``archive`` subdirectory and rename it with the current date. It will then execute ``benchmark.py`` on that file.
 
-.. note::
+.. Tip::
 
    If it is not loaded by default in your user profile configuration, remember to load your Python distribution so that the crontab script can execute ``benchmark.py``. This can for example be done by adding instructions at the beginning of the crontab script, or by executing the loading command in the cron task, right before executing the crontab script.
 
@@ -159,9 +159,9 @@ How to use it?
 
 You don't need to edit the Python script, it will be automatically executed by the crontab script with the following arguments:
 
-- ``<benchmark_path>/<prefix>_tmp.csv`` for the ``-t, --tmp`` argument
-- ``<benchmark_path>/<prefix>_final.csv`` for the ``-f, --final`` argument
-- ``<benchmark_path>/<prefix>_prob.csv`` for the ``-p, --prob`` argument
+- ``<benchmark_path>/<prefix>_tmp.csv`` for the :guilabel:`-t, \\--tmp` argument
+- ``<benchmark_path>/<prefix>_final.csv`` for the :guilabel:`-f, \\--final` argument
+- ``<benchmark_path>/<prefix>_prob.csv`` for the :guilabel:`-p, \\--prob` argument
 
 This will either create or update the final csv file, named ``<prefix>_final.csv`` and placed inside the benchmark directory. The log file of this Python execution, named ``<prefix>_<current_date>.log``, can be found inside a ``bench_logs`` subdirectory created by the crontab script. 
 
@@ -170,7 +170,7 @@ How to deal with problematic lines?
 
 If some lines of the temporary CSV files were to cause any kind of problem, they will be stored inside a **problematic CSV file**, named ``<prefix>_prob.csv`` and placed inside the benchmark directory. After having consulted the log file and diagnosed the problem, you might then wish to rerun the Python script on this file. In this case, you can just either:
 
-- manually execute ``benchmark.py`` using the path towards the problematic CSV file for the ``-t, --tmp`` argument (and something else for the ``-p, --prob`` one)
+- manually execute ``benchmark.py`` using the path towards the problematic CSV file for the :guilabel:`-t, \\--tmp` argument (and something else for the :guilabel:`-p, \\--prob` one)
 - rename ``<prefix>_prob.csv`` into ``<prefix>_tmp.csv``\*, then manually execute ``cron_benchmark.sh`` (with ``<prefix>`` as a command line argument).
 
 \* Be careful to not erase a *real* temporary CSV file by doing so.

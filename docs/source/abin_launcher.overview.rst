@@ -84,31 +84,42 @@ Input files
 
 There are two main input files for ``ABIN LAUNCHER``:
 
-- The **geometry files**, given by the ``-m / --mol_inp`` argument, are the files presenting the nature and the structure of your molecules. They contain the type and number of the constituting atoms and their respective coordinates.
-- The **configuration files**, given by the ``-cf / --config`` argument, are the YAML files containing the parameters specific to your calculations and your programs (job type, basis set, etc.). Those files must have the .yml or .yaml extension.
+- :guilabel:`-m / \\--mol_inp`, the **geometry files**.
+
+   The files presenting the nature and the structure of your molecules. They contain the type and number of the constituting atoms and their respective coordinates.
+
+- :guilabel:`-cf / \\--config`, the **configuration files**.
+
+   The YAML files containing the parameters specific to your calculations and your programs (job type, basis set, etc.). Those files must have the .yml or .yaml extension.
 
 In both cases, you can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple input files, ``ABIN LAUNCHER`` will process each geometry-configuration combination. For example, if you have 5 geometry files and 3 configuration files, you will end up with 15 launched jobs on your cluster.
 
-By default, every input file that has been *successfully* processed by ``ABIN LAUNCHER`` will be **archived** in a ``launched`` directory created in the same directory as the input files. This has been designed this way so that you can repeatedly use the same directory as "source" for those input files without repeating jobs. If you want to turn off this behavior, you can use the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively. Note that if a problem occurs when processing a particular geometry-configuration combination, both the geometry file and the configuration file will be kept in place.
+By default, every input file that has been *successfully* processed by ``ABIN LAUNCHER`` will be **archived** in a ``launched`` directory created in the same directory as the input files. This has been designed this way so that you can repeatedly use the same directory as "source" for those input files without repeating jobs. If you want to turn off this behavior, you can use the :guilabel:`-km / \\--keep_mol` and/or :guilabel:`-kc / \\--keep_cf` optional arguments to keep the geometry files and/or the configuration files, respectively. Note that if a problem occurs when processing a particular geometry-configuration combination, both the geometry file and the configuration file will be kept in place.
 
 Other arguments
 ---------------
 
 There are three other required arguments for executing ``ABIN LAUNCHER``:
 
-- The **name of the program** you want to run, given by the ``-p / --program`` argument. This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive. 
+- :guilabel:`-p / \\--program`, the **name of the program** you want to run.
 
-.. note::
+   This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive. 
+
+.. Tip::
 
    This argument does not need to be the same name as the software you actually want to execute on the cluster. It is just a label that is used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different values for this argument that run the same program (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
 
-- The **name of the cluster** you are running on, given by the ``-cl / --cluster_name`` argument. This one must also be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+- :guilabel:`-cl / \\--cluster_name`, the **name of the cluster** you are running on.
 
-.. note::
+   This one must also be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+
+.. Tip::
 
    This argument does not need to be the same name as the actual name of your machine. It is just a label that is used by ``ABIN LAUNCHER`` to know which information to get from its clusters configuration file.
 
-- The **"output directory"** where each job subdirectory will be created, given by the ``-o / --out_dir`` argument. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
+- :guilabel:`-o / \\--out_dir`, the **output directory** 
+
+   This is the directory where each job subdirectory will be created. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
 
 There are also a number of optional arguments that can be used to adapt to each specific situation. Their description in the :ref:`command line arguments <abin_arguments>` subsection should be self-explanatory.
 
@@ -119,7 +130,7 @@ First step: Scanning
 
 For more details on how this scan is performed, consult the :doc:`abin_launcher.scan` specific documentation.
 
-.. note::
+.. Caution::
    At this time, only the XYZ format is supported for geometry files. However, new formats can be added if the need arises.
 
 Second step: Scaling
@@ -156,7 +167,7 @@ where
       mycluster:
         submit_command: <submit_command>
 
-   where ``mycluster`` is the name of your cluster (given as a :ref:`command line argument <abin_arguments>`).
+   where ``mycluster`` is the name of your cluster (given as the :guilabel:`-cl / \\--cluster_name` command line argument).
 
 - ``<delay_command>`` is an optional command that can delay the submission of a particular job, which can prove useful if you want to prioritize certain job sizes (consult the :doc:`abin_launcher.job_scale` specific documentation for details). In SLURM's case, this is covered by the ``--begin`` argument.
 - ``<job instructions file>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.
@@ -174,32 +185,32 @@ Once the job has been submitted, ``ABIN LAUNCHER`` will proceed to the next conf
 Output directory structure
 --------------------------
 
-If we have for example 2 geometry files and 2 configuration files, once the execution of ``ABIN LAUNCHER`` has ended, the structure of the output directory (given as the ``-o / --out_dir`` command line argument) might look like:
+If we have for example 2 geometry files and 2 configuration files, once the execution of ``ABIN LAUNCHER`` has ended, the structure of the output directory (given as the :guilabel:`-o / \\--out_dir` command line argument) might look like:
 
 .. code-block::
 
     out_dir/ 
       └── geometry1_config1/
-            ├── config1.yml
             ├── geometry1.xyz
+            ├── config1.yml
             ├── geometry1_config1.log
             ├── job_instructions.sh
             └── input_file
       └── geometry1_config2/
-            ├── config2.yml
             ├── geometry1.xyz
+            ├── config2.yml
             ├── geometry1_config2.log
             ├── job_instructions.sh
             └── input_file
       └── geometry2_config1/
-            ├── config1.yml
             ├── geometry2.xyz
+            ├── config1.yml
             ├── geometry2_config1.log
             ├── job_instructions.sh
             └── input_file
       └── geometry2_config2/
-            ├── config2.yml
             ├── geometry2.xyz
+            ├── config2.yml
             ├── geometry2_config2.log
             ├── job_instructions.sh
             └── input_file
