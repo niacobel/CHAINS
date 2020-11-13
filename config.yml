@@ -6,7 +6,6 @@
 # ========================================================= #
 
 general: 
-
   charge: 0
   multiplicity: 1
   user_email: niacobel@ulb.ac.be
@@ -16,38 +15,28 @@ general:
 #                      ORCA Information                     #
 # ========================================================= #
 
-orca:
-
 # ORCA KEYWORDS
 # They will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more information)
 
+orca:
   job_type: Opt
   method: B3LYP
   basis_set: def2-TZVP
   aux_basis_set: def2/J
   other: RIJCOSX                              # You can put multiple keywords on this line (separated by a space)
 
-# Directory where the orca output files needed for the next step will be sent.
-
-  output_dir: $CECIHOME/ORCA_OUT               
-
 # ========================================================= #
 #                     Q-CHEM Information                    #
 # ========================================================= #
 
-qchem:
-
 # Q-CHEM KEYWORDS
 # They will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more information)
 
+qchem:
   job_type: sp
   exchange: b3lyp
   basis_set: def2-tzvp
   cis_n_roots: 4
-
-# Directory where the q-chem output files needed for the next step will be sent.
-
-  output_dir: $CECIHOME/QCHEM_OUT             
 
 # ========================================================= #
 #                    QOCT-RA Information                    #

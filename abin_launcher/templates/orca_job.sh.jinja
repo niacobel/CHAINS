@@ -72,7 +72,7 @@ cp {{ config_file  }}.yml {{  results_dir  }}/{{  mol_name  }}/config.yml
 res_dir="{{  results_dir  }}/{{  mol_name  }}/{{  results_subdir  }}"
 echo -e "\nCopying output files to $res_dir."
 mkdir -p $res_dir
-cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_manifest  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log $res_dir
+cp {{  mol_name  }}.inp {{  mol_name  }}.out {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz {{  job_instructions  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log $res_dir
 
 {# Job instructions for compiling data about the job for benchmarking. #}
 {% include "benchmark.jinja" %}

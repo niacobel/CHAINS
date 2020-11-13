@@ -7,6 +7,7 @@
 
 import os
 
+import yaml
 from jinja2 import Environment, FileSystemLoader
 
 import abin_errors
@@ -78,6 +79,16 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     #                      Preparation step                     #
     # ========================================================= #
 
+    # Load the CHAINS configuration file to get the additional information
+
+    chains_path = os.path.dirname(misc['code_dir'])
+    chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+
+    print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+    with open(chains_config_file, 'r') as chains:
+      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
     # Check if all the files specified in the clusters YAML file exists in the "templates" directory of ABIN LAUNCHER.
     
     for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
@@ -134,9 +145,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
 
     print("{:<80}".format("\nRendering the jinja template for the orca job instructions file ..."), end="")
 
-    # Get the path to CHAINS root directory and the "check_scripts" directory because the job instructions file needs to execute check_orca.py and source load_modules.sh
-
-    chains_path = os.path.dirname(misc['code_dir'])
+    # Get the path to the "check_scripts" directory because the job instructions file needs to execute check_orca.py
+    
     check_script_path = os.path.join(chains_path,"check_scripts")
 
     # Defining the Jinja variables
@@ -151,12 +161,12 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
         "partition" : job_specs['partition'],     
         "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
         "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-        "output_dir" : config[job_specs['prog']]['output_dir'],
-        "results_dir" : config['results']['main_dir'],
+        "output_dir" : chains_config['output_dir'][job_specs['prog']],
+        "results_dir" : chains_config['results_dir'],
         "chains_dir" : chains_path,
         "check_dir" : check_script_path,
-        "results_subdir" : config['results'][job_specs['prog']]['dir_name'],
-        "job_manifest" : rendered_instructions,
+        "results_subdir" : job_specs['prog'].upper(),
+        "job_instructions" : rendered_instructions,
         "config_file" : misc['config_name']
     }
 
@@ -221,6 +231,16 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     #                      Preparation step                     #
     # ========================================================= #
 
+    # Load the CHAINS configuration file to get the additional information
+
+    chains_path = os.path.dirname(misc['code_dir'])
+    chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+
+    print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+    with open(chains_config_file, 'r') as chains:
+      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
     # Check if all the files specified in the clusters YAML file exists in the "templates" directory of ABIN LAUNCHER.
     
     for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
@@ -270,9 +290,8 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
 
     print("{:<80}".format("\nRendering the jinja template for the qchem job instructions file ..."), end="")
 
-    # Get the path to CHAINS root directory and the "check_scripts" directory because the job instructions file needs to execute check_qchem.py and source load_modules.sh
-
-    chains_path = os.path.dirname(misc['code_dir'])
+    # Get the path to the "check_scripts" directory because the job instructions file needs to execute check_qchem.py
+    
     check_script_path = os.path.join(chains_path,"check_scripts")
 
     # Defining the Jinja variables
@@ -287,12 +306,12 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
         "partition" : job_specs['partition'],     
         "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
         "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-        "output_dir" : config[job_specs['prog']]['output_dir'],
-        "results_dir" : config['results']['main_dir'],
+        "output_dir" : chains_config['output_dir'][job_specs['prog']],
+        "results_dir" : chains_config['results_dir'],
         "chains_dir" : chains_path,
         "check_dir" : check_script_path,
-        "results_subdir" : config['results'][job_specs['prog']]['dir_name'],
-        "job_manifest" : rendered_instructions,
+        "results_subdir" : job_specs['prog'].upper(),
+        "job_instructions" : rendered_instructions,
         "config_file" : misc['config_name']
     }
 

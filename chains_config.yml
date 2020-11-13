@@ -13,7 +13,8 @@ output_dir:
   qchem: $CECIHOME/QCHEM_OUT
   qoctra: $CECIHOME/CONTROL_OUT
 
-# Define here the path towards the results directory, a subdirectory will be created in it for each geometry file (molecule)
+# Define here the path towards the results directory
+# A subdirectory will be created in it for each geometry file (molecule), containing all major output files from the different programs and scripts.
 
 results_dir: $CECIHOME/RESULTS
 

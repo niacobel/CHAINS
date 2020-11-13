@@ -460,8 +460,9 @@ Finally, we just need to return ``rendered_content`` and ``rendered_instructions
 
 Our function is now ready. This is what it ends up looking like with proper comments and documentation:
 
-.. literalinclude:: sample_files/rendering_function.py
+.. literalinclude:: sample_files/renderer.py
    :language: python
+   :lines: 46-132
 
 .. Hyperlink targets
 
