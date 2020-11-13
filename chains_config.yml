@@ -6,7 +6,7 @@
 # ========================================================= #
 
 # Define here the path towards the directories containing the needed output files of each program / calculation
-# The job instructions files will copy the relevant files form the job directories towards those output directories, and the crontab scripts will read the files present in those directories to launch the following step.
+# The job instructions files will copy the relevant files from the job directories towards those output directories, and the crontab scripts will read the files present in those directories to launch the following step.
 
 output_dir:
   orca: $CECIHOME/ORCA_OUT

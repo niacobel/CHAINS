@@ -191,7 +191,11 @@ Multiple programs can share the same crontab task if you don't mind their lines 
 Sample run
 ==========
 
-Let's end this section with a sample run of the benchmarking tool. We will use our example from the :doc:`previous section <abin_launcher.example>`, with the three molecules (or geometry files) and the two configuration files. Every file presented in this subsection can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/benchmark_sample_files>`_.
+Let's end this section with a sample run of the benchmarking tool. We will use our example from the :doc:`previous section <abin_launcher.example>`, with the three molecules (or geometry files) and the two configuration files. 
+
+.. Tip::
+
+   Every file presented in this subsection can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/benchmark_sample_files>`_.
 
 Preparation
 -----------
@@ -261,6 +265,7 @@ and in the ``orca_render`` function of ``renderer.py``, we add
       If you are not sure of where exactly you need to add this portion of code, you can click on the arrow below to see the complete source code of ``renderer.py``.
 
    .. literalinclude:: benchmark_sample_files/renderer.py
+      :caption: renderer.py
       :emphasize-lines: 126-138
 
 |
@@ -277,13 +282,14 @@ Now we execute the ``crontab -e`` command in our terminal to edit our cron tasks
 Finally, we edit the beginning of our ``cron_benchmark.sh`` file to load our Python distribution:
 
 .. literalinclude:: benchmark_sample_files/cron_benchmark.sh
+   :caption: cron_benchmark.sh, lines 7-15
    :lines: 7-15
 
 and we make sure it is executable by entering the following command in our terminal:
 
-.. code-block:: shell
+.. code-block:: console
 
-   chmod u+x /home/users/n/i/niacobel/abin_docs_sample/abin_launcher/cron_benchmark.sh
+   $ chmod u+x /home/users/n/i/niacobel/abin_docs_sample/abin_launcher/cron_benchmark.sh
 
 Now our benchmarking tool is ready to run!
 
@@ -292,21 +298,23 @@ Execution
 
 We just run ``ABIN LAUNCHER`` as normal, by executing the main script (from ``abin_docs_sample``):
 
-.. code-block:: shell
+.. code-block:: console
 
-   python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
+   $ python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
 
 We obtain the same results than before, with the six launched jobs. 
 
-As soon as each job finishes, the temporary CSV file, ``sample_orca_tmp.csv``, will either be created or updated with a new line. After the six jobs have finished, this is what the raw file looks like:
+As soon as each job finishes, the temporary CSV file will either be created or updated with a new line. After the six jobs have finished, this is what the raw file looks like:
 
 .. literalinclude:: benchmark_sample_files/sample_orca_tmp.csv
+   :caption: sample_orca_tmp.csv
 
 and in a more human-readable fashion:
 
 .. csv-table::
    :file: benchmark_sample_files/sample_orca_tmp.csv
    :delim: ;
+   :name: sample_orca_tmp.csv
 
 As you can see, a different line has been written for each of our jobs, containing the different data that have been collected so far.
 
@@ -341,6 +349,7 @@ where our final CSV file, ``sample_orca_final.csv``, contains:
 .. csv-table::
    :file: benchmark_sample_files/sample_orca_final.csv
    :delim: ;
+   :name: sample_orca_final.csv
 
 Once loaded into Microsoft Excel, we can then get a nice view of every important data about our jobs:
 
@@ -363,10 +372,11 @@ Content of the log files
 
 As you can see in the directory structure above, the benchmarking tool creates two log files:
 
-- The log file from the crontab script, ``sample_orca_crontab.log``, which contains a line for each time a temporary CSV file has been processed. At this point, its content is simply:
+- The log file from the crontab script, which contains a line for each time a temporary CSV file has been processed. At this point, its content is simply:
 
-.. literalinclude:: benchmark_sample_files/sample_orca_crontab.log
-   :language: text
+   .. literalinclude:: benchmark_sample_files/sample_orca_crontab.log
+      :language: text
+      :caption: sample_orca_crontab.log
 
 - 
    .. container:: toggle
@@ -377,4 +387,5 @@ As you can see in the directory structure above, the benchmarking tool creates t
 
       .. literalinclude:: benchmark_sample_files/sample_orca_20201109_171504.log
          :language: text
+         :caption: sample_orca_20201109_171504.log
 

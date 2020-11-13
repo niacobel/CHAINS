@@ -389,7 +389,7 @@ def main():
       print(console_message.center(len(console_message)+10))
       print(''.center(len(console_message)+11, '*'))
 
-      # Create an output log file containing all the information about the molecule treatment
+      # Create an output log file containing all the information about the geometry file treatment
 
       mol_log_name = mol_name + ".log"
       mol_log = open(os.path.join(out_dir,mol_log_name), 'w', encoding='utf-8')

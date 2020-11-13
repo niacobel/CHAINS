@@ -71,16 +71,16 @@ where
 
 If you want a more concrete example, let's consider the following situation:
 
-- Two clusters who use SLURM as the job scheduler, named ``slurm_cluster_A`` and ``slurm_cluster_B``
+- Two clusters who use SLURM as the job scheduler, named ``lemaitre3`` and ``vega``
 - We want to run two programs: ORCA_ and Q-CHEM_
 - Both programs use ``total_nb_elec`` as the scaling function
-- ORCA is available on both clusters, but Q-CHEM is specific to the ``slurm_cluster_B``
+- ORCA is available on both clusters, but Q-CHEM is specific to the ``vega`` cluster
 
 This is what the file might look like in this situation:
 
 .. code-block:: yaml
 
-   slurm_cluster_A:
+   lemaitre3:
      submit_command: sbatch
      progs:
        orca:
@@ -118,12 +118,12 @@ This is what the file might look like in this situation:
              mem_per_cpu: 4000 # in MB
              delay_command: --begin=now+120
 
-   slurm_cluster_B:
+   vega:
      submit_command: sbatch
      progs:
        orca:
-         set_env: module load orca/4.0.1.2
-         command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
+         set_env: module load ORCA/4.0.0.2-OpenMPI-2.0.2
+         command: /apps/brussel/interlagos/software/ORCA/4.0.0.2-OpenMPI-2.0.2/orca
          scaling_function: total_nb_elec
          job_scales:
            - 
@@ -146,7 +146,7 @@ This is what the file might look like in this situation:
              mem_per_cpu: 2000 # in MB
              delay_command: --begin=now+60
        qchem:
-         set_env: module load Q-Chem/5.3.0-SHMEM
+         set_env: module load Q-Chem-5.2.1-intel-2019b-mpich3
          command: srun qchem
          scaling_function: total_nb_elec
          job_scales:
@@ -178,7 +178,7 @@ This is what the file might look like in this situation:
              mem_per_cpu: 4000 # in MB
              delay_command: --begin=now+120
 
-This is the bare minimum required by ``ABIN LAUNCHER``, but you can add as many keys as you want depending on your needs.
+This is what a basic example looks like, but you can add as many keys as you want, depending on your needs.
 
 .. _abin_errors:
 
@@ -220,7 +220,7 @@ This will check if there is a file named ``mendeleev.yml`` in ``ABIN LAUNCHER``'
 - If there is, it will return the absolute path towards that file (useful for referencing that file later in the script, no matter where the current directory is). 
 - Otherwise, it will raise an exception and specify the context as "Mendeleev periodic table YAML file" for easy tracking, which will result in an error message of the form:
 
-.. code-block:: text
+.. code-block:: console
 
    Something went wrong when checking the path  ~/CHAINS/abin_launcher/mendeleev.yml
    Context:  Mendeleev periodic table YAML file

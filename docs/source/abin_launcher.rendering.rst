@@ -69,7 +69,7 @@ Job instructions file template
 
 The input file is not the only file that needs to be created. We also need to create the job instructions file, that will give commands to the job scheduler to run the ORCA calculation on the cluster. Let's go back to our example and consider that we are using SLURM as a job scheduler, this is what the job instructions file might look like:
 
-.. code-block:: shell
+.. code-block:: slurm
 
    #!/bin/bash
 
@@ -162,7 +162,7 @@ As long as we know what the job instructions file must look like, we can define 
 YAML configuration file
 =======================
 
-Some of the content for the Jinja variables has already been defined by ``ABIN LAUNCHER`` at this point, with the help of the :doc:`scanning <abin_launcher.scan>` and :doc:`scaling <abin_launcher.job_scale>` processes. For the rest, another YAML file needs to be created, called the configuration file, which contains all the parameters specific to each calculation. Note that just like you can define multiple geometry files, you can define multiple configuration file if the need arises.
+Some of the content for the Jinja variables has already been defined by ``ABIN LAUNCHER`` at this point, with the help of the :doc:`scanning <abin_launcher.scan>` and :doc:`scaling <abin_launcher.job_scale>` processes. For the rest, another YAML file needs to be created, called the configuration file, which contains all the parameters specific to each calculation. Note that just like you can define multiple geometry files, you can define multiple configuration files if the need arises.
 
 To illustrate this part of the process, let's continue with our |C2H6| example. We need the following information:
 
@@ -316,7 +316,7 @@ In essence, the rendering functions have a pretty simple structure: their task i
 
       return rendered_content, rendered_instructions
 
-A concrete example of rendering function is presented in the next subsection. Note however that some additional steps might be required depending on each specific case.
+A concrete example of a rendering function is presented in the next subsection. Note however that some additional steps might be required depending on each specific case.
 
 Example of a rendering function
 -------------------------------
@@ -328,61 +328,31 @@ Review of the template and configuration files
 
 Before defining the function, we need to review our different files:
 
-First, we have the input file template, that will be named ``sample_orca.inp.jinja``:
+First, we have the input file template:
 
 .. literalinclude:: sample_files/sample_orca.inp.jinja
    :language: jinja
+   :caption: sample_orca.inp.jinja
 
-Then, the job instructions file template, that will be named ``sample_orca_job.sh.jinja``:
+Then, the job instructions file template:
 
 .. literalinclude:: sample_files/sample_orca_job.sh.jinja
    :language: jinja
+   :caption: sample_orca_job.sh.jinja
 
-Third, the configuration file, named ``svp.yml``:
+Third, the configuration file:
 
 .. literalinclude:: sample_files/svp.yml
    :language: yaml
+   :caption: svp.yml
 
 Finally, let's consider that we have the following clusters configuration file:
 
-.. code-block:: yaml
+.. literalinclude:: sample_files/clusters.yml
+   :language: yaml
+   :caption: clusters.yml
 
-   myclusterA: 
-     progs:
-       orca:
-         set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
-         command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca           
-         scaling_function: total_nb_elec
-         job_scales:
-           - 
-             label: tiny
-             scale_limit: 50
-             time: 0-00:10:00
-             cores: 4 
-             mem_per_cpu: 500 # in MB
-           - 
-             label: small
-             scale_limit: 1000
-             partition_name: Def
-             time: 2-00:00:00
-             cores: 4
-             mem_per_cpu: 1000 # in MB
-           - 
-             label: medium
-             scale_limit: 1500
-             partition_name: Def
-             time: 5-00:00:00
-             cores: 8
-             mem_per_cpu: 2000 # in MB
-             delay_command: --begin=now+60
-           - 
-             label: big
-             scale_limit: 2000
-             partition_name: Long
-             time: 10-00:00:00
-             cores: 16
-             mem_per_cpu: 4000 # in MB  
-             delay_command: --begin=now+120
+where ``lemaitre3`` is the name of our cluster.
 
 Function definition
 ~~~~~~~~~~~~~~~~~~~

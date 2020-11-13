@@ -62,7 +62,7 @@ The main language of CHAINS is Python 3.5+ but it also uses YAML_ files and Jinj
 
 If your Python distribution does not include PyYAML (version 5.1+) and Jinja2 (version 2.10+), you can install them using
 
-.. code-block:: shell
+.. code-block:: console
 
    $ python -m pip install --user pyyaml
    $ python -m pip install --user jinja2

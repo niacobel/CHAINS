@@ -2,7 +2,11 @@
 Sample run
 **********
 
-This section will cover a sample run of ``ABIN LAUNCHER``, to get a concrete example of its operating mode. Our study case here includes three molecules (or geometry files) and two configuration files. Our goal is to optimize the geometry of those three molecules with two different basis sets through ORCA_. Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/sample_files>`_.
+This section will cover a sample run of ``ABIN LAUNCHER``, to get a concrete example of its operating mode. Our study case here includes three molecules (or geometry files) and two configuration files. Our goal is to optimize the geometry of those three molecules with two different basis sets through ORCA_. 
+
+.. Tip::
+
+   Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/sample_files>`_.
 
 Preparation
 ===========
@@ -12,15 +16,17 @@ Jinja templates
 
 We will simply use the Jinja templates defined in the :doc:`rendering section <abin_launcher.rendering>` and place them in the ``templates`` directory of ``ABIN LAUNCHER``:
 
-- The template for the ORCA input file, named ``sample_orca.inp.jinja``, is:
+- The Jinja template for the ORCA input file:
 
 .. literalinclude:: sample_files/sample_orca.inp.jinja
    :language: jinja
+   :caption: sample_orca.inp.jinja
 
-- And the one for the job instructions file, named ``sample_orca_job.sh.jinja``, is:
+- The Jinja template for the job instructions file:
 
 .. literalinclude:: sample_files/sample_orca_job.sh.jinja
    :language: jinja
+   :caption: sample_orca_job.sh.jinja
 
 Rendering function
 ------------------
@@ -29,16 +35,18 @@ We will also use the one we defined in the :ref:`rendering section <rendering_fc
 
 .. literalinclude:: sample_files/renderer.py
    :language: python
+   :caption: renderer.py
 
 Clusters configuration file
 ---------------------------
 
 For this run, we will be running on the LEMAITRE3 cluster from the CECI_, the job scheduler is SLURM and the chosen scaling function is ``total_nb_elec``. 
 
-The clusters configuration file (``clusters.yml``) looks like:
+The clusters configuration file looks like:
 
 .. literalinclude:: sample_files/clusters.yml
    :language: yaml
+   :caption: clusters.yml
 
 Execution
 =========
@@ -52,29 +60,24 @@ Our three molecules are simply |CH4|, |C2H6| and |C3H8|. They are each represent
 .. |C2H6| replace:: C\ :sub:`2`\ H\ :sub:`6`\ 
 .. |C3H8| replace:: C\ :sub:`3`\ H\ :sub:`8`\ 
 
-- ``ch4.xyz``:
-
 .. literalinclude:: sample_files/ch4.xyz
-
-- ``c2h6.xyz``:
+   :caption: ch4.xyz
 
 .. literalinclude:: sample_files/c2h6.xyz
-
-- and ``c3h8.xyz``:
+   :caption: c2h6.xyz
 
 .. literalinclude:: sample_files/c3h8.xyz
+   :caption: c3h8.xyz
 
 For our two configuration files, we want to perform a geometry optimization using the DFT method with the B3LYP functional, and the two considered basis sets are def2-SVP and def2-TZVP. Thus, our two files are:
 
-- ``svp.yml``:
-
 .. literalinclude:: sample_files/svp.yml
    :language: yaml
-
-- and ``tzvp.yml``:
+   :caption: svp.yml
 
 .. literalinclude:: sample_files/tzvp.yml
    :language: yaml
+   :caption: tzvp.yml
 
 Let's store those files in two distinct directories: one for the molecule geometries, named ``molecules``, and one for the configuration files, named ``configs``. We will also create a directory for the jobs, named ``orca_jobs``.
 
@@ -113,9 +116,9 @@ Running ABIN LAUNCHER
 
 We can now execute ``abin_launcher.py`` by running the command (from ``abin_docs_sample``):
 
-.. code-block:: shell
+.. code-block:: console
 
-   python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
+   $ python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
 
 This is what appears on the console screen:
 
@@ -202,6 +205,7 @@ As an example, here is what the ``c3h8_tzvp.log`` file looks like:
 
 .. literalinclude:: sample_files/c3h8_tzvp.log
    :language: text
+   :caption: c3h8_tzvp.log
 
 .. Hyperlink targets
 

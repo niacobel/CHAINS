@@ -107,7 +107,7 @@ There are three other required arguments for executing ``ABIN LAUNCHER``:
 
 .. Tip::
 
-   This argument does not need to be the same name as the software you actually want to execute on the cluster. It is just a label that is used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different values for this argument that run the same program (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
+   This argument does not need to be the same name as the software you actually want to execute on the cluster. It is just a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different values for this argument that run the same software (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
 
 - :guilabel:`-cl / \\--cluster_name`, the **name of the cluster** you are running on.
 
@@ -115,7 +115,7 @@ There are three other required arguments for executing ``ABIN LAUNCHER``:
 
 .. Tip::
 
-   This argument does not need to be the same name as the actual name of your machine. It is just a label that is used by ``ABIN LAUNCHER`` to know which information to get from its clusters configuration file.
+   This argument does not need to be the same name as the actual name of your machine. It is just a label used by ``ABIN LAUNCHER`` to know which information to get from its clusters configuration file.
 
 - :guilabel:`-o / \\--out_dir`, the **output directory** 
 
@@ -154,9 +154,9 @@ The end step: Submitting
 
 Now that everything has been prepared for the job, ``ABIN LAUNCHER`` submits it to the job scheduler. The exact command that will be executed is:
 
-.. code-block::
+.. code-block:: console
 
-    <submit_command> <delay_command> <job instructions file>
+    $ <submit_command> <delay_command> <job instructions file>
 
 where
 
@@ -174,9 +174,9 @@ where
 
 For example, if we want to run an ORCA calculation on a SLURM cluster, but delay the submission of this job by 60 seconds, the command executed by ``ABIN LAUNCHER`` might look like:
 
-.. code-block::
+.. code-block:: console
 
-    sbatch --begin=now+60 orca_job.sh
+    $ sbatch --begin=now+60 orca_job.sh
 
 Once the job has been submitted, ``ABIN LAUNCHER`` will proceed to the next configuration file with the same geometry. Once all the configuration files have been treated, it will proceed to the next geometry and treat again all the configuration files for that geometry. At the end of the execution, barring any problems, a job will have been launched for each geometry-configuration combination.
 
