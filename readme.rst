@@ -1,6 +1,6 @@
 .. badges
 
-.. centered:: |GitHub Page| |Documentation Status| |GitHub License| |DOI| |GitHub issues|
+|GitHub Page| |Documentation Status| |GitHub License| |DOI| |GitHub issues|
 
 .. |GitHub Page| image:: https://img.shields.io/website-up-down-green-red/https/github.com/niacobel/CHAINS.svg
    :alt: GitHub Page
