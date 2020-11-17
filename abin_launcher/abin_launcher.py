@@ -364,6 +364,9 @@ def main():
 
   problem_cf = [] # Empty list that will contain the names of the configuration files for which a problem has occurred (those configuration files will not be archived)
 
+  if not dry_run:
+    job_count = 0   # Launched jobs counter, this number will be showed on the console screen at the end of the execution
+
   # If a maximum number of geometry files has been given, initialize a geometry files counter
 
   if max_mol:
@@ -665,6 +668,8 @@ def main():
             print("Aborting ...")
             exit(5)
         
+          job_count += 1
+
           print('%12s' % "[ DONE ]")
 
         # ================================================================== #
@@ -743,6 +748,15 @@ def main():
           os.remove(os.path.join(launched_dir,config_filename))
         shutil.move(os.path.join(config_inp_path,config_filename), launched_dir)
         print("\nThe '%s' config file has been archived to %s" % (config_filename,launched_dir))
+
+  if not dry_run:
+    print("")
+    if job_count == 1:
+      print("One job has been succesfully launched.")
+    elif job_count > 1:
+      print("%s jobs have been succesfully launched." % job_count)
+    else:
+      print("WARNING: No jobs could be launched.")
 
   print("")
   print("".center(columns,"*"))

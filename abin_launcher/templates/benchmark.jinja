@@ -45,16 +45,6 @@ echo -e "${header}"
 
 export SLURM_TIME_FORMAT="%Y-%m-%d_%H:%M:%S"
 
-# Taking into account the number of lines before the squeue header
-
-{% if cluster_name == 'lemaitre3' -%}
-# /!\ Specific to the lemaitre3 cluster from CECI /!\
-# On lemaitre3, the output from squeue has a useless first line, so we need to remove it
-out_line=2
-{%- else -%}
-out_line=1
-{%- endif %}
-
 ####################################
 #       Start of benchmarking      #
 ####################################
@@ -63,11 +53,11 @@ out_line=1
 
 # Get the name of the partition and the number of CPUs requested
 
-req=$(\squeue --Format=Partition,MaxCPUs --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line" | tr -s ' ' , | sed 's/,/;/g')
+req=$(\squeue --Format=Partition,MaxCPUs --noheader --job=$SLURM_JOB_ID | awk "NR==1" | tr -s ' ' , | sed 's/,/;/g')
 
 # Get the dates in an (almost) readable format through Excel
 
-dates_raw=$(\squeue --Format=SubmitTime,EligibleTime,StartTime --noheader --job=$SLURM_JOB_ID | awk "NR==$out_line" | tr -s ' ' , | sed 's/,/;/g')
+dates_raw=$(\squeue --Format=SubmitTime,EligibleTime,StartTime --noheader --job=$SLURM_JOB_ID | awk "NR==1" | tr -s ' ' , | sed 's/,/;/g')
 
 # Get the current date (to calculate time used by the job)
 

@@ -8,7 +8,7 @@
 #SBATCH --time={{  job_walltime  }}
 #SBATCH --cpus-per-task={{  job_cores  }}
 #SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
-{% if partition != "default" -%}
+{% if partition != None -%}
 #SBATCH --partition={{  partition  }}
 {%- endif %}
 
