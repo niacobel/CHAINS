@@ -104,6 +104,6 @@ latex_elements = {
     'papersize': 'a4paper',
 
     # Font size ('10pt', '11pt' or '12pt')
-    'pointsize': '11pt',
+    'pointsize': '10pt',
 
 }

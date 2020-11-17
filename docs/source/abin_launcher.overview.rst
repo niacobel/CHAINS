@@ -5,7 +5,7 @@ Overview
 What is ABIN LAUNCHER?
 ======================
 
-The Ab Initio Input Builder and Job Launcher, named ``ABIN LAUNCHER`` for short, is a script that creates input files for a given ab initio program, and then submits (or "launches") the corresponding calculation to a job scheduler. It can operate with one or more molecules (through their respective geometry files) and one or more configurations (the parameters for the ab initio program). ``ABIN LAUNCHER`` is the first main script of CHAINS and is executed twice through it:
+The **Ab Initio Input Builder and Job Launcher**, named ``ABIN LAUNCHER`` for short, is a script that creates input files for a given ab initio program, and then submits (or "launches") the corresponding calculation to a job scheduler. It can operate with one or more molecules (through their respective geometry files) and one or more configurations (the parameters for the ab initio program). ``ABIN LAUNCHER`` is the first main script of CHAINS and is executed twice through it:
 
 - The first time, it is used to build the input files associated with the ORCA_ program, which performs the geometry optimization of the molecule. 
 - The second time, it is used to build the input files associated with the the Q-CHEM_ program, which performs the calculation of the different properties of our molecule. 

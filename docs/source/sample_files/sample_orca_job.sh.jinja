@@ -15,9 +15,9 @@ echo -e "Renaming the original .xyz file to avoid overwriting it with the new on
 cd $SLURM_SUBMIT_DIR
 mv {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz
 
-echo -e "\n================= {{ prog }} execution begins now =================="
+echo -e "\n================= ORCA execution begins now =================="
 
 {{ set_env }}
 {{ command }} {{ mol_name }}.inp > {{ mol_name }}.out 
 
-echo -e "\n=================  {{ prog }} execution ends now  =================="
+echo -e "\n=================  ORCA execution ends now  =================="

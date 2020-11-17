@@ -152,10 +152,7 @@ However, we can also take this template one step further:
 
 where the module to load has been replaced by ``{{ set_env }}`` and the command to execute the program has been replaced by ``{{ command }}``.
 
-With this, it becomes possible to
-
-- load and run another program.
-- load and run the same program on another SLURM cluster, where the module and/or the command might be different.
+With this, it becomes possible to load and run the same program on another SLURM cluster, where the module and/or the command might be different.
 
 As long as we know what the job instructions file must look like, we can define a template for pretty much any job.
 
