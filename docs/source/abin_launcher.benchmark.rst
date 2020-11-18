@@ -35,9 +35,6 @@ Other than that, it still is a good option so feel free to use it if it satisfie
 How does it work?
 =================
 
-Required files
---------------
-
 This process requires three files:
 
 - A Jinja template, named ``benchmark.jinja``, placed in the ``templates`` directory of ``ABIN LAUNCHER``. It is an extension of the job script template.

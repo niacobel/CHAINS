@@ -103,7 +103,7 @@ Now, we need to replace every variable part of this input by a Jinja variable:
    #SBATCH --ntasks={{ job_cores }}
    #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
    {% if partition != None %}
-   #SBATCH --partition={{  partition  }}
+   #SBATCH --partition={{ partition }}
    {% endif %}
 
    echo -e "\n================= ORCA execution begins now =================="
@@ -129,7 +129,7 @@ We are almost done, but there is one more thing we need to take into considerati
    #SBATCH --ntasks={{ job_cores }}
    #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
    {% if partition != None %}
-   #SBATCH --partition={{  partition  }}
+   #SBATCH --partition={{ partition }}
    {% endif %}
 
    echo -e "Renaming the original .xyz file to avoid overwriting it with the new one."

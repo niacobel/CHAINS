@@ -9,7 +9,7 @@
 #SBATCH --ntasks={{  job_cores  }}
 #SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
 {% if partition != None -%}
-#SBATCH --partition={{  partition  }}
+#SBATCH --partition={{ partition }}
 {%- endif %}
 
 echo -e "******************************************************************************"
