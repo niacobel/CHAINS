@@ -15,7 +15,7 @@ Important SLURM commands
 The ``sacct`` and ``squeue`` commands
 -------------------------------------
 
-The two key SLURM commands we use here are ``sacct`` and ``squeue``. The ``sacct`` command can directly fetch job accounting data from the SLURM database. Depending on your cluster configuration however, reaching the SLURM database can necessitate an Internet access, which the computing nodes might not have. This command will then only be used from the login nodes, when the job has finished. On the other hand, the ``squeue`` command gets its information locally, which means we can use it for the information that will be obtained through the job instructions file, while the job is still running.
+The two key SLURM commands we use here are ``sacct`` and ``squeue``. The ``sacct`` command can directly fetch job accounting data from the SLURM database. Depending on your cluster configuration however, reaching the SLURM database can necessitate an Internet access, which the computing nodes might not have. This command will then only be used from the login nodes, when the job has finished. On the other hand, the ``squeue`` command gets its information locally, which means we can use it for the information that will be obtained through the job script, while the job is still running.
 
 Every data about our jobs will be obtained through those two commands. If you want to customize the benchmarking procedure, you should familiarize yourself with them on SLURM's official documentation (`sacct docs <https://slurm.schedmd.com/sacct.html>`_ and `squeue docs <https://slurm.schedmd.com/squeue.html>`_). 
 
@@ -40,14 +40,14 @@ Required files
 
 This process requires three files:
 
-- A Jinja template, named ``benchmark.jinja``, placed in the ``templates`` directory of ``ABIN LAUNCHER``. It is an extension of the job instructions template.
+- A Jinja template, named ``benchmark.jinja``, placed in the ``templates`` directory of ``ABIN LAUNCHER``. It is an extension of the job script template.
 - A Python script, named ``benchmark.py``, which must be placed in ``ABIN LAUNCHER``'s directory.
 - A Shell script, named ``cron_benchmark.sh``, which must also be placed in ``ABIN LAUNCHER``'s directory. It will be executed through a :ref:`cron task <cron_tuto>` and make the link between the first two files.
 
 The role of the Jinja template
 ------------------------------
 
-At the end of the job instructions, some additional commands, provided by the ``benchmark.jinja`` template, will fetch the following information:
+At the end of the job script, some additional commands, provided by the ``benchmark.jinja`` template, will fetch the following information:
 
 - The name of the program and the name of the cluster
 - The chosen job scale and its associated resources requirements
@@ -96,13 +96,13 @@ Before starting to edit the files, you need to decide two important values:
 Prepare the Jinja template
 --------------------------
 
-First of all, make sure the ``benchmark.jinja`` template is present in the ``templates`` directory of ``ABIN LAUNCHER``. Then add the following line at the end of your job instructions template (which should be in the same directory):
+First of all, make sure the ``benchmark.jinja`` template is present in the ``templates`` directory of ``ABIN LAUNCHER``. Then add the following line at the end of your job script template (which should be in the same directory):
 
 .. code-block:: jinja
 
    {% include "benchmark.jinja" %}
 
-Since that template requires some specific variables, add the following code to your :ref:`rendering function <rendering_fct>` *after* having defined your ``render_vars`` dictionary for your job instructions file, but *before* calling the ``jinja_render`` function for that file:
+Since that template requires some specific variables, add the following code to your :ref:`rendering function <rendering_fct>` *after* having defined your ``render_vars`` dictionary for your job script, but *before* calling the ``jinja_render`` function for that file:
 
 .. code-block:: python
 
@@ -182,7 +182,7 @@ Unfortunately, this tool works with one program and one cluster at a time. If yo
 
 This implies that you need to:
 
-- Add the include line to all job instructions file templates.
+- Add the include line to all job script templates.
 - Add the Jinja variables definition (``render_vars.update``) to all the rendering functions.
 - Add the cron task command to the crontab of every cluster 
 

@@ -44,7 +44,7 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 # =================================================================== #
 
 def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
-    """Renders the job instructions file and the input file associated with the ORCA program.
+    """Renders the job script and the input file associated with the ORCA program.
     
     Parameters
     ----------
@@ -66,8 +66,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     -------
     rendered_content : dict
         Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
-    rendered_instructions : str
-        Name of the rendered job instructions file, necessary to launch the job.
+    rendered_script : str
+        Name of the rendered job script, necessary to launch the job.
     
     Notes
     -----
@@ -82,7 +82,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     # Define the names of the rendered files
     
     rendered_input = misc['mol_name'] + ".inp"
-    rendered_instructions = "orca_job.sh"
+    rendered_script = "orca_job.sh"
     
     # Initialize the dictionary that will be returned by the function
     
@@ -105,9 +105,9 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     
     print('%12s' % "[ DONE ]")
 
-    # Render the template for the job instructions file
+    # Render the template for the job script
 
-    print("{:<80}".format("\nRendering the jinja template for the orca job instructions file ..."), end="")
+    print("{:<80}".format("\nRendering the jinja template for the orca job script ..."), end="")
     
     render_vars = {
       "mol_name" : misc['mol_name'],
@@ -137,10 +137,10 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
       "scale_index" : job_specs['scale_index']
     })
     
-    rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
     
     print('%12s' % "[ DONE ]")
 
-    # Return the content of the rendered files and the name of the rendered job instructions file
+    # Return the content of the rendered files and the name of the rendered job script
     
-    return rendered_content, rendered_instructions
+    return rendered_content, rendered_script

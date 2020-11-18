@@ -5,11 +5,11 @@ Rendering the templates
 What is rendering?
 ==================
 
-Rendering the templates consists in creating the input files and job instructions file for our calculations, based on their Jinja templates. The Jinja language offers a relatively easy and intuitive way of creating those templates and allows for more flexibility and adaptability in ``ABIN LAUNCHER``.
+Rendering the templates consists in creating the input files and job script for our calculations, based on their Jinja templates. The Jinja language offers a relatively easy and intuitive way of creating those templates and allows for more flexibility and adaptability in ``ABIN LAUNCHER``.
 
 The rendering process makes use of three main elements:
 
-- The Jinja templates, defining how the information is presented in the input files and the job instructions file
+- The Jinja templates, defining how the information is presented in the input files and the job script
 - The content needed to "fill" those templates with the information specific to each calculation, partially provided by a new YAML file, called the configuration file
 - The rendering function that will make the link between those two, i.e. filling the templates with the content
 
@@ -64,10 +64,10 @@ For the atomic coordinates, since it is impossible to know in advance the number
 
 That's it! Now we have a basic functioning ORCA input file template. The only thing we will have to do in the future is to pass the content of the variables to Jinja and create the corresponding input file. As long as we know what the input file must look like, we can define a template for pretty much any ab initio program.
 
-Job instructions file template
-------------------------------
+Job script template
+-------------------
 
-The input file is not the only file that needs to be created. We also need to create the job instructions file, that will give commands to the job scheduler to run the ORCA calculation on the cluster. Let's go back to our example and consider that we are using SLURM as a job scheduler, this is what the job instructions file might look like:
+The input file is not the only file that needs to be created. We also need to create the job script, that will give commands to the job scheduler to run the ORCA calculation on the cluster. Let's go back to our example and consider that we are using SLURM as a job scheduler, this is what the job script might look like:
 
 .. code-block:: slurm
 
@@ -143,18 +143,16 @@ We are almost done, but there is one more thing we need to take into considerati
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
-Once again, that's it! Now we have a basic functioning job instructions file template for ORCA jobs. 
+Once again, that's it! Now we have a basic functioning job script template for ORCA jobs. 
 
 However, we can also take this template one step further:
 
 .. literalinclude:: sample_files/sample_orca_job.sh.jinja
    :language: jinja
 
-where the module to load has been replaced by ``{{ set_env }}`` and the command to execute the program has been replaced by ``{{ command }}``.
+where the module to load has been replaced by ``{{ set_env }}`` and the command to execute the program has been replaced by ``{{ command }}``. With this, it becomes possible to load and run the same program on another SLURM cluster, where the module and/or the command might be different.
 
-With this, it becomes possible to load and run the same program on another SLURM cluster, where the module and/or the command might be different.
-
-As long as we know what the job instructions file must look like, we can define a template for pretty much any job.
+As long as we know what the job script must look like, we can define a template for pretty much any job.
 
 YAML configuration file
 =======================
@@ -172,7 +170,7 @@ ORCA input file:
 - ``{{ multiplicity }}`` 
 - ``{{ coordinates }}`` - already defined in the ``file_data`` variable, as built by the :doc:`scanning function <abin_launcher.scan>`
 
-Job instructions file:
+Job script:
 
 - ``{{ prog }}`` - already given as a :ref:`command line argument <abin_arguments>`
 - ``{{ mol_name }}`` - name of the geometry file (minus the extension)
@@ -214,7 +212,7 @@ Note that for intuitiveness purposes, the name of the YAML keys is identical to 
 Rendering functions
 ===================
 
-The Jinja templates define how the information is presented in the input files and the job instructions file. The configuration file, among others, defines the content specific to each calculation. To link the two, ``ABIN LAUNCHER`` calls a function defined in the ``renderer.py`` file, called a **rendering function**, that creates the input files and the job instructions file by filling the templates with the specific content.
+The Jinja templates define how the information is presented in the input files and the job script. The configuration file, among others, defines the content specific to each calculation. To link the two, ``ABIN LAUNCHER`` calls a function defined in the ``renderer.py`` file, called a **rendering function**, that creates the input files and the job script by filling the templates with the specific content.
 
 Using the Jinja templates
 -------------------------
@@ -235,14 +233,14 @@ All the rendering functions must be defined in the ``renderer.py`` file and need
 - They must return two variables : 
 
    - A dictionary where each key is the name of the file and each associated value the rendered content of that file, for example {input_filename:input_content ; job_filename:job_content}.
-   - The name of the rendered job instructions file, needed by the main script to launch the job on the cluster.
+   - The name of the rendered job script, needed by the main script to launch the job on the cluster.
 
 If a problem arises when rendering the templates, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
 
 The six arguments
 -----------------
 
-As said in the previous section, the rendering functions take six dictionaries as arguments. Since those functions might want various information depending on each specific case, we tried to include as many pertinent details that you might want to refer to during your rendering process. Thus, the six dictionaries are defined as follows:
+As said in the previous section, the rendering functions take six dictionaries as arguments. Since those functions might want various information depending on each specific case, we tried to include as many pertinent details as you might want to refer to during your rendering process. Thus, the six dictionaries are defined as follows:
 
 - ``mendeleev`` is the content of the ``mendeleev.yml`` file
 - ``clusters_cfg`` is the content of the :ref:`clusters configuration file <clusters_file>`
@@ -281,7 +279,7 @@ In essence, the rendering functions have a pretty simple structure: their task i
       # Define the names of the rendered files
 
       rendered_input = "name_of_created_input_file"
-      rendered_instructions = "name_of_created_job_instructions_file"
+      rendered_script = "name_of_created_job_instructions_file"
 
       # Initialize the dictionary that will be returned by the function
 
@@ -298,7 +296,7 @@ In essence, the rendering functions have a pretty simple structure: their task i
 
       rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
 
-      # Render the template for the job instructions file
+      # Render the template for the job script
 
       render_vars = {
          "jinja_variable1" : value,
@@ -307,11 +305,11 @@ In essence, the rendering functions have a pretty simple structure: their task i
          ...
       }
 
-      rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
 
-      # Return the content of the rendered files and the name of the rendered job instructions file
+      # Return the content of the rendered files and the name of the rendered job script
 
-      return rendered_content, rendered_instructions
+      return rendered_content, rendered_script
 
 A concrete example of a rendering function is presented in the next subsection. Note however that some additional steps might be required depending on each specific case.
 
@@ -331,7 +329,7 @@ First, we have the input file template:
    :language: jinja
    :caption: sample_orca.inp.jinja
 
-Then, the job instructions file template:
+Then, the job script template:
 
 .. literalinclude:: sample_files/sample_orca_job.sh.jinja
    :language: jinja
@@ -372,7 +370,7 @@ Then we have to define the names of our rendered files.
 .. code-block:: python
 
     rendered_input = misc['mol_name'] + ".inp"
-    rendered_instructions = "orca_job.sh"
+    rendered_script = "orca_job.sh"
 
 Next comes the initialization of the ``rendered_content`` dictionary, where each key will be the name of the file and each value the rendered content of that file. (This is what the function will return.)
 
@@ -417,13 +415,13 @@ Let's proceed with the second template in the same manner:
          "prog" : job_specs['prog']
       }
 
-      rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
 
-Finally, we just need to return ``rendered_content`` and ``rendered_instructions`` to the main script, so that the rendered content can be printed to the different files and the job can be launched on the cluster:
+Finally, we just need to return ``rendered_content`` and ``rendered_script`` to the main script, so that the rendered content can be printed to the different files and the job can be launched on the cluster:
 
 .. code-block:: python
 
-    return rendered_content, rendered_instructions
+    return rendered_content, rendered_script
 
 Our function is now ready. This is what it ends up looking like with proper comments and documentation:
 

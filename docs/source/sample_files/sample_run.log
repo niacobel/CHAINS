@@ -1,0 +1,84 @@
+********************************************************************************************************************************************************
+
+                                          EXECUTION OF THE AB INITIO INPUT BUILDER & JOB LAUNCHER BEGINS NOW       
+
+********************************************************************************************************************************************************
+
+Codes directory:                        /home/users/n/i/niacobel/abin_docs_sample/abin_launcher                                             
+
+Loading AlexGustafsson's Mendeleev Table ...                                                                                                    [ DONE ]
+
+Loading the clusters configuration file "clusters.yml" ...                                                                                      [ DONE ]
+
+This script is running on the LEMAITRE3 cluster
+
+Job scales for orca on LEMAITRE3:
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+Scale Limit     Label                Partition Name       Time                 Cores      Mem per CPU (MB)     Delay Command                           
+--------------------------------------------------------------------------------------------------------------------------------------------------
+50              tiny                 not specified        0-00:10:00           4          500                  not specified                           
+700             small                batch                1-00:00:00           8          500                  not specified                           
+1000            medium               batch                2-00:00:00           8          2000                 --begin=now+60                          
+1500            big                  batch                2-00:00:00           8          4000                 --begin=now+120                         
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+Jobs main directory:                    /home/users/n/i/niacobel/abin_docs_sample/orca_jobs                                                 
+
+Looking for .xyz geometry files in      /home/users/n/i/niacobel/abin_docs_sample/molecules ...                                                 [ DONE ]
+
+Looking for .yml or .yaml files in      /home/users/n/i/niacobel/abin_docs_sample/configs ...                                                   [ DONE ]
+
+***********************************************
+     Start procedure for the molecule ch4     
+***********************************************
+
+Treating 'ch4' geometry with 'tzvp' configuration ...                          Submitted batch job 69269196 on cluster lemaitre3
+
+Treating 'ch4' geometry with 'svp' configuration ...                           Submitted batch job 69269197 on cluster lemaitre3
+
+Geometry file archived to /home/users/n/i/niacobel/abin_docs_sample/molecules/launched
+
+***********************************************
+     End of procedure for the molecule ch4     
+***********************************************
+
+************************************************
+     Start procedure for the molecule c3h8     
+************************************************
+
+Treating 'c3h8' geometry with 'tzvp' configuration ...                         Submitted batch job 69269198 on cluster lemaitre3
+
+Treating 'c3h8' geometry with 'svp' configuration ...                          Submitted batch job 69269199 on cluster lemaitre3
+
+Geometry file archived to /home/users/n/i/niacobel/abin_docs_sample/molecules/launched
+
+************************************************
+     End of procedure for the molecule c3h8     
+************************************************
+
+************************************************
+     Start procedure for the molecule c2h6     
+************************************************
+
+Treating 'c2h6' geometry with 'tzvp' configuration ...                         Submitted batch job 69269200 on cluster lemaitre3
+
+Treating 'c2h6' geometry with 'svp' configuration ...                          Submitted batch job 69269201 on cluster lemaitre3
+
+Geometry file archived to /home/users/n/i/niacobel/abin_docs_sample/molecules/launched
+
+************************************************
+     End of procedure for the molecule c2h6     
+************************************************
+
+The 'tzvp.yml' config file has been archived to /home/users/n/i/niacobel/abin_docs_sample/configs/launched
+
+The 'svp.yml' config file has been archived to /home/users/n/i/niacobel/abin_docs_sample/configs/launched
+
+6 jobs have been succesfully launched.
+
+********************************************************************************************************************************************************
+
+                                                                    END OF EXECUTION                                
+
+********************************************************************************************************************************************************

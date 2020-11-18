@@ -45,7 +45,7 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 # =================================================================== #
 
 def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
-    """Renders the job instructions file and the input file associated with the ORCA program.
+    """Renders the job script and the input file associated with the ORCA program.
 
     Parameters
     ----------
@@ -67,8 +67,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     -------
     rendered_content : dict
         Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
-    rendered_instructions : str
-        Name of the rendered job instructions file, necessary to launch the job.
+    rendered_script : str
+        Name of the rendered job script, necessary to launch the job.
     
     Notes
     -----
@@ -102,7 +102,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     # Define the names of the rendered files, given in the YAML clusters configuration file.
 
     rendered_input = misc['mol_name'] + ".inp"
-    rendered_instructions = "orca_job.sh"
+    rendered_script = "orca_job.sh"
 
     # Initialize the dictionary that will be returned by the function
 
@@ -140,12 +140,12 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     print('%12s' % "[ DONE ]")
 
     # ========================================================= #
-    #            Rendering the job instructions file            #
+    #                  Rendering the job script                 #
     # ========================================================= #
 
-    print("{:<80}".format("\nRendering the jinja template for the orca job instructions file ..."), end="")
+    print("{:<80}".format("\nRendering the jinja template for the orca job script ..."), end="")
 
-    # Get the path to the "check_scripts" directory because the job instructions file needs to execute check_orca.py
+    # Get the path to the "check_scripts" directory because the job script needs to execute check_orca.py
     
     check_script_path = os.path.join(chains_path,"check_scripts")
 
@@ -166,7 +166,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
         "chains_dir" : chains_path,
         "check_dir" : check_script_path,
         "results_subdir" : job_specs['prog'].upper(),
-        "job_instructions" : rendered_instructions,
+        "job_instructions" : rendered_script,
         "config_file" : misc['config_name']
     }
 
@@ -186,18 +186,18 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     
     # Rendering the file
 
-    rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
 
     print('%12s' % "[ DONE ]")
 
-    return rendered_content, rendered_instructions
+    return rendered_content, rendered_script
 
 
 ######################################################################################################################################
 
 
 def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
-    """Renders the job instructions file and the input file associated with the Q-CHEM program.
+    """Renders the job script and the input file associated with the Q-CHEM program.
 
     Parameters
     ----------
@@ -219,8 +219,8 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     -------
     rendered_content : dict
         Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
-    rendered_instructions : str
-        Name of the rendered job instructions file, necessary to launch the job.
+    rendered_script : str
+        Name of the rendered job script, necessary to launch the job.
     
     Notes
     -----
@@ -254,7 +254,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     # Define the names of the rendered files, given in the YAML clusters configuration file.
 
     rendered_input = misc['mol_name'] + ".in"
-    rendered_instructions = "qchem_job.sh"
+    rendered_script = "qchem_job.sh"
 
     # Initialize the dictionary that will be returned by the function
 
@@ -285,12 +285,12 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     print('%12s' % "[ DONE ]")
 
     # ========================================================= #
-    #            Rendering the job instructions file            #
+    #                  Rendering the job script                 #
     # ========================================================= #
 
-    print("{:<80}".format("\nRendering the jinja template for the qchem job instructions file ..."), end="")
+    print("{:<80}".format("\nRendering the jinja template for the qchem job script ..."), end="")
 
-    # Get the path to the "check_scripts" directory because the job instructions file needs to execute check_qchem.py
+    # Get the path to the "check_scripts" directory because the job script needs to execute check_qchem.py
     
     check_script_path = os.path.join(chains_path,"check_scripts")
 
@@ -311,7 +311,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
         "chains_dir" : chains_path,
         "check_dir" : check_script_path,
         "results_subdir" : job_specs['prog'].upper(),
-        "job_instructions" : rendered_instructions,
+        "job_instructions" : rendered_script,
         "config_file" : misc['config_name']
     }
 
@@ -331,8 +331,8 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     
     # Rendering the file
 
-    rendered_content[rendered_instructions] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
 
     print('%12s' % "[ DONE ]")
    
-    return rendered_content, rendered_instructions
+    return rendered_content, rendered_script

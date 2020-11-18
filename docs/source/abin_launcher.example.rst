@@ -22,7 +22,7 @@ We will simply use the Jinja templates defined in the :doc:`rendering section <a
    :language: jinja
    :caption: sample_orca.inp.jinja
 
-- The Jinja template for the job instructions file:
+- The Jinja template for the job script:
 
 .. literalinclude:: sample_files/sample_orca_job.sh.jinja
    :language: jinja
@@ -120,20 +120,16 @@ We can now execute ``abin_launcher.py`` by running the command (from ``abin_docs
 
    $ python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
 
-This is what appears on the console screen:
+This is what appears on the console screen (here captured in a file for ease of reading):
 
-.. figure:: figures/abin_launcher_run.png
-    :scale: 90%
-    :align: center
-    :alt: Running ABIN LAUNCHER
-    :figclass: align-center
-    
-    Console output when running ``ABIN LAUNCHER``
+.. literalinclude:: sample_files/sample_run.log
+   :language: text
+   :caption: sample_run.log
 
 And if we take a look at the job queue, we can see that our 6 ORCA jobs have indeed been submitted to the job scheduler:
 
-.. figure:: figures/abin_launcher_squeue.png
-    :scale: 90%
+.. figure:: figures/abin_launcher_squeue.*
+    :scale: 70%
     :align: center
     :alt: Jobs queue after running ABIN LAUNCHER
     :figclass: align-center
@@ -199,7 +195,7 @@ If we take a look at the directory structure, it now looks like:
 
 As you can see, since they have been successfully processed, the geometry files and the configuration files have both been archived into a ``launched`` directory created by ``ABIN LAUNCHER``. This is the default behavior, allowing you to reuse the same directories for other geometries and configurations, making it easier for example to create an alias for the execution command. If you want to turn it off, just add the ``-km / --keep_mol`` and/or ``-kc / --keep_cf`` optional arguments to keep the geometry files and/or the configuration files, respectively.
 
-A subdirectory has also been created in ``orca_jobs`` for each of the six jobs. Those subdirectories contain the copies of the geometry and the configuration files, the rendered input file and job instructions file, as well as a log file containing the details of the treatment of this geometry-configuration combination by ``ABIN LAUNCHER``. *(The output files created by ORCA will also end up in those subdirectories.)*
+A subdirectory has also been created in ``orca_jobs`` for each of the six jobs. Those subdirectories contain the copies of the geometry and the configuration files, the rendered input file and job script, as well as a log file containing the details of the treatment of this geometry-configuration combination by ``ABIN LAUNCHER``. *(The output files created by ORCA will also end up in those subdirectories.)*
 
 As an example, here is what the ``c3h8_tzvp.log`` file looks like:
 

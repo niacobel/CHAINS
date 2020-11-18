@@ -248,7 +248,7 @@ def main():
     if (scan_fct) not in dir(geom_scan) or not callable(getattr(geom_scan, scan_fct)):
       raise abin_errors.AbinError ("ERROR: There is no function defined for the %s format in geom_scan.py." % mol_fmt)
 
-    # Define the rendering function that will render the job instructions file and the input file (depends on the program)  - defined in renderer.py
+    # Define the rendering function that will render the job script and the input file (depends on the program)  - defined in renderer.py
 
     render_fct = prog + "_render"
 
@@ -558,7 +558,7 @@ def main():
         # Rendering the needed input files                          #
         # ========================================================= #
 
-        section_title = "3. Generation of the job instructions file and input files"
+        section_title = "3. Generation of the job script and input files"
 
         print("")
         print("")
@@ -604,7 +604,7 @@ def main():
 
         # Call the rendering function (defined in renderer.py, see the documentation for more information)
 
-        rendered_content, rendered_instructions = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)
+        rendered_content, rendered_script = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)
         
         # ========================================================= #
         # The end step                                              #
@@ -654,7 +654,7 @@ def main():
 
           # Define the launch command
 
-          launch_command = submit_command + " " + delay_command + " " + rendered_instructions
+          launch_command = submit_command + " " + delay_command + " " + rendered_script
 
           # Execute the command and get the command status
 

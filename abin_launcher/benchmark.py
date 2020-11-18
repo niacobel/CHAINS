@@ -151,7 +151,7 @@ def slurm_time_to_seconds(time:str) -> int:
 parser = argparse.ArgumentParser(add_help=False, description="")
 
 required = parser.add_argument_group('Required arguments')
-required.add_argument("-t", "--tmp", type=str, help="Path towards the CSV file you want to enrich.", required=True)
+required.add_argument("-t", "--tmp", type=str, help="Path towards the temporary CSV file that contains the lines you want to enrich.", required=True)
 required.add_argument("-f", "--final", type=str, help="Path towards the final CSV file that will contain the enriched lines.", required=True)
 required.add_argument("-p", "--prob", type=str, help="Path towards a separate CSV file that will contain the problematic lines.", required=True)
 

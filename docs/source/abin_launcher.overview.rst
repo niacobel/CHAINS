@@ -36,7 +36,7 @@ As for what each file does, everything will be explained in more details in the 
 - ``abin_launcher.py`` is the main script itself, the one that needs to be executed.
 - ``geom_scan.py`` is the library of functions that define how to scan the geometry files, i.e. how to read and interpret them.
 - ``scaling_fcts`` is the library of functions that define how to determine the job size, by calculating what we defined as the "scale index".
-- ``renderer.py`` is the library of functions that define how to render the Jinja templates, i.e. how to create the input files and the job instructions file.
+- ``renderer.py`` is the library of functions that define how to render the Jinja templates, i.e. how to create the input files and the job script.
 - ``abin_errors.py`` contains all the classes and functions defining :ref:`how to handle errors <abin_errors>`.
 - ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, called the :ref:`clusters configuration file <clusters_file>`.
 - ``mendeleev.yml`` is a YAML version of Mendeleev's periodic table procured by `AlexGustafsson's molecular-data Github repository`_.
@@ -55,7 +55,7 @@ In CHAINS' case, the ``templates`` directory structure is:
 where
 
 - ``orca.inp.jinja`` and ``qchem.in.jinja`` are the Jinja templates corresponding to the input file for ORCA and Q-CHEM, respectively.
-- ``orca_job.sh.jinja`` and ``qchem_job.sh.jinja`` are the Jinja templates corresponding to the job instructions file for ORCA and Q-CHEM, respectively. They contain all the commands that will be executed through the job scheduler to perform the calculation.
+- ``orca_job.sh.jinja`` and ``qchem_job.sh.jinja`` are the Jinja templates corresponding to the job script for ORCA and Q-CHEM, respectively. They contain all the commands that will be executed through the job scheduler to perform the calculation.
 
 .. note::
 
@@ -143,7 +143,7 @@ For more details on how this scaling process is performed, consult the :doc:`abi
 Third step: Rendering
 ---------------------
 
-Finally, based on user-defined Jinja templates, ``ABIN LAUNCHER`` creates the input files and the job instructions file associated with our calculation. The content of those input files is based on the information from the geometry file and the configuration file. 
+Finally, based on user-defined Jinja templates, ``ABIN LAUNCHER`` creates the input files and the job script associated with our calculation. The content of those files is based on the information from the geometry file and the configuration file. 
 
 For more details on how this whole rendering process is performed, consult the :doc:`abin_launcher.rendering` specific documentation.
 
@@ -156,7 +156,7 @@ Now that everything has been prepared for the job, ``ABIN LAUNCHER`` submits it 
 
 .. code-block:: console
 
-    $ <submit_command> <delay_command> <job instructions file>
+    $ <submit_command> <delay_command> <job script>
 
 where
 
@@ -170,7 +170,7 @@ where
    where ``mycluster`` is the name of your cluster (given as the :guilabel:`-cl / \\--cluster_name` command line argument).
 
 - ``<delay_command>`` is an optional command that can delay the submission of a particular job, which can prove useful if you want to prioritize certain job sizes (consult the :doc:`abin_launcher.job_scale` specific documentation for details). In SLURM's case, this is covered by the ``--begin`` argument.
-- ``<job instructions file>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.
+- ``<job script>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.
 
 For example, if we want to run an ORCA calculation on a SLURM cluster, but delay the submission of this job by 60 seconds, the command executed by ``ABIN LAUNCHER`` might look like:
 

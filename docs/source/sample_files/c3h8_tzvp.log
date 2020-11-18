@@ -37,15 +37,15 @@ Delay command :      not specified
 --------------------------------------------------
 
 
-********************************************************************
-     3. Generation of the job instructions file and input files     
-********************************************************************
+*********************************************************
+     3. Generation of the job script and input files     
+*********************************************************
 
 Loading the configuration file tzvp.yml ...                                        [ DONE ]
 
 Rendering the jinja template for the orca input file ...                           [ DONE ]
 
-Rendering the jinja template for the orca job instructions file ...                [ DONE ]
+Rendering the jinja template for the orca job script ...                           [ DONE ]
 
 
 *************************

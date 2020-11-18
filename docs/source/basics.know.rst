@@ -30,7 +30,7 @@ Pay a special attention to **Python dictionaries**, as they will be the main foc
 About YAML
 ==========
 
-YAML_ is a "human friendly data serialization standard for all programming languages". (quote from the official website)
+YAML_ is a "human friendly data serialization standard for all programming languages" (quote from the official website). YAML is used here for the configuration files, containing all the parameters needed for the different scripts and calculations.
 
 Here is a small YouTube tutorial made by Mike Dane that will cover the basics of the YAML syntax:
 
@@ -41,12 +41,12 @@ Here is a small YouTube tutorial made by Mike Dane that will cover the basics of
 .. .. youtube:: cdLNKUoMc6c
 
 |
-| With that, you know everything you need to know about YAML in order to use CHAINS! YAML is used here for the configuration files, containing all the parameters needed for the different scripts and calculations. As you may have seen in the video, the way those files are structured makes them very easy to use and to understand.
+| With that, you know everything you need to know about YAML in order to use CHAINS! As you may have seen in the video, the way those files are structured makes them very easy to use and to understand.
 
 About Jinja2
 ============
 
-"Jinja_ is a modern and designer-friendly templating language for Python, modelled after Django’s templates. It is fast, widely used and secure with the optional sandboxed template execution environment." (quote from the official website)
+"Jinja_ is a modern and designer-friendly templating language for Python, modelled after Django’s templates. It is fast, widely used and secure with the optional sandboxed template execution environment" (quote from the official website). We use the Jinja language to create templates for the input files needed by ORCA_, Q-CHEM_ and QOCT-RA_. We also use it for the job scripts, containing all instructions for the job scheduler (SLURM_ for the CECI_ clusters).
 
 Here is a small YouTube tutorial made by Jason Rigden that will cover the basics of the Jinja2 templating engine:
 
@@ -59,14 +59,14 @@ Here is a small YouTube tutorial made by Jason Rigden that will cover the basics
 |
 | You can also find a written version of that video `here <https://medium.com/@jasonrigden/jinja2-templating-engine-tutorial-4bd31fb4aea3>`_. 
 
-With that, you know everything you need to know about Jinja2 in order to use CHAINS! We use the Jinja language to create templates for the input files needed by ORCA_, Q-CHEM_ and QOCT-RA_. We also use it for the job scripts, containing all instructions for the job scheduler (SLURM_ for the CECI clusters). As you may have seen in the video, the Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as Gaussian_ or Molpro_, and any other job scheduler such as Torque_.
+With that, you know everything you need to know about Jinja2 in order to use CHAINS! As you may have seen in the video, the Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as Gaussian_ or Molpro_, and any other job scheduler such as Torque_.
 
 .. _cron_tuto:
 
 About Crontab and Cron tasks
 ============================
 
-In order to link the different clusters and to automate certain parts of CHAINS, we need to periodically execute some commands, this is done through cron_ tasks established via the ``crontab`` command. 
+In order to link the different clusters and to automate certain parts of CHAINS, we need to periodically execute some commands. This is done through cron_ tasks established via the ``crontab`` command. 
 
 You don't really need to know anything about them prior to reading this documentation as the exact commands will be explicitly given each time you will need to use them. Nonetheless, if you prefer to know what you are dealing with, here is a small YouTube tutorial made by Corey Schafer explaining what cron tasks are:
 
@@ -98,6 +98,7 @@ Regular Expressions can present themselves as incredibly unintuitive but their v
 
 .. Hyperlink targets
 
+.. _CECI: http://www.ceci-hpc.be/
 .. _Cron: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html
 .. _Gaussian: https://gaussian.com/
 .. _Jinja: https://jinja.palletsprojects.com/en/2.11.x/ 
