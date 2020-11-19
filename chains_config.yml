@@ -9,14 +9,14 @@
 # The job scripts will copy the relevant files from the job directories towards those output directories, and the crontab scripts will read the files present in those directories to launch the following step.
 
 output_dir:
-  orca: $CECIHOME/ORCA_OUT
-  qchem: $CECIHOME/QCHEM_OUT
-  qoctra: $CECIHOME/CONTROL_OUT
+  orca: /CECI/home/ulb/cqp/niacobel/ORCA_OUT
+  qchem: /CECI/home/ulb/cqp/niacobel/QCHEM_OUT
+  qoctra: /CECI/home/ulb/cqp/niacobel/CONTROL_OUT
 
 # Define here the path towards the results directory
 # A subdirectory will be created in it for each geometry file (molecule), containing all major output files from the different programs and scripts.
 
-results_dir: $CECIHOME/RESULTS
+results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS
 
 # ========================================================= #
 #               Results Treatment Information               #
@@ -24,7 +24,7 @@ results_dir: $CECIHOME/RESULTS
 
 # Name of the files and folders containing the results
 results:
-  main_dir: $CECIHOME/RESULTS                    # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+  main_dir: /CECI/home/ulb/cqp/niacobel/RESULTS                    # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
   orca:
     folder_name: ORCA                               # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
   qchem:
