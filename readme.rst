@@ -67,7 +67,7 @@ If your Python distribution does not include PyYAML (version 5.1+) and Jinja2 (v
    $ python -m pip install --user pyyaml
    $ python -m pip install --user jinja2
 
-The second main script of CHAINS, ``CONTROL LAUNCHER`` makes use of the NumPy package for Python (version 1.14+), if your distribution does not include it, you can install it using
+The second main script of CHAINS, ``CONTROL LAUNCHER`` makes use of the NumPy_ package for Python (version 1.14+), if your distribution does not include it, you can install it using
 
 .. code-block:: console
 
@@ -96,6 +96,7 @@ License
 .. _Gnuplot: http://www.gnuplot.info/
 .. _Jinja2: https://jinja.palletsprojects.com/en/2.11.x/ 
 .. _LaTeX: https://www.latex-project.org/
+.. _NumPy: https://numpy.org/
 .. _ORCA: https://www.faccts.de/orca/
 .. _Q-CHEM: https://www.q-chem.com/
 .. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA
