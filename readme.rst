@@ -58,7 +58,7 @@ Languages and Dependencies
 
     The different languages used by CHAINS
 
-The main language of CHAINS is Python 3.5+ but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. However, there is no need for an in-depth knowledge of anything but Python in order to customize CHAINS, as we only use the basic features of the other languages (consult the "What you need to know" section of the documentation for details).
+The main language of CHAINS is Python 3.5+ but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. If you want to customize CHAINS however, there is no need for an in-depth knowledge of anything but Python, as we only use the basic features of the other languages (consult the "What you need to know" section of the documentation for details).
 
 If your Python distribution does not include PyYAML (version 5.1+) and Jinja2 (version 2.10+), you can install them using
 
@@ -66,6 +66,12 @@ If your Python distribution does not include PyYAML (version 5.1+) and Jinja2 (v
 
    $ python -m pip install --user pyyaml
    $ python -m pip install --user jinja2
+
+The second main script of CHAINS, ``CONTROL LAUNCHER`` makes use of the NumPy package for Python (version 1.14+), if your distribution does not include it, you can install it using
+
+.. code-block:: console
+
+   $ python -m pip install --user numpy
 
 In order to plot graphs and generate tables with the results, CHAINS also makes use of Gnuplot_ scripts and the LaTeX_ language. Those are not needed to get the results though, only to process them and make them more readable. You can freely rework those scripts and files without affecting the main process.
 

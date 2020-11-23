@@ -155,7 +155,7 @@ def main():
       clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
-    # Check the name of the cluster                             #
+    # Check the name of the cluster
 
     if cluster_name not in clusters_cfg:
       raise abin_errors.AbinError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name.upper())
@@ -172,10 +172,10 @@ def main():
     # Check if the program exists 
 
     if "progs" not in clusters_cfg[cluster_name]:
-        raise abin_errors.AbinError ('ERROR: There is no "progs" block defined for the %s cluster in the clusters configuration file. Consult official documentation for details: ' % cluster_name.upper())    
+      raise abin_errors.AbinError ('ERROR: There is no "progs" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name.upper())    
 
     if prog not in clusters_cfg[cluster_name]["progs"]:
-      raise abin_errors.AbinError ("ERROR: The specified program (%s) is unknown on this cluster. Possible programs include: %s \nPlease use one of those, change cluster or add information for this program to the YAML cluster file." % (prog, ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys())))
+      raise abin_errors.AbinError ("ERROR: The specified program (%s) is unknown on this cluster. Possible programs include: %s \nPlease use one of those, change cluster or add information for this program to the clusters configuration file." % (prog, ', '.join(program for program in clusters_cfg[cluster_name]["progs"].keys())))
     
     # Get the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py and specified in the clusters configuration file
 
