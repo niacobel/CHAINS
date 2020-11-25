@@ -74,8 +74,6 @@ qoctra:
       widthhalfmax: 1000.0                          # Full Width at Half Maximum of the input pulse (in cm-1)
     post_control:
       ndump2: 1000                                  # Number of steps between each analysis of the populations, phases, positions and energies
-# Folder where the qoct-ra output files will be sent for data treatment and final results presentation.
-  output-folder: $CECIHOME/CONTROL_OUT   
 
 # ========================================================= #
 #               Results Treatment Information               #

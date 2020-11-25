@@ -19,38 +19,40 @@ import sys
 from collections import OrderedDict
 from inspect import getsourcefile
 
-import jinja2
+from jinja2 import Environment, FileSystemLoader
 import numpy as np
 import yaml
 
 import control_errors
 
-# ===================================================================
-# ===================================================================
-# Function definitions
-# ===================================================================
-# ===================================================================
+# =================================================================== #
+# =================================================================== #
+#                        FUNCTIONS DEFINITIONS                        #
+# =================================================================== #
+# =================================================================== #
 
-def jinja_render(templates_dir, template_file, render_vars):
+def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
     """Renders a file based on its jinja template.
 
     Parameters
     ----------
     templates_dir : str
-        The path towards the directory where the jinja template is located
+        The path towards the directory where the jinja template is located.
     template_file : str
-        The name of the jinja template file
+        The name of the jinja template file.
     render_vars : dict
-        Dictionary containing the definitions of all the variables present in the jinja template
+        Dictionary containing the definitions of all the variables present in the jinja template.
 
     Returns
     -------
     output_text : str
-        Content of the rendered file
+        Content of the rendered file.
     """
    
-    environment = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
-    output_text = environment.get_template(template_file).render(render_vars)
+    file_loader = FileSystemLoader(templates_dir)
+    env = Environment(loader=file_loader)
+    template = env.get_template(template_file)
+    output_text = template.render(render_vars)
     
     return output_text
 
@@ -271,7 +273,7 @@ def main():
     # Get the path to jinja templates directory (a directory named "templates" in the same directory as this script)
     templates_dir = os.path.join(code_dir,"templates")
 
-    for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates'].values():
+    for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja_templates'].values():
       # Check if all the files specified in the clusters YAML file exists in the templates directory of control_launcher.
       control_errors.check_abspath(os.path.join(templates_dir,filename),"Jinja template","file")
 
@@ -310,9 +312,9 @@ def main():
     print("ERROR: Unable to find the %s.py file in %s" % (parser_file, code_dir))
     exit(1)
 
-  # =========================================================
-  # Reading the file
-  # =========================================================
+  # ========================================================= #
+  # Reading the file                                          #
+  # ========================================================= #
 
   print ("{:<60}".format('\nScanning %s file ... ' % source_filename), end="")
   with open(source, 'r') as source_file:
@@ -321,12 +323,12 @@ def main():
 
   # Cleaning up the source file from surrounding spaces and blank lines
 
-  source_content = list(map(str.strip, source_content))   # removes leading & trailing blank/spaces
-  source_content = list(filter(None, source_content))     # removes blank lines/no char
+  source_content = list(map(str.strip, source_content))   # Remove leading & trailing blank/spaces
+  source_content = list(filter(None, source_content))     # Remove blank lines/no char
 
-  # =========================================================
-  # Get the list of states
-  # =========================================================
+  # ========================================================= #
+  # Get the list of states                                    #
+  # ========================================================= #
 
   print ("{:<60}".format('\nExtracting the list of states ... '), end="")
   states_list = source_parser.get_states_list(source_content)
@@ -753,18 +755,34 @@ def main():
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
+  # ========================================================= #
+  #                      Preparation step                     #
+  # ========================================================= #
+
+  # Load the CHAINS configuration file to get the additional information
+
+  chains_path = os.path.dirname(code_dir)
+  chains_config_file = control_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+
+  print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+  with open(chains_config_file, 'r') as chains:
+    chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+  print('%12s' % "[ DONE ]")
+
   # =========================================================
   # Defining the jinja templates
   # =========================================================
 
   print("{:<81}".format("\nDefining and preparing the jinja templates ..."), end="") 
 
-  # Define the names of the template and rendered files, given in the YAML files.
+  # Define the names of the templates, given in the YAML clusters configuration file.
 
-  tpl_param = clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates']['parameters_file']            # Jinja template file for the parameters file
+  template_param = clusters_cfg[cluster_name]['progs'][prog]['jinja_templates']['parameters_file']
+  template_script = clusters_cfg[cluster_name]['progs'][prog]['jinja_templates']['job_script']
 
-  tpl_manifest = clusters_cfg[cluster_name]['progs'][prog]['jinja']['templates']['job_manifest']            # Jinja template file for the job manifest (job submitting script)
-  rnd_manifest = clusters_cfg[cluster_name]['progs'][prog]['jinja']['renders']['job_manifest']              # Name of the rendered job manifest file
+  # Define the names of the rendered files.
+
+  rendered_script = "qoctra_job.sh"
 
   # Determine the central frequency of the guess pulse in cm-1 (here defined as the average of the eigenvalues)
 
@@ -798,9 +816,9 @@ def main():
     "omegazero" : central_frequency
   }
 
-  # Definition of the variables present in the jinja template for the job manifest (except the target state and the name of the rendered parameters file)
+  # Definition of the variables present in the jinja template for the job script (except the target state and the name of the rendered parameters file)
 
-  manifest_render_vars = {
+  script_render_vars = {
     "mol_name" : mol_name,
     "user_email" : config['general']['user_email'],
     "mail_type" : config['general']['mail_type'],
@@ -811,11 +829,11 @@ def main():
     "command" : clusters_cfg[cluster_name]['progs'][prog]['command'],
     "mol_dir" : mol_dir,
     "nb_targets" : len(targets_list),
-    "output_folder" : config[prog]['output-directory'],
-    "results_folder" : config['results']['main_folder'],
-    "results_subfolder" : config['results'][prog]['folder_name'],
+    "output_dir" : chains_config['output_dir'][prog],
+    "results_dir" : config['results']['main_dir'],
+    "results_subdir" : config['results'][prog]['dir_name'],
     "data_dir" : data_dir,
-    "job_manifest" : rnd_manifest,
+    "job_script" : rendered_script,
     "niter" : niter
   }
 
@@ -837,42 +855,42 @@ def main():
       print("    The %s job directory has been created in %s" % (job_dirname,mol_dir))
 
       # Create the OPM parameters file for that specific target
-      rnd_param = "param" + "_" + target + ".nml"                                                              # Name of the rendered parameters file
-      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_param), end ="")
+      rendered_param = "param" + "_" + target + ".nml"                                                              # Name of the rendered parameters file
+      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rendered_param), end ="")
       param_render_vars["target"] = target
       param_render_vars["processus"] = "OPM"
       param_render_vars["source"] = " "
-      param_content = jinja_render(templates_dir, tpl_param, param_render_vars)           # Render the jinja template of the parameters file
-      with open(os.path.join(job_dir, rnd_param), "w", encoding='utf-8') as param_file:
+      param_content = jinja_render(templates_dir, template_param, param_render_vars)           # Render the jinja template of the parameters file
+      with open(os.path.join(job_dir, rendered_param), "w", encoding='utf-8') as param_file:
         param_file.write(param_content)
       print('%12s' % "[ DONE ]")
 
       # Create the PCP parameters file for that specific target
-      rnd_param_PCP = "param" + "_" + target + "_PCP.nml"                                                      # Name of the rendered parameters file
-      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_param_PCP), end ="")
+      rendered_param_PCP = "param" + "_" + target + "_PCP.nml"                                                      # Name of the rendered parameters file
+      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rendered_param_PCP), end ="")
       param_render_vars["processus"] = "PCP"
       param_render_vars["source"] = "../Pulse/Pulse_iter" + str(niter)
-      param_content = jinja_render(templates_dir, tpl_param, param_render_vars)           # Render the jinja template of the parameters file
-      with open(os.path.join(job_dir, rnd_param_PCP), "w", encoding='utf-8') as param_file:
+      param_content = jinja_render(templates_dir, template_param, param_render_vars)           # Render the jinja template of the parameters file
+      with open(os.path.join(job_dir, rendered_param_PCP), "w", encoding='utf-8') as param_file:
         param_file.write(param_content)
       print('%12s' % "[ DONE ]")
 
-      # Create the job manifest for that specific target
-      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rnd_manifest), end ="")
-      manifest_render_vars["target"] = target
-      manifest_render_vars["rnd_param"] = rnd_param
-      manifest_render_vars["rnd_param_PCP"] = rnd_param_PCP
-      manifest_render_vars["job_dirname"] = job_dirname
-      manifest_content = jinja_render(templates_dir, tpl_manifest, manifest_render_vars)  # Render the jinja template of the job manifest
-      with open(os.path.join(job_dir, rnd_manifest), "w", encoding='utf-8') as manifest_file:
-        manifest_file.write(manifest_content)
+      # Create the job script for that specific target
+      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rendered_script), end ="")
+      script_render_vars["target"] = target
+      script_render_vars["rendered_param"] = rendered_param
+      script_render_vars["rendered_param_PCP"] = rendered_param_PCP
+      script_render_vars["job_dirname"] = job_dirname
+      script_content = jinja_render(templates_dir, template_script, script_render_vars)  # Render the jinja template of the job script
+      with open(os.path.join(job_dir, rendered_script), "w", encoding='utf-8') as script_file:
+        script_file.write(script_content)
       print('%12s' % "[ DONE ]")
       
       # Launch the job
       if not dry_run:
         print("{:<80}".format("    Launching the job ..."), end="")
         os.chdir(job_dir)
-        launch_command = clusters_cfg[cluster_name]['submit_command'] + " " + rnd_manifest
+        launch_command = clusters_cfg[cluster_name]['submit_command'] + " " + rendered_script
         retcode = os.system(launch_command)
         if retcode != 0 :
           print("ALERT: Job submit encountered an issue")

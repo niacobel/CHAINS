@@ -134,7 +134,7 @@ We are almost done, but there is one more thing we need to take into considerati
 
    echo -e "Renaming the original .xyz file to avoid overwriting it with the new one."
    cd $SLURM_SUBMIT_DIR
-   mv {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz
+   mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
 
    echo -e "\n================= ORCA execution begins now =================="
 
@@ -274,12 +274,12 @@ In essence, the rendering functions have a pretty simple structure: their task i
       # Define the names of the templates
 
       template_input = "name_of_input_template"
-      template_instructions = "name_of_job_instructions_template"
+      template_script = "name_of_job_script_template"
 
       # Define the names of the rendered files
 
       rendered_input = "name_of_created_input_file"
-      rendered_script = "name_of_created_job_instructions_file"
+      rendered_script = "name_of_created_job_script_file"
 
       # Initialize the dictionary that will be returned by the function
 
@@ -305,7 +305,7 @@ In essence, the rendering functions have a pretty simple structure: their task i
          ...
       }
 
-      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, render_vars)
 
       # Return the content of the rendered files and the name of the rendered job script
 
@@ -363,7 +363,7 @@ We first have to define the names of our Jinja templates.
 .. code-block:: python
 
     template_input = "sample_orca.inp.jinja"
-    template_instructions = "sample_orca_job.sh.jinja"
+    template_script = "sample_orca_job.sh.jinja"
 
 Then we have to define the names of our rendered files.
 
@@ -415,7 +415,7 @@ Let's proceed with the second template in the same manner:
          "prog" : job_specs['prog']
       }
 
-      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, render_vars)
 
 Finally, we just need to return ``rendered_content`` and ``rendered_script`` to the main script, so that the rendered content can be printed to the different files and the job can be launched on the cluster:
 

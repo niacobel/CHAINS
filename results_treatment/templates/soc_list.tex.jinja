@@ -3,6 +3,6 @@
 Etat 1 & Etat 2 & Energie (cm\up{-1})\\
 \hline
 {% for coupling in coupling_list -%}
-{{  coupling['State 1']  }} & {{  coupling['State 2']  }} & {{ '\\nprounddigits{2}\\numprint{' }}{{  coupling['Energy (cm-1)']  }}{{ '}' }} \\
+{{ coupling['State 1'] }} & {{ coupling['State 2'] }} & {{ '\\nprounddigits{2}\\numprint{' }}{{ coupling['Energy (cm-1)'] }}{{ '}' }} \\
 {% endfor -%}
 \end{tabular}

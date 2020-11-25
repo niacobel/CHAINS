@@ -14,7 +14,7 @@ shared:
     orca:
       jinja_templates: &orca_jinja
         input: orca.inp.jinja                          # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the geometry file
-        job_instructions: orca_job.sh.jinja                                           
+        job_script: orca_job.sh.jinja                                           
       scaling_function: &scl_fct total_nb_elec         # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
       job_scales: &tiny_orca
         label: tiny
@@ -158,7 +158,7 @@ hercules:
     qchem:
       jinja_templates:
         input: qchem.in.jinja                        # The rendered file will be named <mol_name>.in, where <mol_name> is the name of the geometry file
-        job_instructions: qchem_job.sh.jinja              
+        job_script: qchem_job.sh.jinja              
       set_env: 
         - module purge
         - module load Q-Chem/5.3.0-SHMEM
@@ -181,7 +181,7 @@ hercules:
         - 
           label: small
           scale_limit: 800
-          time: 2-00:00:00
+          time: 3-00:00:00
           cores: 8
           mem_per_cpu: 1500 # in MB
         - 
@@ -233,7 +233,7 @@ vega:
     qchem:
       jinja_templates:
         input: qchem.in.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
-        job_instructions: qchem_job.sh.jinja               
+        job_script: qchem_job.sh.jinja               
       set_env: 
         - module purge
         - module use /apps/brussel/commercial/q-chem/modules

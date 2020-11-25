@@ -455,20 +455,20 @@ for mol_name in mol_inp_list:
     
     # Rendering the jinja template for the states list
 
-    tpl_states = config["jinja_templates"]["states_list"] # Name of the template file
-    rnd_states = mol_name + "_states.tex"     # Name of the rendered file
+    template_states = config["jinja_templates"]["states_list"] # Name of the template file
+    rendered_states = mol_name + "_states.tex"     # Name of the rendered file
 
-    print("{:140}".format("\nCreating the states list %s file ... " % rnd_states), end="")
+    print("{:140}".format("\nCreating the states list %s file ... " % rendered_states), end="")
   
     render_vars = {
         "states_list" : states_list
         }
 
-    rendered_file_path = os.path.join(out_dir, rnd_states)
+    rendered_file_path = os.path.join(out_dir, rendered_states)
     with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-      result_file.write(jinja_render(templates_dir, tpl_states, render_vars))
+      result_file.write(jinja_render(templates_dir, template_states, render_vars))
 
-    created_files.append(rnd_states)
+    created_files.append(rendered_states)
 
     print('%12s' % "[ DONE ]")
 
@@ -494,20 +494,20 @@ for mol_name in mol_inp_list:
 
      # Rendering the jinja template for the states list
 
-    tpl_coupling = config["jinja_templates"]["coupling_list"] # Name of the template file
-    rnd_coupling = mol_name + "_soc.tex"          # Name of the rendered file
+    template_coupling = config["jinja_templates"]["coupling_list"] # Name of the template file
+    rendered_coupling = mol_name + "_soc.tex"          # Name of the rendered file
 
-    print("{:140}".format("\nCreating the coupling list %s file ... " % rnd_coupling), end="")
+    print("{:140}".format("\nCreating the coupling list %s file ... " % rendered_coupling), end="")
   
     render_vars = {
         "coupling_list" : coupling_list
         }
 
-    rendered_file_path = os.path.join(out_dir, rnd_coupling)
+    rendered_file_path = os.path.join(out_dir, rendered_coupling)
     with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-      result_file.write(jinja_render(templates_dir, tpl_coupling, render_vars))
+      result_file.write(jinja_render(templates_dir, template_coupling, render_vars))
 
-    created_files.append(rnd_coupling)
+    created_files.append(rendered_coupling)
 
     print('%12s' % "[ DONE ]")
    
@@ -533,20 +533,20 @@ for mol_name in mol_inp_list:
 
      # Rendering the jinja template for the states list
 
-    tpl_momdip = config["jinja_templates"]["momdip_list"]      # Name of the template file
-    rnd_momdip = mol_name + "_momdip.tex"          # Name of the rendered file
+    template_momdip = config["jinja_templates"]["momdip_list"]      # Name of the template file
+    rendered_momdip = mol_name + "_momdip.tex"          # Name of the rendered file
 
-    print("{:140}".format("\nCreating the momdip list %s file ... " % rnd_momdip), end="")
+    print("{:140}".format("\nCreating the momdip list %s file ... " % rendered_momdip), end="")
   
     render_vars = {
         "momdip_list" : momdip_list
         }
 
-    rendered_file_path = os.path.join(out_dir, rnd_momdip)
+    rendered_file_path = os.path.join(out_dir, rendered_momdip)
     with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-      result_file.write(jinja_render(templates_dir, tpl_momdip, render_vars))
+      result_file.write(jinja_render(templates_dir, template_momdip, render_vars))
 
-    created_files.append(rnd_momdip)
+    created_files.append(rendered_momdip)
 
     print('%12s' % "[ DONE ]")
 
@@ -617,7 +617,7 @@ for mol_name in mol_inp_list:
 
       # Rendering the jinja template for the gnuplot script
 
-      tpl_pop = config["jinja_templates"]["pop_gnuplot"]      # Name of the template file
+      template_pop = config["jinja_templates"]["pop_gnuplot"]      # Name of the template file
       pop_script = "pop.plt"                                  # Name of the rendered file
   
       render_vars = {
@@ -632,7 +632,7 @@ for mol_name in mol_inp_list:
 
       rendered_file_path = os.path.join(out_dir, pop_script)
       with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-        result_file.write(jinja_render(templates_dir, tpl_pop, render_vars))
+        result_file.write(jinja_render(templates_dir, template_pop, render_vars))
 
       created_files.append(pop_script)
 
@@ -642,7 +642,7 @@ for mol_name in mol_inp_list:
       command = "gnuplot " + pop_script
       retcode = os.system(command)
       if retcode != 0 :
-        raise errors.ResultsError ("ERROR: The %s gnuplot script rendered through the %s jinja template encountered an issue" % (pop_script,tpl_pop))
+        raise errors.ResultsError ("ERROR: The %s gnuplot script rendered through the %s jinja template encountered an issue" % (pop_script,template_pop))
 
       created_files.append(pop_graph)
 
@@ -775,10 +775,10 @@ for mol_name in mol_inp_list:
 
     # Rendering the jinja template for the states list
 
-    tpl_pdf = config["jinja_templates"]["tpl_pdf"]   # Name of the template file
-    rnd_pdf = mol_name + ".tex"                      # Name of the rendered file
+    template_pdf = config["jinja_templates"]["template_pdf"]   # Name of the template file
+    rendered_pdf = mol_name + ".tex"                      # Name of the rendered file
 
-    print("{:140}".format("\nCompiling the preview PDF %s file ... " % rnd_pdf), end="")
+    print("{:140}".format("\nCompiling the preview PDF %s file ... " % rendered_pdf), end="")
   
     render_vars = {
         "mol_name" : mol_name,
@@ -786,11 +786,11 @@ for mol_name in mol_inp_list:
         "fidelities" : fidelities
         }
 
-    rendered_file_path = os.path.join(out_dir, rnd_pdf)
+    rendered_file_path = os.path.join(out_dir, rendered_pdf)
     with open(rendered_file_path, "w", encoding='utf-8') as result_file:
-      result_file.write(jinja_render(templates_dir, tpl_pdf, render_vars))
+      result_file.write(jinja_render(templates_dir, template_pdf, render_vars))
 
-    created_files.append(rnd_pdf)
+    created_files.append(rendered_pdf)
 
     print('%12s' % "[ DONE ]")
 

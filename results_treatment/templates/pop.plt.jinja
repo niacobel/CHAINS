@@ -26,15 +26,15 @@ set linetype cycle 12
 ##########################################
 
 # Determine the frequency of the plotting (how much data is skipped between two points)
-skip = {{  nb_lines  }}/{{  nb_points  }}
+skip = {{ nb_lines }}/{{ nb_points }}
 if (skip < 1) skip = 1 ; else skip = floor(skip)
 
 # Set a LaTeX terminal to let LaTex process all the text parts
 set terminal cairolatex pdf
-set output "{{  output_file  }}"
+set output "{{ output_file }}"
 
 # Name of the axes
-set xlabel 'Temps ($10{{ '\\up{' }}{{  exponent  }}{{ '}' }}$ s)'
+set xlabel 'Temps ($10{{ '\\up{' }}{{ exponent }}{{ '}' }}$ s)'
 set ylabel "Population"
 
 # Legend
@@ -58,7 +58,7 @@ set grid
 
 plot\
 {% for state in states_list -%}
-"{{  input_file  }}" using ($1*{{  time_conv  }}/(10**{{  exponent  }})):{{  state['Number']|int + 2 }} every skip title '{{  state['Label']  }}' with lines linetype {{  state['Number']|int + 1 }},\
+"{{ input_file }}" using ($1*{{ time_conv }}/(10**{{ exponent }})):{{ state['Number']|int + 2 }} every skip title '{{ state['Label'] }}' with lines linetype {{ state['Number']|int + 1 }},\
 {% endfor -%}
 
 ##########################################

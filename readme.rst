@@ -67,7 +67,7 @@ If your Python distribution does not include PyYAML (version 5.1+) and Jinja2 (v
    $ python -m pip install --user pyyaml
    $ python -m pip install --user jinja2
 
-The second main script of CHAINS, ``CONTROL LAUNCHER`` makes use of the NumPy_ package for Python (version 1.14+), if your distribution does not include it, you can install it using
+The second main script of CHAINS, ``CONTROL LAUNCHER`` makes use of the NumPy_ package for Python (version 1.14+). If your distribution does not include it, you can install it using
 
 .. code-block:: console
 

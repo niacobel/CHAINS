@@ -194,32 +194,32 @@ If we have for example 2 geometry files and 2 configuration files, once the exec
             ├── geometry1.xyz
             ├── config1.yml
             ├── geometry1_config1.log
-            ├── job_instructions.sh
+            ├── job_script.sh
             └── input_file
       └── geometry1_config2/
             ├── geometry1.xyz
             ├── config2.yml
             ├── geometry1_config2.log
-            ├── job_instructions.sh
+            ├── job_script.sh
             └── input_file
       └── geometry2_config1/
             ├── geometry2.xyz
             ├── config1.yml
             ├── geometry2_config1.log
-            ├── job_instructions.sh
+            ├── job_script.sh
             └── input_file
       └── geometry2_config2/
             ├── geometry2.xyz
             ├── config2.yml
             ├── geometry2_config2.log
-            ├── job_instructions.sh
+            ├── job_script.sh
             └── input_file
 
 where 
 
 - ``geometryX_configX`` is the job subdirectory created by ``ABIN LAUNCHER``, and from which the job will be submitted to the job scheduler.
 - ``geometryX.xyz`` and ``configX.yml`` are copies of the geometry file and the configuration file, respectively.
-- ``job_instructions.sh`` and ``input_file`` are the files created by the :doc:`rendering process <abin_launcher.rendering>`.
+- ``job_script.sh`` and ``input_file`` are the files created by the :doc:`rendering process <abin_launcher.rendering>`.
 - ``geometryX_configX.log`` is an output file containing the details of the treatment of this geometry-configuration combination by ``ABIN LAUNCHER`` (the computed scale index, the used job scale, etc.)
 
 .. Hyperlink targets

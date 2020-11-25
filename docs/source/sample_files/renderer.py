@@ -77,7 +77,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     # Define the names of the templates
     
     template_input = "sample_orca.inp.jinja"
-    template_instructions = "sample_orca_job.sh.jinja"
+    template_script = "sample_orca_job.sh.jinja"
     
     # Define the names of the rendered files
     
@@ -123,7 +123,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
       "prog" : job_specs['prog']
     }
     
-    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, render_vars)
     
     print('%12s' % "[ DONE ]")
 

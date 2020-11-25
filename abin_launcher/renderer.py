@@ -97,9 +97,9 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     # Define the names of the templates, given in the YAML clusters configuration file.
 
     template_input = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']
-    template_instructions = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_instructions']
+    template_script = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_script']
 
-    # Define the names of the rendered files, given in the YAML clusters configuration file.
+    # Define the names of the rendered files.
 
     rendered_input = misc['mol_name'] + ".inp"
     rendered_script = "orca_job.sh"
@@ -166,7 +166,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
         "chains_dir" : chains_path,
         "check_dir" : check_script_path,
         "results_subdir" : job_specs['prog'].upper(),
-        "job_instructions" : rendered_script,
+        "job_script" : rendered_script,
         "config_file" : misc['config_name']
     }
 
@@ -186,7 +186,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     
     # Rendering the file
 
-    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, render_vars)
 
     print('%12s' % "[ DONE ]")
 
@@ -249,9 +249,9 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     # Define the names of the templates, given in the YAML clusters configuration file.
 
     template_input = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']
-    template_instructions = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_instructions']
+    template_script = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_script']
 
-    # Define the names of the rendered files, given in the YAML clusters configuration file.
+    # Define the names of the rendered files.
 
     rendered_input = misc['mol_name'] + ".in"
     rendered_script = "qchem_job.sh"
@@ -311,7 +311,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
         "chains_dir" : chains_path,
         "check_dir" : check_script_path,
         "results_subdir" : job_specs['prog'].upper(),
-        "job_instructions" : rendered_script,
+        "job_script" : rendered_script,
         "config_file" : misc['config_name']
     }
 
@@ -331,7 +331,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     
     # Rendering the file
 
-    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_instructions, render_vars)
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, render_vars)
 
     print('%12s' % "[ DONE ]")
    

@@ -2,12 +2,12 @@
 
 {# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
 #SBATCH --output=slurm_output.log
-#SBATCH --job-name={{  mol_name  }}_qchem
-#SBATCH --mail-user={{  user_email  }}
-#SBATCH --mail-type={{  mail_type  }}
-#SBATCH --time={{  job_walltime  }}
-#SBATCH --cpus-per-task={{  job_cores  }}
-#SBATCH --mem-per-cpu={{  job_mem_per_cpu  }}
+#SBATCH --job-name={{ mol_name }}_qchem
+#SBATCH --mail-user={{ user_email }}
+#SBATCH --mail-type={{ mail_type }}
+#SBATCH --time={{ job_walltime }}
+#SBATCH --cpus-per-task={{ job_cores }}
+#SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
 {% if partition != None -%}
 #SBATCH --partition={{ partition }}
 {%- endif %}
@@ -27,16 +27,16 @@ SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
 
 echo -e "\nCreating temporary directory $SCRATCH for handling temporary files."
 srun mkdir -p $SCRATCH || exit $?
-srun -n $SLURM_NNODES --ntasks-per-node=1 cp -rf $SLURM_SUBMIT_DIR/{{  mol_name  }}.in $SCRATCH/ || exit $?
+srun -n $SLURM_NNODES --ntasks-per-node=1 cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.in $SCRATCH/ || exit $?
 
 cd $SCRATCH
 
 echo -e "\n================= Q-CHEM execution begins now =================="
 
 {% for set_env_line in set_env -%}
-{{  set_env_line  }}
+{{ set_env_line }}
 {% endfor -%}
-{{  command  }} {{  mol_name  }}.in $SLURM_SUBMIT_DIR/{{  mol_name  }}.out  || (srun rm -rf $SCRATCH ; exit $?)
+{{ command }} {{ mol_name }}.in $SLURM_SUBMIT_DIR/{{ mol_name }}.out  || (srun rm -rf $SCRATCH ; exit $?)
 
 echo -e "\n=================  Q-CHEM execution ends now  =================="
 
@@ -52,19 +52,19 @@ echo -e "===================================================================="
 
 # Quality control (was there any problem with Q-CHEM?)
 cd $SLURM_SUBMIT_DIR
-source {{  chains_dir  }}/load_modules.sh
-python {{  check_dir  }}/qchem_check.py {{  mol_name  }}.out  || exit $?
+source {{ chains_dir }}/load_modules.sh
+python {{ check_dir }}/qchem_check.py {{ mol_name }}.out  || exit $?
 
 # Copying important files
 
-echo -e "\nCopying Q-CHEM output file to {{  output_dir  }}."
-mkdir -p {{  output_dir  }}
-cp {{  mol_name  }}.out {{  output_dir  }}/
+echo -e "\nCopying Q-CHEM output file to {{ output_dir }}."
+mkdir -p {{ output_dir }}
+cp {{ mol_name }}.out {{ output_dir }}/
 
-res_dir="{{  results_dir  }}/{{  mol_name  }}/{{  results_subdir  }}"
+res_dir="{{ results_dir }}/{{ mol_name }}/{{ results_subdir }}"
 echo -e "\nCopying output files to $res_dir."
 mkdir -p $res_dir
-cp {{  mol_name  }}.in {{  mol_name  }}.out {{  job_instructions  }} slurm_output.log {{  mol_name  }}_{{ config_file  }}.log $res_dir
+cp {{ mol_name }}.in {{ mol_name }}.out {{ job_script }} slurm_output.log {{ mol_name }}_{{ config_file }}.log $res_dir
 
 {# Job instructions for compiling data about the job for benchmarking. #}
 {% include "benchmark.jinja" %}

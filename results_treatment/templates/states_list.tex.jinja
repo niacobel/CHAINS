@@ -5,13 +5,13 @@
 {% for state in states_list -%}
 {#- Ground state line -#}
 {%- if state['Energy (ev)'] is none -%}
-{{  state['Number']  }} & {{  state['Multiplicity']  }} & {{  state['Label']  }} & - & - & - & - \\
+{{ state['Number'] }} & {{ state['Multiplicity'] }} & {{ state['Label'] }} & - & - & - & - \\
 {#- Non target states lines -#}
 {%- elif state['Fidelity'] is none -%}
-{{  state['Number']  }} & {{  state['Multiplicity']  }} & {{  state['Label']  }} & {{ '\\nprounddigits{4}\\numprint{' }}{{  state['Energy (ev)']  }}{{ '}' }} & {{ '\\nprounddigits{2}\\numprint{' }}{{  state['Energy (cm-1)']  }}{{ '}' }} & {{ '\\nprounddigits{3}\\numprint{' }}{{  state['Energy (nm)']  }}{{ '}' }} & - \\
+{{ state['Number'] }} & {{ state['Multiplicity'] }} & {{ state['Label'] }} & {{ '\\nprounddigits{4}\\numprint{' }}{{ state['Energy (ev)'] }}{{ '}' }} & {{ '\\nprounddigits{2}\\numprint{' }}{{ state['Energy (cm-1)'] }}{{ '}' }} & {{ '\\nprounddigits{3}\\numprint{' }}{{ state['Energy (nm)'] }}{{ '}' }} & - \\
 {#- Target states lines -#}
 {%- else -%}
-{{  state['Number']  }} & {{  state['Multiplicity']  }} & {{  state['Label']  }} & {{ '\\nprounddigits{4}\\numprint{' }}{{  state['Energy (ev)']  }}{{ '}' }} & {{ '\\nprounddigits{2}\\numprint{' }}{{  state['Energy (cm-1)']  }}{{ '}' }} & {{ '\\nprounddigits{3}\\numprint{' }}{{  state['Energy (nm)']  }}{{ '}' }} & {{ '\\nprounddigits{2}\\numprint{' }}{{  state['Fidelity']  }}{{ '}' }} \\
+{{ state['Number'] }} & {{ state['Multiplicity'] }} & {{ state['Label'] }} & {{ '\\nprounddigits{4}\\numprint{' }}{{ state['Energy (ev)'] }}{{ '}' }} & {{ '\\nprounddigits{2}\\numprint{' }}{{ state['Energy (cm-1)'] }}{{ '}' }} & {{ '\\nprounddigits{3}\\numprint{' }}{{ state['Energy (nm)'] }}{{ '}' }} & {{ '\\nprounddigits{2}\\numprint{' }}{{ state['Fidelity'] }}{{ '}' }} \\
 {%- endif %}
 {% endfor -%}
 \end{tabular}

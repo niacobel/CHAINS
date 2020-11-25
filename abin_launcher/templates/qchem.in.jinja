@@ -1,15 +1,15 @@
 $molecule
-   {{  charge  }} {{  multiplicity  }}
+   {{ charge }} {{ multiplicity }}
 {% for coordinate_line in coordinates -%}
-{{  coordinate_line  }}
+{{ coordinate_line }}
 {% endfor -%}
 $end
 
 $rem
-   JOBTYPE              {{  job_type  }}
-   EXCHANGE             {{  exchange  }}
-   BASIS                {{  basis_set  }}
-   CIS_N_ROOTS          {{  cis_n_roots  }}
+   JOBTYPE              {{ job_type }}
+   EXCHANGE             {{ exchange }}
+   BASIS                {{ basis_set }}
+   CIS_N_ROOTS          {{ cis_n_roots }}
    CIS_CONVERGENCE      8
    CORRELATION          none
    MAX_SCF_CYCLES       600

@@ -13,7 +13,7 @@
 
 echo -e "Renaming the original .xyz file to avoid overwriting it with the new one."
 cd $SLURM_SUBMIT_DIR
-mv {{  mol_name  }}.xyz {{  mol_name  }}_ori.xyz
+mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
 
 echo -e "\n================= ORCA execution begins now =================="
 
