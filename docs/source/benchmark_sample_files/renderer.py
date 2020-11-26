@@ -13,16 +13,16 @@ import abin_errors
 
 
 def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
-    """Renders a file based on its jinja template.
+    """Renders a file based on its Jinja template.
 
     Parameters
     ----------
     templates_dir : str
-        The path towards the directory where the jinja template is located.
+        The path towards the directory where the Jinja template is located.
     template_file : str
-        The name of the jinja template file.
+        The name of the Jinja template file.
     render_vars : dict
-        Dictionary containing the definitions of all the variables present in the jinja template.
+        Dictionary containing the definitions of all the variables present in the Jinja template.
 
     Returns
     -------
@@ -71,7 +71,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     
     Notes
     -----
-    Pay a particular attention to the render_vars dictionary, it contains all the definitions of the variables appearing in your jinja template.
+    Pay a particular attention to the render_vars dictionaries, they contain all the definitions of the variables appearing in your Jinja templates.
     """
     
     # Define the names of the templates
@@ -92,7 +92,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
 
     print("{:<80}".format("\nRendering the jinja template for the orca input file ..."), end="")
     
-    render_vars = {
+    input_render_vars = {
       "method" : config['method'],
       "basis_set" : config['basis_set'],
       "job_type" : config['job_type'],
@@ -101,7 +101,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
       "coordinates" : file_data['atomic_coordinates']
     }
     
-    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
+    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, input_render_vars)
     
     print('%12s' % "[ DONE ]")
 
@@ -109,7 +109,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
 
     print("{:<80}".format("\nRendering the jinja template for the orca job script ..."), end="")
     
-    render_vars = {
+    script_render_vars = {
       "mol_name" : misc['mol_name'],
       "config_name" : misc['config_name'],
       "user_email" : config['user_email'],
@@ -125,7 +125,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
 
     # Add variables specific to the benchmarking template
    
-    render_vars.update({
+    script_render_vars.update({
       "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
       "prefix": "orca_lemaitre3",
       "prog" : job_specs['prog'],
@@ -137,7 +137,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
       "scale_index" : job_specs['scale_index']
     })
     
-    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, render_vars)
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
     
     print('%12s' % "[ DONE ]")
 

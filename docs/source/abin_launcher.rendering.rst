@@ -212,16 +212,7 @@ Note that for intuitiveness purposes, the name of the YAML keys is identical to 
 Rendering functions
 ===================
 
-The Jinja templates define how the information is presented in the input files and the job script. The configuration file, among others, defines the content specific to each calculation. To link the two, ``ABIN LAUNCHER`` calls a function defined in the ``renderer.py`` file, called a **rendering function**, that creates the input files and the job script by filling the templates with the specific content.
-
-Using the Jinja templates
--------------------------
-
-The ``jinja_render`` function in the ``renderer.py`` file defines how to interact with the Jinja templates:
-
-.. autofunction:: renderer.jinja_render
-
-This function receives three key arguments describing where to find the template and what is the corresponding content. It then returns the content of the rendered file in a variable (``output_text``), that will be printed in a file by the main script ``abin_launcher.py``.
+The Jinja templates define how the information is presented in the input files and the job script. The configuration file, among others, defines the content specific to each calculation. To link the two, ``ABIN LAUNCHER`` calls a function defined in the ``renderer.py`` file, called a **rendering function**, that creates the input files and the job script by filling the templates with their specific content.
 
 General definition
 ------------------
@@ -232,7 +223,7 @@ All the rendering functions must be defined in the ``renderer.py`` file and need
 - They take six dictionaries as arguments: ``mendeleev``, ``clusters_cfg``, ``config``, ``file_data``, ``job_specs`` and ``misc`` (see the next subsection for details).
 - They must return two variables : 
 
-   - A dictionary where each key is the name of the file and each associated value the rendered content of that file, for example {input_filename:input_content ; job_filename:job_content}.
+   - A dictionary where each key is the name of the file and each associated value the rendered content of that file, for example {<input_filename>:<input_content> ; <job_script_name>:<job_script_content>}.
    - The name of the rendered job script, needed by the main script to launch the job on the cluster.
 
 If a problem arises when rendering the templates, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
@@ -240,7 +231,7 @@ If a problem arises when rendering the templates, an ``AbinError`` exception sho
 The six arguments
 -----------------
 
-As said in the previous section, the rendering functions take six dictionaries as arguments. Since those functions might want various information depending on each specific case, we tried to include as many pertinent details as you might want to refer to during your rendering process. Thus, the six dictionaries are defined as follows:
+As said in the previous subsection, the rendering functions take six dictionaries as arguments. Since those functions might want various information depending on each specific case, we tried to include as many pertinent details as you might want to refer to during your rendering process. Thus, the six dictionaries are defined as follows:
 
 - ``mendeleev`` is the content of the ``mendeleev.yml`` file
 - ``clusters_cfg`` is the content of the :ref:`clusters configuration file <clusters_file>`
@@ -249,7 +240,7 @@ As said in the previous section, the rendering functions take six dictionaries a
 
 - ``job_specs`` contains the information about the resources requirements, defined by the :doc:`job scaling <abin_launcher.job_scale>` process, as well as other details about the job:
 
-   - ``prog``, the name of the program as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. You can either use this value or explicitly state it in the code since you already know it.
+   - ``prog``, the name of the program as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. You can either use this variable or explicitly state it in the code.
    - ``scaling_fct``, the name of the chosen :ref:`scaling function <scaling_fcts>`
    - ``scale_index``, the computed value of the scale_index
    - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`
@@ -262,10 +253,19 @@ As said in the previous section, the rendering functions take six dictionaries a
    - ``mol_name`` is the name of the geometry file (minus the extension)
    - ``config_name`` is the name of the configuration file
 
+Using the Jinja templates
+-------------------------
+
+In order to use and render the Jinja templates, the rendering functions call another function, named ``jinja_render`` and defined in the ``renderer.py`` file. This function is the one that makes the link between the templates and their specific content:
+
+.. autofunction:: renderer.jinja_render
+
+This function receives three key arguments describing where to find the template and what is the corresponding content. It then returns the content of the rendered file in a variable (``output_text``), that will be printed in a file by the main script ``abin_launcher.py``.
+
 Simple function model
 ---------------------
 
-In essence, the rendering functions have a pretty simple structure: their task is to define the name of each Jinja template and define the needed content for that template (stored in ``render_vars``). Here is a basic rendering function model:
+In essence, the rendering functions have a pretty simple structure: their task is to define the name of each Jinja template and define the needed content for that template (stored in ``<file>_render_vars``). Here is a basic rendering function model:
 
 .. code-block:: python
 
@@ -287,25 +287,25 @@ In essence, the rendering functions have a pretty simple structure: their task i
 
       # Render the template for the input file
 
-      render_vars = {
+      input_render_vars = {
          "jinja_variable1" : value,
          "jinja_variable2" : value,
          "jinja_variable3" : value,
          ...
       }
 
-      rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
+      rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, input_render_vars)
 
       # Render the template for the job script
 
-      render_vars = {
+      script_render_vars = {
          "jinja_variable1" : value,
          "jinja_variable2" : value,
          "jinja_variable3" : value,
          ...
       }
 
-      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, render_vars)
+      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
 
       # Return the content of the rendered files and the name of the rendered job script
 
@@ -378,11 +378,11 @@ Next comes the initialization of the ``rendered_content`` dictionary, where each
 
     rendered_content = {}
 
-Now, let's define the content of our input file. This content is stored in the ``render_vars`` dictionary, where each key corresponds to one of our Jinja variables. This dictionary is the key part of the rendering function as it makes a direct link between the Jinja templates and the various information needed to fill it.
+Now, let's define the content of our input file. This content is stored in the ``input_render_vars`` dictionary, where each key corresponds to one of our Jinja variables. This dictionary is the key part of the rendering function as it defines the link between the Jinja template and the various information needed to fill it.
 
 .. code-block:: python
 
-      render_vars = {
+      input_render_vars = {
          "method" : config['method'],
          "basis_set" : config['basis_set'],
          "job_type" : config['job_type'],
@@ -395,13 +395,13 @@ Our first template is now ready to be rendered, let's call the ``jinja_render`` 
 
 .. code-block:: python
 
-    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, render_vars)
+    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, input_render_vars)
 
 Let's proceed with the second template in the same manner:
      
 .. code-block:: python
 
-      render_vars = {  
+      script_render_vars = {  
          "mol_name" : misc['mol_name'],
          "config_name" : misc['config_name'],
          "user_email" : config['user_email'],
@@ -415,7 +415,7 @@ Let's proceed with the second template in the same manner:
          "prog" : job_specs['prog']
       }
 
-      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, render_vars)
+      rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
 
 Finally, we just need to return ``rendered_content`` and ``rendered_script`` to the main script, so that the rendered content can be printed to the different files and the job can be launched on the cluster:
 

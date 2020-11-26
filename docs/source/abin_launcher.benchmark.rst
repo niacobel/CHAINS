@@ -99,11 +99,11 @@ First of all, make sure the ``benchmark.jinja`` template is present in the ``tem
 
    {% include "benchmark.jinja" %}
 
-Since that template requires some specific variables, add the following code to your :ref:`rendering function <rendering_fct>` *after* having defined your ``render_vars`` dictionary for your job script, but *before* calling the ``jinja_render`` function for that file:
+Since that template requires some specific variables, add the following code to your :ref:`rendering function <rendering_fct>` *after* having defined your ``script_render_vars`` dictionary for your job script, but *before* calling the ``jinja_render`` function for that file:
 
 .. code-block:: python
 
-   render_vars.update({
+   script_render_vars.update({
       "benchmark_path" : <value>,
       "prefix": <value>,
       "prog" : job_specs['prog'],
@@ -180,7 +180,7 @@ Unfortunately, this tool works with one program and one cluster at a time. If yo
 This implies that you need to:
 
 - Add the include line to all job script templates.
-- Add the Jinja variables definition (``render_vars.update``) to all the rendering functions.
+- Add the Jinja variables definition (``script_render_vars.update``) to all the rendering functions.
 - Add the cron task command to the crontab of every cluster 
 
 Multiple programs can share the same crontab task if you don't mind their lines being in the same CSV file.
@@ -243,7 +243,7 @@ and in the ``orca_render`` function of ``renderer.py``, we add
 
 .. code-block:: python
 
-   render_vars.update({
+   script_render_vars.update({
       "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
       "prefix": "sample_orca",
       "prog" : job_specs['prog'],
