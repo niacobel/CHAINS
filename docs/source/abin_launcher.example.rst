@@ -112,7 +112,7 @@ Running ABIN LAUNCHER
 
 .. Tip::
 
-   Before executing ``ABIN LAUNCHER``, remember to load (manually or through your user profile configuration) your Python distribution, which must include YAML and Jinja2.
+   Before executing ``ABIN LAUNCHER``, remember to load (manually or through your user profile configuration) your Python distribution (version 3.5+), which must include PyYAML (version 5.1+) and Jinja2 (version 2.10+).
 
 We can now execute ``abin_launcher.py`` by running the command (from ``abin_docs_sample``):
 
