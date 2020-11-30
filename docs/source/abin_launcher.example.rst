@@ -6,7 +6,7 @@ This section will cover a sample run of ``ABIN LAUNCHER``, to get a concrete exa
 
 .. Tip::
 
-   Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/sample_files>`_.
+   Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/sample_files>`_. The other files can be fetched directly from ``ABIN LAUNCHER``'s :ref:`directory <abin_directory>`. Note that for this example, the ``renderer.py`` file from the ``sample_files`` directory replaces the one present in ``ABIN LAUNCHER``'s directory (which is a more complex one, used by CHAINS).
 
 Preparation
 ===========
@@ -31,7 +31,7 @@ We will simply use the Jinja templates defined in the :doc:`rendering section <a
 Rendering function
 ------------------
 
-We will also use the one we defined in the :ref:`rendering section <rendering_fct>`, it is placed in the ``renderer.py`` file which is in this case:
+We will also use the rendering function we defined in the :ref:`rendering section <rendering_fct>`, this function is placed in the ``renderer.py`` file. For our sample case, this file contains:
 
 .. literalinclude:: sample_files/renderer.py
    :language: python

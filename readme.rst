@@ -46,7 +46,7 @@ The development of CHAINS followed two main ideas:
 - **Simple**: Since CHAINS might be used by scientists with minimal knowledge of software development, we want to keep it simple and easy to understand, so we tried to stick with the basics as much as possible. Also, since the jobs that will be launched might last for hours, days and maybe even weeks, there is no need to put too much emphasis on efficiency, as gaining a few seconds during the execution of CHAINS' scripts wouldn't really impact the overall performance of the total procedure. 
 - **Adaptable**: Since there are as many scientific problems as there are scientists, we want to make CHAINS easily adaptable. Therefore, we also tried to keep in mind other programs and methodologies that may want to use some or all of CHAINS' scripts. 
 
-As a final note, CHAINS is not a single program but really just a group of scripts. Those scripts will be executed before and after each calculation, in order to prepare input files and treat output files. As such, if one calculation happens to fail, it is easy to restart where it stopped.
+As a final note, CHAINS is not a single program but really just a group of scripts. Those scripts will be executed on the clusters before and after each calculation, in order to prepare input files and treat output files. As such, if one calculation happens to fail, it is easy to restart where it stopped.
 
 Languages and Dependencies
 ==========================
@@ -60,12 +60,19 @@ Languages and Dependencies
 
 The main language of CHAINS is **Python 3.5+** but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. If you want to customize CHAINS however, there is no need for an in-depth knowledge of anything but Python, as we only use the basic features of the other languages (consult the "What you need to know" section of the documentation for details).
 
-If your Python distribution does not include **PyYAML (version 5.1+)** and **Jinja2 (version 2.10+)**, you can install them using
+If your Python distribution does not include **PyYAML (version 5.1+)** and **Jinja2 (version 2.10+)**, you can install them by entering the following command in your terminal:
 
 .. code-block:: console
 
    $ python -m pip install --user pyyaml
    $ python -m pip install --user jinja2
+
+If you already have them installed, be sure to check their version and upgrade them if need be by using
+
+.. code-block:: console
+
+   $ python -m pip install -U --user pyyaml
+   $ python -m pip install -U --user jinja2
 
 The second main script of CHAINS, ``CONTROL LAUNCHER``, makes use of the NumPy_ package (**version 1.14+**). If your Python distribution does not include it, you can install it using
 
@@ -74,6 +81,9 @@ The second main script of CHAINS, ``CONTROL LAUNCHER``, makes use of the NumPy_ 
    $ python -m pip install --user numpy
 
 In order to plot graphs and generate tables with the results, CHAINS also makes use of Gnuplot_ scripts and the LaTeX_ language. Those are not needed to get the results though, only to process them and make them more readable. You can freely rework those scripts and files without affecting the main process.
+
+.. Important::
+   CHAINS' scripts will be running on the clusters themselves and not on your personal computer, so make sure to meet those packages requirements for each cluster on which you intend to use CHAINS.
 
 Acknowledgment
 ==============

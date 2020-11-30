@@ -14,10 +14,12 @@ In both cases, after having created the files, ``ABIN LAUNCHER`` then launches t
 
 However, ``ABIN LAUNCHER`` is **completely autonomous** and does not depend on CHAINS. It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent calculations, and can be very easily adapted to deal with other ab initio programs. As such, this specific part of the documentation only explains how ``ABIN LAUNCHER`` works in and of itself, and its integration into CHAINS is explained :doc:`elsewhere <chains.abin_integration>`.
 
+.. _abin_directory:
+
 Directory structure
 ===================
 
-The ``ABIN LAUNCHER`` directory has and must keep the following structure:
+The ``ABIN LAUNCHER`` `directory <https://github.com/niacobel/CHAINS/tree/master/abin_launcher>`_ has and must keep the following structure:
 
 .. code-block::
 
