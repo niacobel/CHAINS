@@ -67,9 +67,9 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 parser = argparse.ArgumentParser(add_help=False, description="This script prepares the input files needed to run the QOCT-RA program by extracting information from a given source file and launches the corresponding jobs on the cluster.")
 
 required = parser.add_argument_group('Required arguments')
-required.add_argument("-s","--source", type=str, help="Relative or absolute path to the source file containing all the necessary information that needs to be processed.", required=True)
-required.add_argument('-cf', '--config', type=str, help="Relative or absolute path to the YAML configuration file.", required=True)
-required.add_argument("-o","--out_dir", type=str, help="Relative or absolute path to the directory where you want to create the subdirectories for each job.", required=True)
+required.add_argument("-s","--source", type=str, help="Path to the source file containing all the necessary information that needs to be processed.", required=True)
+required.add_argument('-cf', '--config', type=str, help="Path to the YAML configuration file.", required=True)
+required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job.", required=True)
 required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the YAML clusters configuration file.", required=True)
 
 optional = parser.add_argument_group('Optional arguments')

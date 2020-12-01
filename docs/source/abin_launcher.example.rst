@@ -141,7 +141,7 @@ Directory structure after execution
 
 If we take a look at the directory structure, it now looks like:
 
-.. code-block::
+.. code-block:: text
 
    abin_docs_sample/
       └── abin_launcher/ 

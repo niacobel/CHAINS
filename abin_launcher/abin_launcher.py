@@ -40,10 +40,10 @@ import scaling_fcts
 parser = argparse.ArgumentParser(add_help=False, description="For one or more geometry files, one or more configuration files and a given ab initio program, this script prepares the input files needed for each calculation and launches the corresponding jobs on the cluster. Extended documentation is available at https://chains-ulb.readthedocs.io/. In order to run, this script requires Python 3.5+ as well as YAML and Jinja2.")
 
 required = parser.add_argument_group('Required arguments')
-required.add_argument("-m","--mol_inp", type=str, help="Relative or absolute path to either a geometry file or a directory containing multiple geometry files.", required=True)
-required.add_argument('-cf', '--config', type=str, help="Relative or absolute path to either a YAML configuration file or a directory containing multiple YAML configuration files, extension must be .yml or .yaml.", required=True)
+required.add_argument("-m","--mol_inp", type=str, help="Path to either a geometry file or a directory containing multiple geometry files.", required=True)
+required.add_argument('-cf', '--config', type=str, help="Path to either a YAML configuration file or a directory containing multiple YAML configuration files, extension must be .yml or .yaml.", required=True)
 required.add_argument("-p","--program", type=str, help="Name of the program you wish to run jobs with, as defined in the YAML clusters configuration file.", required=True)
-required.add_argument("-o","--out_dir", type=str, help="Relative or absolute path to the directory where you want to create the subdirectories for each job.", required=True)
+required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job.", required=True)
 required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the YAML clusters configuration file.", required=True)
 #required.add_argument('-f', '--format', type=str, help="Format of the geometry files that need to be read.", required=True) #Uncomment this line if you add new scanning functions to geom_scan.py
 
