@@ -21,7 +21,7 @@ Directory structure
 
 The ``ABIN LAUNCHER`` `directory <https://github.com/niacobel/CHAINS/tree/master/abin_launcher>`_ has and must keep the following structure:
 
-.. code-block::
+.. code-block:: text
 
     abin_launcher/
       ├── abin_launcher.py
@@ -46,7 +46,7 @@ As for what each file does, everything will be explained in more details in the 
 
 In CHAINS' case, the ``templates`` directory structure is:
 
-.. code-block::
+.. code-block:: text
 
    └── templates/
          ├── orca_job.sh.jinja
@@ -189,7 +189,7 @@ Output directory structure
 
 If we have for example 2 geometry files and 2 configuration files, once the execution of ``ABIN LAUNCHER`` has ended, the structure of the output directory (given as the :guilabel:`-o / \\--out_dir` command line argument) might look like:
 
-.. code-block::
+.. code-block:: text
 
     out_dir/ 
       └── geometry1_config1/

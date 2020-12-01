@@ -83,7 +83,7 @@ Let's store those files in two distinct directories: one for the molecule geomet
 
 This is what our directory on the cluster, named ``abin_docs_sample``, now looks like:
 
-.. code-block::
+.. code-block:: text
 
    abin_docs_sample/
       └── abin_launcher/ 

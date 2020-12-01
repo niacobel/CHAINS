@@ -35,7 +35,7 @@ First, we will create an input file template for ORCA_. Consider the geometry op
 
 .. |C2H6| replace:: C\ :sub:`2`\ H\ :sub:`6`\ 
 
-.. code-block::
+.. code-block:: text
 
    ! B3LYP def2-SVP Opt 
    *xyz 0 1

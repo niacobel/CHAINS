@@ -124,7 +124,7 @@ Configure the cron task
 
 Use the ``crontab -e`` command in your terminal to edit your cron tasks and add the following line:
 
-.. code-block::
+.. code-block:: text
 
    */15 * * * * bash -l -c "/path/to/cron_benchmark.sh <prefix> <benchmark_path>" >> benchmark_path/<prefix>_crontab.log 2>&1
 
@@ -201,7 +201,7 @@ Our ``benchmark_path`` will be ``/home/users/n/i/niacobel/abin_docs_sample/bench
 
 This is our starting directory structure:
 
-.. code-block::
+.. code-block:: text
 
    abin_docs_sample/
       └── abin_launcher/ 
@@ -272,7 +272,7 @@ The cron task and the crontab script
 
 Now we execute the ``crontab -e`` command in our terminal to edit our cron tasks and add the following line:
 
-.. code-block::
+.. code-block:: text
 
    */15 * * * * bash -l -c "/home/users/n/i/niacobel/abin_docs_sample/abin_launcher/cron_benchmark.sh sample_orca /home/users/n/i/niacobel/abin_docs_sample/benchmark" >> /home/users/n/i/niacobel/abin_docs_sample/benchmark/sample_orca_crontab.log 2>&1
 
@@ -317,7 +317,7 @@ As you can see, a different line has been written for each of our jobs, containi
 
 After at most 15 minutes, the crontab task executes the crontab script, which archives the temporary CSV file and then runs the Python script on that file to either create or update the final CSV file. The directory structure now looks like:
 
-.. code-block::
+.. code-block:: text
 
    abin_docs_sample/
       └── abin_launcher/ 

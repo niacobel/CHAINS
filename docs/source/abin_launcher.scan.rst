@@ -14,7 +14,7 @@ Structure of XYZ geometry files
 
 Let's take a geometry file for the |SiH4| molecule as an example:
 
-.. code-block::
+.. code-block:: text
 
    5
    my comment
