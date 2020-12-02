@@ -24,6 +24,7 @@ import numpy as np
 import yaml
 
 import control_errors
+import source_parser
 
 # =================================================================== #
 # =================================================================== #
@@ -239,7 +240,7 @@ def main():
     out_dir = control_errors.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
     print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
-    source = control_errors.check_abspath(source,"Command line argument -i / --source","file")
+    source = control_errors.check_abspath(source,"Command line argument -s / --source","file")
     print ("{:<40} {:<100}".format('\nSource file:',source))
 
     # Check and load the configuration file for the information about the molecule
@@ -300,23 +301,11 @@ def main():
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
-  # Define and import the parser module that will be used to parse the source file
-
-  parser_file = config[prog]['parser_script']
-  print("\nParser script file: ", parser_file)
-
-  try:
-    # The source_parser must be named as the "parser_script" provided in the config YAML file + ".py"
-    source_parser = importlib.import_module(parser_file)
-  except ModuleNotFoundError:
-    print("ERROR: Unable to find the %s.py file in %s" % (parser_file, code_dir))
-    exit(1)
-
   # ========================================================= #
-  # Reading the file                                          #
+  # Loading the file                                          #
   # ========================================================= #
 
-  print ("{:<60}".format('\nScanning %s file ... ' % source_filename), end="")
+  print ("{:<60}".format('\Loading %s file ... ' % source_filename), end="")
   with open(source, 'r') as source_file:
     source_content = source_file.read().splitlines()
   print('%12s' % "[ DONE ]")
@@ -326,13 +315,7 @@ def main():
   source_content = list(map(str.strip, source_content))   # Remove leading & trailing blank/spaces
   source_content = list(filter(None, source_content))     # Remove blank lines/no char
 
-  # ========================================================= #
-  # Get the list of states                                    #
-  # ========================================================= #
-
-  print ("{:<60}".format('\nExtracting the list of states ... '), end="")
-  states_list = source_parser.get_states_list(source_content)
-  print('%12s' % "[ DONE ]")
+  states_list, coupling_list, momdip_list = source_parser.qchem_tddft_parser(source_content)
 
   #! The states_list variable is a list of tuples of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
   #! The first element of each tuple is the state number, starting at 0
@@ -350,24 +333,8 @@ def main():
     print("{:<10} {:<15} {:<15.3f} {:<10}".format(state[0],state[1],state[2],state[3]))
   print(''.center(50, '-'))
 
-  # =========================================================
-  # Get the list of coupling values
-  # =========================================================
-
-  print ("{:<60}".format('\nExtracting the list of states couplings ... '), end="")
-  coupling_list = source_parser.get_coupling_list(source_content)
-  print('%12s' % "[ DONE ]")
-
   #! The coupling_list variable is a list of tuples of the form [[State0, State1, Coupling0-1], [State0, State2, Coupling0-2], [State1, State2, Coupling1-2], ...]
   #! The first two elements of each tuple are the number of the two states and the third one is the value of the coupling linking them (in cm-1)
-
-  # =========================================================
-  # Get the list of transition dipole moments
-  # =========================================================
-
-  print ("{:<60}".format('\nExtracting the list of transition dipole moments ... '), end="")
-  momdip_list = source_parser.get_momdip_list(source_content)
-  print('%12s' % "[ DONE ]")
 
   #! The momdip_list variable is a list of tuples of the form [[State0, State1, MomDip0-1], [State0, State2, MomDip0-2], [State1, State2, MomDip1-2], ...]
   #! The first two elements of each tuple are the number of the two states and the third one is the value of the transition dipole moment associated with the transition between them (in atomic units)

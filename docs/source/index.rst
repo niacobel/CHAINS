@@ -34,6 +34,7 @@
    :caption: CONTROL LAUNCHER
 
    Overview <control_launcher.overview>
+   control_launcher.parsing
 
 .. toctree::
    :hidden:
