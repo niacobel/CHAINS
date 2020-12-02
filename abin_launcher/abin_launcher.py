@@ -491,7 +491,7 @@ def main():
       print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
       print("{:<20} {:<30}".format("Number of cores: ", job_cores))
       print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
-      print("{:<20} {:<30}".format("Delay command : ", ("not specified" if delay_command == '' else delay_command)))
+      print("{:<20} {:<30}".format("Delay command: ", ("not specified" if delay_command == '' else delay_command)))
       print(''.center(50, '-'))
 
       # ========================================================= #
