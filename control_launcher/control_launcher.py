@@ -19,30 +19,24 @@ import sys
 from collections import OrderedDict
 from inspect import getsourcefile
 
-from jinja2 import Environment, FileSystemLoader
 import numpy as np
 import yaml
+from jinja2 import Environment, FileSystemLoader
 
 import control_errors
 import source_parser
 
-# =================================================================== #
-# =================================================================== #
-#                        FUNCTIONS DEFINITIONS                        #
-# =================================================================== #
-# =================================================================== #
-
 def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
-    """Renders a file based on its jinja template.
+    """Renders a file based on its Jinja template.
 
     Parameters
     ----------
     templates_dir : str
-        The path towards the directory where the jinja template is located.
+        The path towards the directory where the Jinja template is located.
     template_file : str
-        The name of the jinja template file.
+        The name of the Jinja template file.
     render_vars : dict
-        Dictionary containing the definitions of all the variables present in the jinja template.
+        Dictionary containing the definitions of all the variables present in the Jinja template.
 
     Returns
     -------
@@ -582,12 +576,12 @@ def main():
   targets_list = [] # List of target states
 
   for state in states_list:
-    if state[1] == target_state:
-      targets_list.append(state[3])
-      print("{:<59}".format("Creating %s file ..." % (proj_file + state[3])), end="")
+    if state['Multiplicity'] == target_state:
+      targets_list.append(state['Label'])
+      print("{:<59}".format("Creating %s file ..." % (proj_file + state['Label'])), end="")
       proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
-      proj[state[0],state[0]] = 1+0j
-      with open(os.path.join(data_dir, proj_file + state[3] + "_1"), "w") as f:
+      proj[state['Number'],state['Number']] = 1+0j
+      with open(os.path.join(data_dir, proj_file + state['Label'] + "_1"), "w") as f:
         for line in proj:
           for val in line:
             print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)

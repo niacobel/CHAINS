@@ -37,7 +37,7 @@ def ev_to_cm1(ev: float) -> float:
 # =================================================================== #
 
 def qchem_tddft(file_content:list):
-    """Parses the content of a Q-Chem TD-DFT calculation output file, looking to build the MIME and the transition dipole moments matrix of the molecule. The ground state of the calculation must be a singlet, otherwise this function will need to be slightly modified.
+    """Parses the content of a Q-CHEM TD-DFT calculation output file, looking to build the MIME and the transition dipole moments matrix of the molecule. The ground state of the calculation must be a singlet, otherwise this function will need to be slightly modified.
 
     Parameters
     ----------
@@ -47,9 +47,9 @@ def qchem_tddft(file_content:list):
     Returns
     -------
     states_list : list
-        A list of tuples of the form [<state_number>, <multiplicity>, <energy>, <label>]:
+        A list of dictionaries of the form {"Number":<number>, "Multiplicity":<multiplicity>, "Energy":<energy>, "Label":<label>}:
 
-        - <state_number> starts at 0 (which is the ground state)
+        - <number> is the number of the state, starting at 0 (which is the ground state)
         - <multiplicity> is the multiplicity of the state (ex: singlet, triplet)
         - <energy> is the excitation energy of the state, in cm-1
         - <label> is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
@@ -84,9 +84,9 @@ def qchem_tddft(file_content:list):
     cpt_triplet = 0
     cpt_singlet = 0
 
-    # Define the first state of our molecule - the ground state (wich is the first state and has a null energy)
+    # Define the ground state of our molecule (wich is the first state and has a null energy)
     
-    states_list = [(0, 'Singlet', 0.0, 'S0')]
+    states_list = [{'Number': 0, 'Multiplicity': 'Singlet', 'Energy': 0.0, 'Label': 'S0'}]
 
     # Define the START and END expression patterns of the "TDDFT/TDA Excitation Energies" section of the output file
 
@@ -179,8 +179,8 @@ def qchem_tddft(file_content:list):
 
             search_energy = True # Resume searching for the energy of the next state
 
-            # Append information about the current state to the states_list variable with the format: (state_number, state_multiplicity, energy value (cm-1), label)
-            states_list.append((exc_state, multiplicity, ev_to_cm1(exc_energy), (first_letter + str(cpt))))
+            # Append information about the current state to the states_list variable
+            states_list.append({'Number': exc_state, 'Multiplicity': multiplicity, 'Energy': ev_to_cm1(exc_energy), 'Label': (first_letter + str(cpt))})
 
             continue
 
@@ -195,7 +195,7 @@ def qchem_tddft(file_content:list):
     print("{:<10} {:<15} {:<15} {:<10}".format('Number','Multiplicity','Energy (cm-1)','Label'))
     print(''.center(50, '-'))
     for state in states_list:
-      print("{:<10} {:<15} {:<15.3f} {:<10}".format(state[0],state[1],state[2],state[3]))
+      print("{:<10} {:<15} {:<15.3f} {:<10}".format(state['Number'],state['Multiplicity'],state['Energy'],state['Label']))
     print(''.center(50, '-'))
 
     # ========================================================= #
@@ -267,22 +267,38 @@ def qchem_tddft(file_content:list):
             # Get the info corresponding to the pattern
 
             if key == 'ground_to_triplets':
-              state_1 = 'S0' # The ground state label is S0 by convention
+              state_1 = 0
 
             elif key == 'between_excited_states':
               state_1 = matching_line.group('s_key')
-              if state_1 not in [x[3] for x in states_list]:
-                raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during parsing." % state_1)
+
+              # state_1 is the state label, we need to convert it to the state number
+              match = False
+              for state in states_list:
+                if state_1 == state['Label']:
+                  state_1 = state['Number']
+                  match = True
+                  break
+              if not match:
+                raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % state_1)
 
             elif key == 'soc_value':
 
               state_2 = matching_line.group('soc_key')
-              if state_2 not in [x[3] for x in states_list]:
-                raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during parsing." % state_2)
+
+              # state_2 is the state label, we need to convert it to the state number
+              match = False
+              for state in states_list:
+                if state_2 == state['Label']:
+                  state_2 = state['Number']
+                  match = True
+                  break
+              if not match:
+                raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % state_2)
 
               value = float(matching_line.group('soc_value'))
               if value < 0:
-                raise control_errors.ControlError ("ERROR: The SOC value between the %s and %s states is negative (%s)" % (state_1,state_2,value))
+                raise control_errors.ControlError ("ERROR: The SOC value between the %s and %s states is negative (%s)" % ([state['Label'] for state in states_list if state['Number'] == state_1],[state['Label'] for state in states_list if state['Number'] == state_2],value))
 
               tpl = (state_1, state_2, value)
        
@@ -292,16 +308,6 @@ def qchem_tddft(file_content:list):
           coupling_list.append(tpl)
           tpl = None
           continue
-
-    # Rewrite coupling_list by replacing all state labels by their state number (needs the states_list that was determined in the previous section)
-  
-    for index, soc in enumerate(coupling_list):
-      coupling_list[index] = (
-        # Filter the states_list, looking for the state corresponding to the label (see https://stackoverflow.com/questions/3013449/list-comprehension-vs-lambda-filter for reference)
-        int([ x for x in states_list if x[3] == soc[0] ][0][0]),
-        int([ x for x in states_list if x[3] == soc[1] ][0][0]),
-        soc[2]
-      )
 
     print('%12s' % "[ DONE ]")
 
@@ -327,8 +333,7 @@ def qchem_tddft(file_content:list):
     # Creation of the MIME - Diagonal values (Excitation energies)
 
     for state in states_list:
-      # Reminder : state[0] is the state number and state[2] is the state energy
-      mime[state[0]][state[0]] = state[2]
+      mime[state['Number']][state['Number']] = state['Energy']
 
     print('%12s' % "[ DONE ]")
 
