@@ -61,6 +61,22 @@ Here is a small YouTube tutorial made by Jason Rigden that will cover the basics
 
 With that, you know everything you need to know about Jinja2 in order to use CHAINS! As you may have seen in the video, the Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as Gaussian_ or Molpro_, and any other job scheduler such as Torque_.
 
+.. _regex:
+
+About Regular Expressions
+=========================
+
+`Regular Expressions`_ (or regexes) are a powerful tool that can define search patterns to look for specific information in text. You don't need to know how they work to simply use ``ABIN LAUNCHER`` or ``CONTROL LAUNCHER``, but they are used in the results treatment part of CHAINS. If you want to customize the treatment of your results, or if you want to define new :doc:`scanning functions <abin_launcher.scan>` for geometry files (in ``ABIN LAUNCHER``) or new :doc:`parsing functions <control_launcher.parsing>` for source files (in ``CONTROL LAUNCHER``), it is probably a good idea to take a look at how they work.
+
+Regular Expressions can present themselves as incredibly unintuitive but their versatility certainly makes up for that. Here is a YouTube tutorial made by Corey Schafer that will cover how regexes work and how they can be used in Python:
+
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/K8L6KVGG-7o" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+|
+| With that, you know everything you need to know about regular expressions in order to customize CHAINS! To make it easier to work with regexes, feel free to use the `regex101 website <https://regex101.com/>`_ which can help you to build and to understand them.
+
 .. _cron_tuto:
 
 About Crontab and Cron tasks
@@ -75,26 +91,6 @@ You don't really need to know anything about them prior to reading this document
    <iframe width="560" height="315" src="https://www.youtube.com/embed/QZJ1drMQz1A" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 |
-
-.. _regex:
-
-About Regular Expressions
-=========================
-
-`Regular Expressions`_ (or regexes) are a powerful tool that can define search patterns to look for specific information in text. You don't need to know how they work to simply use ``ABIN LAUNCHER`` or ``CONTROL LAUNCHER``, but they are used in the results treatment part of CHAINS. If you want to customize the treatment of your results, or if you want to define new scanning functions for :doc:`geometry files <abin_launcher.scan>` (in ``ABIN LAUNCHER``) or program output files (in ``CONTROL LAUNCHER``), it is probably a good idea to take a look at how they work.
-
-Regular Expressions can present themselves as incredibly unintuitive but their versatility certainly makes up for that. Here is a YouTube tutorial made by Corey Schafer that will cover how regexes work and how they can be used in Python:
-
-.. raw:: html
-
-   <iframe width="560" height="315" src="https://www.youtube.com/embed/K8L6KVGG-7o" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
-|
-| With that, you know everything you need to know about regular expressions in order to customize CHAINS! To make it easier to work with regexes, feel free to use the `regex101 website <https://regex101.com/>`_ which can help you to build and understand them.
-
-.. todo::
-
-   Add link to "program output files" once the page is done.
 
 .. Hyperlink targets
 

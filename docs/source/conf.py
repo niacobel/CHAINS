@@ -73,8 +73,12 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 # Theme official page : https://sphinx-rtd-theme.readthedocs.io/en/stable/index.html
+
+import sphinx_rtd_theme
+
+extensions.append('sphinx_rtd_theme')
+
 html_theme = 'sphinx_rtd_theme'
-html_theme_path = ['_themes', ]
 
 html_theme_options = {
     'navigation_depth': 3,

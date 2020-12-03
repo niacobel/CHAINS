@@ -1,6 +1,7 @@
 ###### Requirements without Version Specifiers ######
 sphinx-argparse
 sphinx-code-include
+sphinx_rtd_theme
 # sphinxcontrib.yt
 pyyaml
 jinja2
