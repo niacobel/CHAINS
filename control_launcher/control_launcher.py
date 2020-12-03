@@ -69,6 +69,7 @@ parser = argparse.ArgumentParser(add_help=False, description="This script prepar
 
 required = parser.add_argument_group('Required arguments')
 required.add_argument("-s","--source", type=str, help="Path to the source file containing all the necessary information that needs to be processed.", required=True)
+required.add_argument("-p","--parsing_fct", type=str, help="Name of the parsing function that will be used to parse the source file, as defined in source_parser.py.", required=True)
 required.add_argument('-cf', '--config', type=str, help="Path to the YAML configuration file.", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job.", required=True)
 required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the YAML clusters configuration file.", required=True)
@@ -108,14 +109,6 @@ def main():
     print("")
     print("".center(columns,"*"))
 
-    section_title = "0. Preparation step"
-
-    print("")
-    print("")
-    print(''.center(len(section_title)+10, '*'))
-    print(section_title.center(len(section_title)+10))
-    print(''.center(len(section_title)+10, '*'))
-
     # ========================================================= #
     # Read command line arguments                               #
     # ========================================================= #
@@ -125,6 +118,7 @@ def main():
     # Required arguments
 
     source = args.source                     # Source file containing all the necessary information
+    parsing_fct = args.parsing_fct           # Name of the parsing function, as defined in source_parser.py
     out_dir = args.out_dir                   # Directory where all jobs subdirectories will be created
     config_file = args.config                # YAML configuration file
     cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
@@ -155,7 +149,7 @@ def main():
     # Loading the clusters_file 
 
     clusters_file = control_errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"YAML clusters configuration file","file")
-    print ("{:<141}".format('\nLoading the clusters configuration file "clusters.yml" ...'), end="")
+    print ("{:<80}".format('\nLoading the clusters configuration file "clusters.yml" ...'), end="")
     with open(clusters_file, 'r') as f_clusters:
       clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
@@ -243,10 +237,16 @@ def main():
     source = control_errors.check_abspath(source,"Command line argument -s / --source","file")
     print ("{:<40} {:<100}".format('\nSource file:',source))
 
+    if (parsing_fct) not in dir(source_parser) or not callable(getattr(source_parser, parsing_fct)):
+      raise control_errors.ControlError ("ERROR: There is no parsing function named %s defined in source_parser.py." % parsing_fct)
+    print ("{:<40} {:<100}".format('\nParsing function:',parsing_fct))
+
     # Check and load the configuration file for the information about the molecule
 
     config_file = control_errors.check_abspath(config_file,"Command line argument -cf / --config","file")
-    print ("{:<40} {:<100}".format('\nLoading the configuration file:',config_file))
+    print ("{:<40} {:<100}".format('\nConfiguration file:',config_file))
+  
+    print ("{:<80}".format('\nLoading the configuration file ...'), end='')
     with open(config_file, 'r') as f_config:
       config = yaml.load(f_config, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
@@ -296,7 +296,6 @@ def main():
   section_title = "1. Parsing the source file"
 
   print("")
-  print("")
   print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
@@ -305,7 +304,7 @@ def main():
   # Loading the file                                          #
   # ========================================================= #
 
-  print ("{:<60}".format('\Loading %s file ... ' % source_filename), end="")
+  print ("{:<80}".format('\nLoading %s file ... ' % source_filename), end="")
   with open(source, 'r') as source_file:
     source_content = source_file.read().splitlines()
   print('%12s' % "[ DONE ]")
@@ -315,23 +314,13 @@ def main():
   source_content = list(map(str.strip, source_content))   # Remove leading & trailing blank/spaces
   source_content = list(filter(None, source_content))     # Remove blank lines/no char
 
-  states_list, coupling_list, momdip_list = source_parser.qchem_tddft_parser(source_content)
+  states_list, mime, momdip_mtx = eval("source_parser." + parsing_fct)(source_content)
 
   #! The states_list variable is a list of tuples of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
   #! The first element of each tuple is the state number, starting at 0
   #! Multipliciy corresponds to the multiplicity of the state
   #! Energy is the energy of the state, in cm-1
   #! Label is the label of the state, in the form of first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
-
-  print("")
-  print(''.center(50, '-'))
-  print('States List'.center(50, ' '))
-  print(''.center(50, '-'))
-  print("{:<10} {:<15} {:<15} {:<10}".format('Number','Multiplicity','Energy (cm-1)','Label'))
-  print(''.center(50, '-'))
-  for state in states_list:
-    print("{:<10} {:<15} {:<15.3f} {:<10}".format(state[0],state[1],state[2],state[3]))
-  print(''.center(50, '-'))
 
   #! The coupling_list variable is a list of tuples of the form [[State0, State1, Coupling0-1], [State0, State2, Coupling0-2], [State1, State2, Coupling1-2], ...]
   #! The first two elements of each tuple are the number of the two states and the third one is the value of the coupling linking them (in cm-1)
@@ -343,105 +332,16 @@ def main():
 
   # ===================================================================
   # ===================================================================
-  #                     CALCULATION REQUIREMENTS
-  # ===================================================================
-  # ===================================================================
-
-  section_title = "2. Calculation requirements"
-
-  print("")
-  print("")
-  print(''.center(len(section_title)+10, '*'))
-  print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '*'))
-
-  # Use the number of states to determine the job scale
-
-  scale_index = len(states_list)
-
-  # Job scale category definition
-
-  jobscale = None
-
-  for scale_limit in job_scales:
-    if scale_index > scale_limit:
-      continue
-    else:
-      jobscale = job_scales[scale_limit]
-      jobscale_limit = scale_limit
-      break
-
-  if not jobscale:
-    print("\n\nERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
-    exit(4)
-
-  # Obtaining the information associated to our job scale
-
-  job_partition = jobscale['partition_name']
-  job_walltime = jobscale['time']
-  job_mem_per_cpu = jobscale['mem_per_cpu']
-
-  print("")
-  print(''.center(50, '-'))
-  print("{:<20} {:<30}".format("Number of states: ", scale_index))
-  print(''.center(50, '-'))
-  print("{:<20} {:<30}".format("Cluster: ", cluster_name))
-  print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
-  print("{:<20} {:<30}".format("Job scale limit: ", jobscale_limit))
-  print(''.center(50, '-'))
-  print("{:<20} {:<30}".format("Job partition: ", job_partition))
-  print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
-  print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
-  print(''.center(50, '-'))
-
-  # ===================================================================
-  # ===================================================================
   #                       MIME DIAGONALIZATION
   # ===================================================================
   # ===================================================================
 
-  section_title = "3. MIME diagonalization"
+  section_title = "2. MIME diagonalization"
 
-  print("")
   print("")
   print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
-
-  # =========================================================
-  # Creation of the MIME containing the coupling elements
-  # =========================================================
-
-  print("\nBuilding the MIME ...     ", end="")   
-
-  mime = np.zeros((len(states_list), len(states_list)))  # Quick init of a zero-filled matrix
-
-  # Add energies (in cm-1) to the tuple list (those will be placed on the diagonal of the MIME)
-
-  ori_coupling_list = copy.deepcopy(coupling_list)       # Save the original coupling_list to print it to a file later (using deepcopy as to not be affected by future changes on coupling_list)
-
-  for state in states_list:
-    # Reminder : state[0] is the state number and state[2] is the state energy
-    tpl = (state[0], state[0], state[2])
-    coupling_list.append(tpl)
-
-  # Creation of the MIME
-
-  for coupling in coupling_list:
-    k1 = coupling[0]
-    k2 = coupling[1]
-    val = coupling[2]
-    mime[k1][k2] = val
-    mime[k2][k1] = val    # For symetry purposes
-
-  print('%20s' % "[ DONE ]")
-
-  print("\nMIME (cm-1)")
-  print('')
-  for row in mime:
-    for val in row:
-      print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
-    print('')
 
   # =========================================================
   # MIME diagonalization
@@ -506,33 +406,12 @@ def main():
   # ===================================================================
   # ===================================================================
 
-  section_title = "4. Dipole moments matrix"
+  section_title = "3. Dipole moments matrix"
 
-  print("")
   print("")
   print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
-
-  # =========================================================
-  # Creation of the dipole moments matrix
-  # =========================================================
-    
-  momdip_mtx = np.zeros((len(states_list), len(states_list)), dtype=float)  # Quick init of a zero-filled matrix
-
-  for momdip in momdip_list:
-    k1 = int(momdip[0])
-    k2 = int(momdip[1])
-    val = float(momdip[2])
-    momdip_mtx[k1][k2] = val
-    momdip_mtx[k2][k1] = val    # For symetry purposes
-
-  print("\nDipole moments matrix in the zero order basis set (ua)")
-  print('')
-  for row in momdip_mtx:
-    for val in row:
-      print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
-    print('')
 
   # =========================================================
   # Conversion in the eigenstates basis set
@@ -557,16 +436,15 @@ def main():
   # ===================================================================
   # ===================================================================
 
-  section_title = "5. Data files creation"
+  section_title = "4. Data files creation"
 
-  print("")
   print("")
   print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
   # =========================================================
-  # Creating the molecule directory and the data subfolder
+  # Creating the molecule directory and the data subdirectory
   # =========================================================
 
   mol_dir = os.path.join(out_dir,mol_name)
@@ -576,11 +454,19 @@ def main():
 
   os.makedirs(mol_dir)
 
-  # Creating the data subfolder where all the files describing the molecule will be stored
+  # Creating the data subdirectory where all the files describing the molecule will be stored
   data_dir = os.path.join(mol_dir,"data")
   os.makedirs(data_dir)
 
-  print("\nThe data subfolder has been created at %s" % data_dir)
+  print("\nThe data subdirectory has been created at %s" % data_dir)
+
+  # Copying the config file and the source file into the data subdirectory
+  
+  shutil.copy(os.path.join(source_path,source_filename), data_dir)
+  shutil.copy(config_file, data_dir)
+
+  print("\nThe files %s and %s have been successfully copied into the data subdirectory." % (source_filename, os.path.basename(config_file)))
+  print("")
 
   # =========================================================
   # Writing already calculated values to files
@@ -588,7 +474,7 @@ def main():
 
   # Values obtained through the parser script (in CSV format)
 
-  print("{:<60}".format('\nCreating states.csv file ... '), end="")
+  """   print("{:<60}".format('\nCreating states.csv file ... '), end="")
   with open(os.path.join(data_dir, "states.csv"), "w") as f:
     print("Number;Multiplicity;Energy (cm-1);Label", file = f)
     for state in states_list:
@@ -611,7 +497,7 @@ def main():
       # Print every item in line, separated by ";"
       print(";".join(map(str,line)), file = f)
   print('%12s' % "[ DONE ]")
-
+  """
   # MIME
 
   mime_file = config[prog]['created_files']['mime_file']
@@ -710,13 +596,64 @@ def main():
 
   # ===================================================================
   # ===================================================================
+  #                     CALCULATION REQUIREMENTS
+  # ===================================================================
+  # ===================================================================
+
+  section_title = "5. Calculation requirements"
+
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
+
+  # Use the number of states to determine the job scale
+
+  scale_index = len(states_list)
+
+  # Job scale category definition
+
+  jobscale = None
+
+  for scale_limit in job_scales:
+    if scale_index > scale_limit:
+      continue
+    else:
+      jobscale = job_scales[scale_limit]
+      jobscale_limit = scale_limit
+      break
+
+  if not jobscale:
+    print("\n\nERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
+    exit(4)
+
+  # Obtaining the information associated to our job scale
+
+  job_partition = jobscale['partition_name']
+  job_walltime = jobscale['time']
+  job_mem_per_cpu = jobscale['mem_per_cpu']
+
+  print("")
+  print(''.center(50, '-'))
+  print("{:<20} {:<30}".format("Number of states: ", scale_index))
+  print(''.center(50, '-'))
+  print("{:<20} {:<30}".format("Cluster: ", cluster_name))
+  print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
+  print("{:<20} {:<30}".format("Job scale limit: ", jobscale_limit))
+  print(''.center(50, '-'))
+  print("{:<20} {:<30}".format("Job partition: ", job_partition))
+  print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
+  print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
+  print(''.center(50, '-'))
+
+  # ===================================================================
+  # ===================================================================
   #         RENDERING OF THE PARAMETERS FILE AND JOBS LAUNCHING
   # ===================================================================
   # ===================================================================
 
   section_title = "6. Rendering of the parameters file and jobs launching"
 
-  print("")
   print("")
   print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))

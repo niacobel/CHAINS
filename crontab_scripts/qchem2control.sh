@@ -72,7 +72,7 @@ else
     filename="$(basename -- "${filepath}")"
     MOL_NAME=${filename%.*}
     mkdir -p "${out_dir}"
-    python "${control_dir}/control_launcher.py" -s "${filepath}" -cf "${results_path}/${MOL_NAME}/config.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -d > "${out_dir}/${MOL_NAME}.log"
+    python "${control_dir}/control_launcher.py" -s "${filepath}" -p "qchem_tddft" -cf "${results_path}/${MOL_NAME}/config.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -d > "${out_dir}/${MOL_NAME}.log"
     status=$?
 
     if [ ${status} -eq 0 ]; then

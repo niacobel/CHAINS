@@ -6,7 +6,11 @@
 ################################################################################################################################################
 
 import re
+
+import numpy as np
+
 import control_errors
+
 
 def ev_to_cm1(ev: float) -> float:
     """Converts a value from eV to cm-1.
@@ -32,8 +36,8 @@ def ev_to_cm1(ev: float) -> float:
 # =================================================================== #
 # =================================================================== #
 
-def qchem_tddft_parser(file_content:list):
-    """Parses the content of a Q-Chem TD-DFT calculation output file, looking to extract the list of the excited electronic states, the spin-orbit couplings and the transition dipole moments between the electronic states of the molecule. The ground state of the calculation must be a singlet, otherwise this function will need to be slightly modified.
+def qchem_tddft(file_content:list):
+    """Parses the content of a Q-Chem TD-DFT calculation output file, looking to build the MIME and the transition dipole moments matrix of the molecule. The ground state of the calculation must be a singlet, otherwise this function will need to be slightly modified.
 
     Parameters
     ----------
@@ -43,26 +47,23 @@ def qchem_tddft_parser(file_content:list):
     Returns
     -------
     states_list : list
-        A list of tuples of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
-        The first element of each tuple is the state number, starting at 0
-        Multiplicity is the multiplicity of the state (ex : singlet, triplet)
-        Energy is the energy of the state, in cm-1
-        Label is the label of the state, in the form of first letter of multiplicity + number of that state of this multiplicity (ex : T1 for the first triplet, S3 for the third singlet)
-    coupling_list : list
-        List of tuples of the form [[State0, State1, SOC_0-1], [State0, State2, SOC_0-2], [State1, State2, SOC_1-2], ...]
-        The first two elements of each tuple are the number of the two states and the third one is the value of the spin-orbit coupling between them (in cm-1)
-    momdip_list : list
-        List of tuples of the form [[State0, State1, MomDip0-1], [State0, State2, MomDip0-2], [State1, State2, MomDip1-2], ...]
-        The first two elements of each tuple are the number of the two states and the third one is the value of the transition dipole moment associated with the transition between them (in atomic units)
+        A list of tuples of the form [<state_number>, <multiplicity>, <energy>, <label>]:
+
+        - <state_number> starts at 0 (which is the ground state)
+        - <multiplicity> is the multiplicity of the state (ex: singlet, triplet)
+        - <energy> is the excitation energy of the state, in cm-1
+        - <label> is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
+
+    mime : numpy.ndarray
+        Matrix Image of the MoleculE. It acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the SOC couplings on the non-diagonal elements (in cm\ :sup:`-1`\ ).
+    momdip_mtx : numpy.ndarray
+        Matrix containing the transition dipole moments associated with the transition between the electronic states (in atomic units).
 
     Raises
     ------
     ControlError
-        If one of the informations that need to be extracted presents some kind of problem.
+        If one of the values that need to be extracted presents some kind of problem.
 
-    Notes
-    -----
-    This function makes heavy use of regexes (Regular Expressions). If you're unfamiliar with them, please consult the "What You Need To Know" section of the documentation for information.
     """
 
     # Define an array for correct English spelling during printing
@@ -72,6 +73,8 @@ def qchem_tddft_parser(file_content:list):
     # ========================================================= #
     #                        States List                        #
     # ========================================================= #
+
+    print("{:<80}".format("\nParsing the source file looking for the excited states ...  "), end="")
 
     # Initialization of the variables
 
@@ -181,9 +184,25 @@ def qchem_tddft_parser(file_content:list):
 
             continue
 
+    print('%12s' % "[ DONE ]")
+
+    # Print the states list
+
+    print("")
+    print(''.center(50, '-'))
+    print('States List'.center(50, ' '))
+    print(''.center(50, '-'))
+    print("{:<10} {:<15} {:<15} {:<10}".format('Number','Multiplicity','Energy (cm-1)','Label'))
+    print(''.center(50, '-'))
+    for state in states_list:
+      print("{:<10} {:<15} {:<15.3f} {:<10}".format(state[0],state[1],state[2],state[3]))
+    print(''.center(50, '-'))
+
     # ========================================================= #
     #                          SOC List                         #
     # ========================================================= #
+
+    print("{:<80}".format("\nParsing the source file looking for the spin-orbit couplings ...  "), end="")
 
     # Initialization of the variables
 
@@ -284,9 +303,47 @@ def qchem_tddft_parser(file_content:list):
         soc[2]
       )
 
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #                       MIME Creation                       #
+    # ========================================================= #
+
+    print("{:<80}".format("\nBuilding the MIME ... "), end="")   
+
+    # Initialize the MIME as a zero-filled matrix
+
+    mime = np.zeros((len(states_list), len(states_list)))
+
+    # Creation of the MIME - Non-diagonal values (SOC)
+
+    for coupling in coupling_list:
+      k1 = coupling[0]
+      k2 = coupling[1]
+      val = coupling[2]
+      mime[k1][k2] = val
+      mime[k2][k1] = val    # For symetry purposes
+
+    # Creation of the MIME - Diagonal values (Excitation energies)
+
+    for state in states_list:
+      # Reminder : state[0] is the state number and state[2] is the state energy
+      mime[state[0]][state[0]] = state[2]
+
+    print('%12s' % "[ DONE ]")
+
+    print("\nMIME (cm-1)")
+    print('')
+    for row in mime:
+      for val in row:
+        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+      print('')
+
     # ========================================================= #
     #                    Dipole Moments List                    #
     # ========================================================= #
+
+    print("{:<80}".format("\nParsing the source file looking for the transition dipole moments ...  "), end="")
 
     # Initialization of the variables
 
@@ -342,5 +399,32 @@ def qchem_tddft_parser(file_content:list):
           # Add the new line to the momdip_list
           momdip_list.append(line)
 
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #                   Dipole Moments Matrix                   #
+    # ========================================================= #
+
+    # Initialize the matrix as a zero-filled matrix
+
+    momdip_mtx = np.zeros((len(states_list), len(states_list)), dtype=float)
+
+    # Filling the matrix
+
+    for momdip in momdip_list:
+      k1 = int(momdip[0])
+      k2 = int(momdip[1])
+      val = float(momdip[2])
+      momdip_mtx[k1][k2] = val
+      momdip_mtx[k2][k1] = val    # For symetry purposes
+
+    print("\nDipole moments matrix in the zero order basis set (ua)")
+    print('')
+    for row in momdip_mtx:
+      for val in row:
+        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+      print('')
+
+    # End of the function, return the needed variables
     
-    return states_list,coupling_list,momdip_list
+    return states_list,mime,momdip_mtx

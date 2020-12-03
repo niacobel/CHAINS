@@ -19,7 +19,7 @@ Structure of the Q-CHEM output file
 Function definition
 -------------------
 
-.. autofunction:: source_parser.qchem_tddft_parser
+.. autofunction:: source_parser.qchem_tddft
 
 Handling other source files
 ===========================
