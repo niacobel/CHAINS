@@ -262,150 +262,139 @@ def main():
   # =================================================================== #
   # =================================================================== #
 
-  section_title = "1. Parsing the source file"
+  # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+  try:
 
-  print("")
-  print(''.center(len(section_title)+10, '*'))
-  print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '*'))
+    section_title = "1. Parsing the source file"
+
+    print("")
+    print(''.center(len(section_title)+10, '*'))
+    print(section_title.center(len(section_title)+10))
+    print(''.center(len(section_title)+10, '*'))
+
+    # ========================================================= #
+    # Read the file                                             #
+    # ========================================================= #
+
+    print ("{:<80}".format('\nLoading %s file ... ' % source_filename), end="")
+    with open(source, 'r') as source_file:
+      source_content = source_file.read().splitlines()
+    print('%12s' % "[ DONE ]")
+
+    # Cleaning up the source file from surrounding spaces and blank lines
+
+    source_content = list(map(str.strip, source_content))   # Remove leading & trailing blank/spaces
+    source_content = list(filter(None, source_content))     # Remove blank lines/no char
+
+    # Call the parsing function (defined in source_parser.py, see the documentation for more information)
+
+    system = eval("source_parser." + parsing_fct)(source_content)
+
+    print("\nThe source file has been succesfully parsed.")
+
+    # ========================================================= #
+    # MIME diagonalization                                      #
+    # ========================================================= #
+
+    print("{:<80}".format("\nDiagonalizing the MIME ..."), end="")
+    # Using NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)   
+    system['eigenvalues'], system['eigenvectors'] = np.linalg.eig(system['mime'])
+    print('%12s' % "[ DONE ]")
+
+    # Sort the eigenvalues and associated eigenvectors (see https://stackoverflow.com/questions/8092920/sort-eigenvalues-and-associated-eigenvectors-after-using-numpy-linalg-eig-in-pyt for reference)
+    
+    idx = system['eigenvalues'].argsort()   
+    system['eigenvalues'] = system['eigenvalues'][idx]
+    system['eigenvectors'] = system['eigenvectors'][:,idx]
+
+    # ========================================================= #
+    # Eigenvalues                                               #
+    # ========================================================= #
+
+    # Converting the eigenvalues from cm-1 to ua, nm and eV
+    eigenvalues_ua = system['eigenvalues'] / 219474.6313705
+    eigenvalues_nm = 10000000 / system['eigenvalues']
+    eigenvalues_ev = system['eigenvalues'] / 8065.6
+
+    print("")
+    print(''.center(40, '-'))
+    print('Eigenvalues'.center(40, ' '))
+    print(''.center(40, '-'))
+    print("{:<10} {:<10} {:<10} {:<10}".format('cm-1','ua','eV','nm'))
+    print(''.center(40, '-'))
+    for val in range(len(system['eigenvalues'])):
+      print("{:<9.2f} {:<1.4e} {:<8.4f} {:<8.4f}".format(system['eigenvalues'][val],eigenvalues_ua[val],eigenvalues_ev[val],eigenvalues_nm[val]))
+    print(''.center(40, '-'))
+
+    # ========================================================= #
+    # Eigenvectors matrix                                       #
+    # ========================================================= #
+
+    print("\nEigenvectors matrix")
+    print('')
+    for vector in system['eigenvectors']:
+      for val in vector:
+        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+      print('')
+
+    # ========================================================= #
+    # Eigenvectors transpose matrix                             #
+    # ========================================================= #
+
+    # Using NumPy to transpose the eigenvectors matrix (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference)
+    system['transpose'] = np.transpose(system['eigenvectors'])
+
+    print("\nEigenvectors transpose matrix")
+    print('')
+    for vector in system['transpose']:
+      for val in vector:
+        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+      print('')
+
+    # ========================================================= #
+    # Diagonalized MIME                                         #
+    # ========================================================= #
+
+    # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
+    system['mime_diag'] = np.matmul(np.matmul(system['transpose'],system['mime']),system['eigenvectors'])
+        
+    print("\nMIME in the eigenstates basis set (cm-1)")
+    print('')
+    for row in system['mime_diag']:
+      for val in row:
+        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+      print('')
+
+    # ========================================================= #
+    # Dipole moment matrix in the eigenstates basis set         #
+    # ========================================================= #
+
+    # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
+    system['momdip_es_mtx'] = np.matmul(np.matmul(system['transpose'],system['momdip_mtx']),system['eigenvectors'])
+        
+    print("\nDipole moments matrix in the eigenstates basis set (ua)")
+    print('')
+    for row in system['momdip_es_mtx']:
+      for val in row:
+        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+      print('')
 
   # ========================================================= #
-  # Loading the file                                          #
+  # Exception handling for the parsing process                #
   # ========================================================= #
 
-  print ("{:<80}".format('\nLoading %s file ... ' % source_filename), end="")
-  with open(source, 'r') as source_file:
-    source_content = source_file.read().splitlines()
-  print('%12s' % "[ DONE ]")
-
-  # Cleaning up the source file from surrounding spaces and blank lines
-
-  source_content = list(map(str.strip, source_content))   # Remove leading & trailing blank/spaces
-  source_content = list(filter(None, source_content))     # Remove blank lines/no char
-
-  states_list, mime, momdip_mtx = eval("source_parser." + parsing_fct)(source_content)
-
-  #! The states_list variable is a list of tuples of the form [[0, Multiplicity, Energy, Label], [1, Multiplicity, Energy, Label], [2, Multiplicity, Energy, Label], ...]
-  #! The first element of each tuple is the state number, starting at 0
-  #! Multipliciy corresponds to the multiplicity of the state
-  #! Energy is the energy of the state, in cm-1
-  #! Label is the label of the state, in the form of first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
-
-  #! The coupling_list variable is a list of tuples of the form [[State0, State1, Coupling0-1], [State0, State2, Coupling0-2], [State1, State2, Coupling1-2], ...]
-  #! The first two elements of each tuple are the number of the two states and the third one is the value of the coupling linking them (in cm-1)
-
-  #! The momdip_list variable is a list of tuples of the form [[State0, State1, MomDip0-1], [State0, State2, MomDip0-2], [State1, State2, MomDip1-2], ...]
-  #! The first two elements of each tuple are the number of the two states and the third one is the value of the transition dipole moment associated with the transition between them (in atomic units)
-
-  print("\nThe source file has been succesfully parsed.")
-
-  # ===================================================================
-  # ===================================================================
-  #                       MIME DIAGONALIZATION
-  # ===================================================================
-  # ===================================================================
-
-  section_title = "2. MIME diagonalization"
-
-  print("")
-  print(''.center(len(section_title)+10, '*'))
-  print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '*'))
-
-  # =========================================================
-  # MIME diagonalization
-  # =========================================================
-
-  print("\nDiagonalizing the MIME ...", end="")
-  # Using NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)   
-  diag_mime = np.linalg.eig(mime)
-  print('%20s' % "[ DONE ]")
-
-  # =========================================================
-  # Eigenvalues
-  # =========================================================
-
-  eigenvalues = diag_mime[0]
-
-  # Converting the eigenvalues from cm-1 to ua, nm and eV
-  eigenvalues_ua = eigenvalues / 219474.6313705
-  eigenvalues_nm = 10000000 / eigenvalues
-  eigenvalues_ev = eigenvalues / 8065.6
-
-  print("")
-  print(''.center(40, '-'))
-  print('Eigenvalues'.center(40, ' '))
-  print(''.center(40, '-'))
-  print("{:<10} {:<10} {:<10} {:<10}".format('cm-1','ua','eV','nm'))
-  print(''.center(40, '-'))
-  for val in range(len(eigenvalues)):
-    print("{:<9.2f} {:<1.4e} {:<8.4f} {:<8.4f}".format(eigenvalues[val],eigenvalues_ua[val],eigenvalues_ev[val],eigenvalues_nm[val]))
-  print(''.center(40, '-'))
-
-  # =========================================================
-  # Eigenvectors matrix
-  # =========================================================
-
-  eigenvectors = diag_mime[1]
-
-  print("\nEigenvectors matrix")
-  print('')
-  for vector in eigenvectors:
-    for val in vector:
-      print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
-    print('')
-
-  # =========================================================
-  # Eigenvectors transpose matrix
-  # =========================================================
-
-  # Using NumPy to transpose the eigenvectors matrix (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference)
-  transpose = np.transpose(eigenvectors)
-
-  print("\nEigenvectors transpose matrix")
-  print('')
-  for vector in transpose:
-    for val in vector:
-      print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
-    print('')
-
-  # ===================================================================
-  # ===================================================================
-  #                       DIPOLE MOMENTS MATRIX
-  # ===================================================================
-  # ===================================================================
-
-  section_title = "3. Dipole moments matrix"
-
-  print("")
-  print(''.center(len(section_title)+10, '*'))
-  print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '*'))
-
-  # =========================================================
-  # Conversion in the eigenstates basis set
-  # =========================================================
-
-  momdip_es_mtx = np.dot(transpose,momdip_mtx) #! TODO: check if it's correct
-
-  for row in range(len(momdip_es_mtx)):
-    for val in range(row):
-      momdip_es_mtx[val,row] = momdip_es_mtx[row,val] #!: Why?
-      
-  print("\nDipole moments matrix in the eigenstates basis set (ua)")
-  print('')
-  for row in momdip_es_mtx:
-    for val in row:
-      print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
-    print('')
-
+  except control_errors.ControlError as error:
+    print("")
+    print(error)
+    exit(-1)
+  
   # ===================================================================
   # ===================================================================
   #                       FILES CREATION
   # ===================================================================
   # ===================================================================
 
-  section_title = "4. Data files creation"
+  section_title = "2. Data files creation"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
@@ -471,14 +460,14 @@ def main():
 
   mime_file = config[prog]['created_files']['mime_file']
   print("{:<60}".format('\nCreating %s file ... ' % mime_file), end="")
-  np.savetxt(os.path.join(data_dir,mime_file),mime,fmt='% 18.10e')
+  np.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
   print('%12s' % "[ DONE ]")
 
   # Energies
 
   energies_file = config[prog]['created_files']['energies_file']
   print("{:<60}".format('\nCreating %s file ... ' % energies_file), end="")
-  np.savetxt(os.path.join(data_dir,energies_file + '_cm-1'),eigenvalues,fmt='%1.10e')
+  np.savetxt(os.path.join(data_dir,energies_file + '_cm-1'),system['eigenvalues'],fmt='%1.10e')
   np.savetxt(os.path.join(data_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e')
   np.savetxt(os.path.join(data_dir,energies_file + '_nm'),eigenvalues_nm,fmt='%1.10e')
   np.savetxt(os.path.join(data_dir,energies_file + '_ev'),eigenvalues_ev,fmt='%1.10e')
@@ -488,24 +477,24 @@ def main():
 
   mat_et0 = config[prog]['created_files']['mat_et0']
   print("{:<60}".format('\nCreating %s file ... ' % mat_et0), end="")
-  np.savetxt(os.path.join(data_dir,mat_et0),eigenvectors,fmt='% 18.10e')
+  np.savetxt(os.path.join(data_dir,mat_et0),system['eigenvectors'],fmt='% 18.10e')
   print('%12s' % "[ DONE ]")
 
   mat_0te = config[prog]['created_files']['mat_0te']
   print ("{:<60}".format('\nCreating %s file ... ' % mat_0te), end="")
-  np.savetxt(os.path.join(data_dir,mat_0te),transpose,fmt='% 18.10e')
+  np.savetxt(os.path.join(data_dir,mat_0te),system['transpose'],fmt='% 18.10e')
   print('%12s' % "[ DONE ]")
 
   # Dipole moments matrix
 
   momdip_0 = config[prog]['created_files']['momdip_zero']
   print("{:<60}".format('\nCreating %s file ... ' % momdip_0), end="")
-  np.savetxt(os.path.join(data_dir,momdip_0),momdip_mtx,fmt='% 18.10e')
+  np.savetxt(os.path.join(data_dir,momdip_0),system['momdip_mtx'],fmt='% 18.10e')
   print('%12s' % "[ DONE ]")
 
   momdip_e = config[prog]['created_files']['momdip_eigen']
   print("{:<60}".format('\nCreating %s file ... ' % momdip_e), end="")
-  np.savetxt(os.path.join(data_dir,momdip_e),momdip_es_mtx,fmt='% 18.10e')	
+  np.savetxt(os.path.join(data_dir,momdip_e),system['momdip_es_mtx'],fmt='% 18.10e')	
   print('%12s' % "[ DONE ]")
 
   # =========================================================
@@ -517,7 +506,7 @@ def main():
   init_file = config[prog]['created_files']['init_pop']
   print("{:<60}".format("\nCreating %s file ..." % init_file), end="") 
 
-  init_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
+  init_pop = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
   init_pop[0,0] = 1+0j # All the population is in the ground state at the beginning
 
   with open(os.path.join(data_dir, init_file + "_1"), "w") as f:
@@ -533,7 +522,7 @@ def main():
   final_file = config[prog]['created_files']['final_pop']
   print("{:<60}".format("\nCreating %s file ..." % final_file), end="") 
 
-  final_pop = np.zeros((len(states_list), len(states_list)),dtype=complex)  # Quick init of a zero-filled matrix
+  final_pop = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
 
   with open(os.path.join(data_dir, final_file + "_1"), "w") as f:
     for line in final_pop:
@@ -550,11 +539,11 @@ def main():
   target_state = config[prog]['target_state'] # The type of states that will be targeted by the control
   targets_list = [] # List of target states
 
-  for state in states_list:
+  for state in system['states_list']:
     if state['Multiplicity'] == target_state:
       targets_list.append(state['Label'])
       print("{:<59}".format("Creating %s file ..." % (proj_file + state['Label'])), end="")
-      proj = np.zeros((len(states_list),len(states_list)),dtype=complex)
+      proj = np.zeros((len(system['states_list']),len(system['states_list'])),dtype=complex)
       proj[state['Number'],state['Number']] = 1+0j
       with open(os.path.join(data_dir, proj_file + state['Label'] + "_1"), "w") as f:
         for line in proj:
@@ -569,7 +558,7 @@ def main():
   # ===================================================================
   # ===================================================================
 
-  section_title = "5. Calculation requirements"
+  section_title = "3. Calculation requirements"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
@@ -578,7 +567,7 @@ def main():
 
   # Use the number of states to determine the job scale
 
-  scale_index = len(states_list)
+  scale_index = len(system['states_list'])
 
   print("")
   print(''.center(50, '-'))
@@ -625,7 +614,7 @@ def main():
   # ===================================================================
   # ===================================================================
 
-  section_title = "6. Rendering of the parameters file and jobs launching"
+  section_title = "4. Rendering of the parameters file and jobs launching"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
@@ -653,20 +642,6 @@ def main():
     # Get the path to the jinja templates directory (a directory named "templates" in the same directory as this script)
     
     templates_dir = os.path.join(code_dir,"templates")
-
-    # Build a dictionary that will contain all information related to the molecule (or system)
-
-    system = {
-      "states_list" : states_list,
-      "mime" : mime,
-      "momdip_mtx" : momdip_mtx,
-      "eigenvalues" : eigenvalues,
-      "eigenvectors" : eigenvectors,
-      "transpose" : transpose,
-      "momdip_es_mtx" : momdip_es_mtx,
-      "nb_targets" : len(targets_list),
-      "target" : target
-    }
 
     # Build a dictionary that will contain all information related to the data directory
 
@@ -706,7 +681,9 @@ def main():
         "config_name" : os.path.basename(config_file),
         "parsing_fct" : parsing_fct,
         "mol_dir" : mol_dir,
-        "job_dirname" : job_dirname
+        "job_dirname" : job_dirname,
+        "nb_targets" : len(targets_list),
+        "target" : target
         }
 
     # Call the rendering function (defined in control_renderer.py, see the documentation for more information)

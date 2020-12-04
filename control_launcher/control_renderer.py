@@ -94,8 +94,8 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
 
     # Define the names of the rendered files.
 
-    rendered_param_opm = "param_" + system['target'] + "_OPM.nml"
-    rendered_param_pcp = "param_" + system['target'] + "_PCP.nml"
+    rendered_param_opm = "param_" + misc['target'] + "_OPM.nml"
+    rendered_param_pcp = "param_" + misc['target'] + "_PCP.nml"
     rendered_script = "qoctra_job.sh"
 
     # Initialize the dictionary that will be returned by the function
@@ -125,7 +125,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
       "init_file_path" : os.path.join(data['path'],data['init_file']),
       "final_file_path" : os.path.join(data['path'],data['final_file']),
       "proj_file_path" : os.path.join(data['path'],data['proj_file']),
-      "target" : system['target'],
+      "target" : misc['target'],
       "nstep" : config[job_specs['prog']]['param_nml']['control']['nstep'],
       "dt" : config[job_specs['prog']]['param_nml']['control']['dt'],
       "processus" : "OPM",
@@ -178,7 +178,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
 
     script_render_vars = {
       "mol_name" : misc['mol_name'],
-      "target" : system['target'],
+      "target" : misc['target'],
       "user_email" : config['general']['user_email'],
       "mail_type" : config['general']['mail_type'],
       "job_walltime" : job_specs['walltime'],
@@ -189,7 +189,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
       "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
       "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
       "mol_dir" : misc['mol_dir'],
-      "nb_targets" : system['nb_targets'],
+      "nb_targets" : misc['nb_targets'],
       "output_dir" : chains_config['output_dir'][job_specs['prog']],
       "results_dir" : config['results']['main_dir'],
       "results_subdir" : config['results'][job_specs['prog']]['dir_name'],

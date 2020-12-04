@@ -42,22 +42,22 @@ def qchem_tddft(file_content:list):
     Parameters
     ----------
     file_content : list
-        Content of the qchem output file
+        Content of the Q-CHEM output file
     
     Returns
     -------
-    states_list : list
-        A list of dictionaries of the form {"Number":<number>, "Multiplicity":<multiplicity>, "Energy":<energy>, "Label":<label>}:
+    system : dict
+        The extracted information of the source file. It contains three keys and their associated values: `states_list`, `mime` and `momdip_mtx` where
+        
+        - `states_list` is a list of dictionaries containing four keys each: `Number`, `Multiplicity`, `Energy` and `Label` where
 
-        - <number> is the number of the state, starting at 0 (which is the ground state)
-        - <multiplicity> is the multiplicity of the state (ex: singlet, triplet)
-        - <energy> is the excitation energy of the state, in cm-1
-        - <label> is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
+          - `Number` is the number of the state, starting at 0 (which is the ground state)
+          - `Multiplicity` is the multiplicity of the state (ex: singlet, triplet)
+          - `Energy` is the excitation energy of the state, in cm\ :sup:`-1`\ 
+          - `Label` is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
 
-    mime : numpy.ndarray
-        Matrix Image of the MoleculE. It acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the SOC couplings on the non-diagonal elements (in cm\ :sup:`-1`\ ).
-    momdip_mtx : numpy.ndarray
-        Matrix containing the transition dipole moments associated with the transition between the electronic states (in atomic units).
+        - `mime` is a NumPy array, representing the Matrix Image of the MoleculE which acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the SOC couplings on the non-diagonal elements (in cm\ :sup:`-1`\ ).
+        - `momdip_mtx` is a NumPy array representing the transition dipole moments (in atomic units).
 
     Raises
     ------
@@ -65,6 +65,10 @@ def qchem_tddft(file_content:list):
         If one of the values that need to be extracted presents some kind of problem.
 
     """
+
+    # Initialize the system dictionary that will be returned by the function
+
+    system = {}
 
     # Define an array for correct English spelling during printing
 
@@ -86,7 +90,7 @@ def qchem_tddft(file_content:list):
 
     # Define the ground state of our molecule (which is the first state and has a null energy)
     
-    states_list = [{'Number': 0, 'Multiplicity': 'Singlet', 'Energy': 0.0, 'Label': 'S0'}]
+    system['states_list'] = [{'Number': 0, 'Multiplicity': 'Singlet', 'Energy': 0.0, 'Label': 'S0'}]
 
     # Define the START and END expression patterns of the "TDDFT/TDA Excitation Energies" section of the output file
 
@@ -180,7 +184,7 @@ def qchem_tddft(file_content:list):
             search_energy = True # Resume searching for the energy of the next state
 
             # Append information about the current state to the states_list variable
-            states_list.append({'Number': exc_state, 'Multiplicity': multiplicity, 'Energy': ev_to_cm1(exc_energy), 'Label': (first_letter + str(cpt))})
+            system['states_list'].append({'Number': exc_state, 'Multiplicity': multiplicity, 'Energy': ev_to_cm1(exc_energy), 'Label': (first_letter + str(cpt))})
 
             continue
 
@@ -194,7 +198,7 @@ def qchem_tddft(file_content:list):
     print(''.center(50, '-'))
     print("{:<10} {:<15} {:<15} {:<10}".format('Number','Multiplicity','Energy (cm-1)','Label'))
     print(''.center(50, '-'))
-    for state in states_list:
+    for state in system['states_list']:
       print("{:<10} {:<15} {:<15.3f} {:<10}".format(state['Number'],state['Multiplicity'],state['Energy'],state['Label']))
     print(''.center(50, '-'))
 
@@ -274,7 +278,7 @@ def qchem_tddft(file_content:list):
 
               # state_1 is the state label, we need to convert it to the state number
               match = False
-              for state in states_list:
+              for state in system['states_list']:
                 if state_1 == state['Label']:
                   state_1 = state['Number']
                   match = True
@@ -288,7 +292,7 @@ def qchem_tddft(file_content:list):
 
               # state_2 is the state label, we need to convert it to the state number
               match = False
-              for state in states_list:
+              for state in system['states_list']:
                 if state_2 == state['Label']:
                   state_2 = state['Number']
                   match = True
@@ -298,7 +302,7 @@ def qchem_tddft(file_content:list):
 
               value = float(matching_line.group('soc_value'))
               if value < 0:
-                raise control_errors.ControlError ("ERROR: The SOC value between the %s and %s states is negative (%s)" % ([state['Label'] for state in states_list if state['Number'] == state_1],[state['Label'] for state in states_list if state['Number'] == state_2],value))
+                raise control_errors.ControlError ("ERROR: The SOC value between the %s and %s states is negative (%s)" % ([state['Label'] for state in system['states_list'] if state['Number'] == state_1],[state['Label'] for state in system['states_list'] if state['Number'] == state_2],value))
 
               tpl = (state_1, state_2, value)
        
@@ -319,7 +323,7 @@ def qchem_tddft(file_content:list):
 
     # Initialize the MIME as a zero-filled matrix
 
-    mime = np.zeros((len(states_list), len(states_list)))
+    system['mime'] = np.zeros((len(system['states_list']), len(system['states_list'])))
 
     # Creation of the MIME - Non-diagonal values (SOC)
 
@@ -327,19 +331,19 @@ def qchem_tddft(file_content:list):
       k1 = coupling[0]
       k2 = coupling[1]
       val = coupling[2]
-      mime[k1][k2] = val
-      mime[k2][k1] = val    # For symetry purposes
+      system['mime'][k1][k2] = val
+      system['mime'][k2][k1] = val    # For symetry purposes
 
     # Creation of the MIME - Diagonal values (Excitation energies)
 
-    for state in states_list:
-      mime[state['Number']][state['Number']] = state['Energy']
+    for state in system['states_list']:
+      system['mime'][state['Number']][state['Number']] = state['Energy']
 
     print('%12s' % "[ DONE ]")
 
     print("\nMIME (cm-1)")
     print('')
-    for row in mime:
+    for row in system['mime']:
       for val in row:
         print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
@@ -412,7 +416,7 @@ def qchem_tddft(file_content:list):
 
     # Initialize the matrix as a zero-filled matrix
 
-    momdip_mtx = np.zeros((len(states_list), len(states_list)), dtype=float)
+    system['momdip_mtx'] = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
 
     # Filling the matrix
 
@@ -420,16 +424,16 @@ def qchem_tddft(file_content:list):
       k1 = int(momdip[0])
       k2 = int(momdip[1])
       val = float(momdip[2])
-      momdip_mtx[k1][k2] = val
-      momdip_mtx[k2][k1] = val    # For symetry purposes
+      system['momdip_mtx'][k1][k2] = val
+      system['momdip_mtx'][k2][k1] = val    # For symetry purposes
 
     print("\nDipole moments matrix in the zero order basis set (ua)")
     print('')
-    for row in momdip_mtx:
+    for row in system['momdip_mtx']:
       for val in row:
         print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
 
     # End of the function, return the needed variables
     
-    return states_list,mime,momdip_mtx
+    return system
