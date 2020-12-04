@@ -79,7 +79,9 @@ How does it work?
 
 The executable part of ``ABIN LAUNCHER`` is the main script, ``abin_launcher.py``. This is the one that must be called in the command line. The overall procedure follows three main steps: **scanning**, **scaling** and **rendering**, followed by the small **submitting** step. Each of the three main steps will be more thoroughly explained in a dedicated section of this documentation. As such, this subsection will only focus on the global procedure.
 
-An important file that will be often referenced throughout this documentation is the **YAML clusters configuration file** (``clusters.yml``). Rather than presenting it in its entirety at the beginning, the relevant bits of information will be introduced in the different sections, but you can have a full overview of that file in its :ref:`specific documentation <clusters_file>`.
+.. Important::
+
+   An important file that will be often referenced throughout this documentation is the **YAML clusters configuration file** (``clusters.yml``). Rather than presenting it in its entirety at the beginning, the relevant bits of information will be introduced in the different sections, but you can have a full overview of that file in its :ref:`specific documentation <clusters_file>`.
 
 Input files
 -----------
@@ -105,15 +107,11 @@ There are three other required arguments for executing ``ABIN LAUNCHER``:
 
 - :guilabel:`-p / \\--profile`, the **name of the profile** you want to run jobs with.
 
-   This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive. The profile defines what type of scaling and rendering will be performed.
-
-.. Tip::
-
-   This argument is just a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different profiles for this argument that run the same program (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
+   The profile is a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. It defines what type of scaling and rendering will be performed, as well as which program will be run and how. As will be explained further in this documentation, this value must be the same as the one given in the :ref:`clusters configuration file <clusters_file>` and in the name of the :ref:`rendering function <rendering_fct>` *(This is case-sensitive!)*.
 
 - :guilabel:`-cl / \\--cluster_name`, the **name of the cluster** you are running on.
 
-   This one must also be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive.
+   This value must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. *(This is case-sensitive!)*
 
 .. Tip::
 
