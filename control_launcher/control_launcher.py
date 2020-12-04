@@ -19,37 +19,16 @@ import sys
 from collections import OrderedDict
 from inspect import getsourcefile
 
+import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
 import numpy as np
 import yaml
-from jinja2 import Environment, FileSystemLoader
+
+# Subscripts (files that end with .py and must be placed in the same directory as this script)
 
 import control_errors
+import control_renderer
 import source_parser
-
-def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
-    """Renders a file based on its Jinja template.
-
-    Parameters
-    ----------
-    templates_dir : str
-        The path towards the directory where the Jinja template is located.
-    template_file : str
-        The name of the Jinja template file.
-    render_vars : dict
-        Dictionary containing the definitions of all the variables present in the Jinja template.
-
-    Returns
-    -------
-    output_text : str
-        Content of the rendered file.
-    """
-   
-    file_loader = FileSystemLoader(templates_dir)
-    env = Environment(loader=file_loader)
-    template = env.get_template(template_file)
-    output_text = template.render(render_vars)
-    
-    return output_text
+import transition_fcts
 
 # =================================================================== #
 # =================================================================== #
@@ -261,16 +240,12 @@ def main():
     if os.path.exists(os.path.join(out_dir,mol_name)) and not overwrite:
       raise control_errors.ControlError ("ERROR: A directory for the %s molecule (or source file) already exists in %s !" % (mol_name, out_dir))
 
-    # =========================================================
-    # Check jinja templates
-    # =========================================================
+    # Define the rendering function that will render the job script and the parameters file(s) (defined in control_renderer.py)
 
-    # Get the path to jinja templates directory (a directory named "templates" in the same directory as this script)
-    templates_dir = os.path.join(code_dir,"templates")
+    render_fct = prog + "_render"
 
-    for filename in clusters_cfg[cluster_name]['progs'][prog]['jinja_templates'].values():
-      # Check if all the files specified in the clusters YAML file exists in the templates directory of control_launcher.
-      control_errors.check_abspath(os.path.join(templates_dir,filename),"Jinja template","file")
+    if (render_fct) not in dir(control_renderer) or not callable(getattr(control_renderer, render_fct)):
+      raise control_errors.ControlError ("ERROR: There is no function defined for the %s program in renderer.py." % prog)
 
   # ========================================================= #
   # Exception handling for the preparation step               #
@@ -605,6 +580,10 @@ def main():
 
   scale_index = len(states_list)
 
+  print("")
+  print(''.center(50, '-'))
+  print("{:<20} {:<30}".format("Number of states: ", scale_index))
+
   # Job scale category definition
 
   jobscale = None
@@ -618,26 +597,26 @@ def main():
       break
 
   if not jobscale:
-    print("\n\nERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
-    exit(4)
+    raise control_errors.ControlError ("ERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
 
   # Obtaining the information associated to our job scale
 
-  job_partition = jobscale['partition_name']
+  job_partition = jobscale.get('partition_name')
   job_walltime = jobscale['time']
+  job_cores = jobscale.get('cores')
   job_mem_per_cpu = jobscale['mem_per_cpu']
+  delay_command = jobscale.get("delay_command", '')
 
-  print("")
-  print(''.center(50, '-'))
-  print("{:<20} {:<30}".format("Number of states: ", scale_index))
   print(''.center(50, '-'))
   print("{:<20} {:<30}".format("Cluster: ", cluster_name))
   print("{:<20} {:<30}".format("Job scale: ", jobscale["label"]))
   print("{:<20} {:<30}".format("Job scale limit: ", jobscale_limit))
   print(''.center(50, '-'))
-  print("{:<20} {:<30}".format("Job partition: ", job_partition))
+  print("{:<20} {:<30}".format("Job partition: ", (job_partition or "not specified")))
   print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
+  print("{:<20} {:<30}".format("Number of cores: ", (job_cores or "default")))
   print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
+  print("{:<20} {:<30}".format("Delay command: ", ("not specified" if delay_command == '' else delay_command)))
   print(''.center(50, '-'))
 
   # ===================================================================
@@ -653,148 +632,140 @@ def main():
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
-  # ========================================================= #
-  #                      Preparation step                     #
-  # ========================================================= #
-
-  # Load the CHAINS configuration file to get the additional information
-
-  chains_path = os.path.dirname(code_dir)
-  chains_config_file = control_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
-
-  print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
-  with open(chains_config_file, 'r') as chains:
-    chains_config = yaml.load(chains, Loader=yaml.FullLoader)
-  print('%12s' % "[ DONE ]")
-
-  # =========================================================
-  # Defining the jinja templates
-  # =========================================================
-
-  print("{:<81}".format("\nDefining and preparing the jinja templates ..."), end="") 
-
-  # Define the names of the templates, given in the YAML clusters configuration file.
-
-  template_param = clusters_cfg[cluster_name]['progs'][prog]['jinja_templates']['parameters_file']
-  template_script = clusters_cfg[cluster_name]['progs'][prog]['jinja_templates']['job_script']
-
-  # Define the names of the rendered files.
-
-  rendered_script = "qoctra_job.sh"
-
-  # Determine the central frequency of the guess pulse in cm-1 (here defined as the average of the eigenvalues)
-
-  central_frequency = sum(eigenvalues) / (len(eigenvalues) - 1) # -1 because the ground state doesn't count
-
-  # Define here the number of iterations for QOCT-RA, as it will be used multiple times later on
-
-  niter = config[prog]['param_nml']['control']['niter']
-
-  # Definition of the variables present in the jinja template for the parameters file (except the target state)
-
-  param_render_vars = {
-    "mol_name" : mol_name,
-    "energies_file_path" : os.path.join(data_dir,energies_file + '_ua'),
-    "momdip_e_path" : os.path.join(data_dir,momdip_e),
-    "init_file_path" : os.path.join(data_dir,init_file),
-    "final_file_path" : os.path.join(data_dir,final_file),
-    "proj_file_path" : os.path.join(data_dir,proj_file),
-    "nstep" : config[prog]['param_nml']['control']['nstep'],
-    "dt" : config[prog]['param_nml']['control']['dt'],
-    "niter" : niter,
-    "threshold" : config[prog]['param_nml']['control']['threshold'],
-    "alpha0" : config[prog]['param_nml']['control']['alpha0'],
-    "ndump" : config[prog]['param_nml']['control']['ndump'],
-    "ndump2" : config[prog]['param_nml']['post_control']['ndump2'],
-    "mat_et0_path" : os.path.join(data_dir,mat_et0),
-    "numericincrements" : config[prog]['param_nml']['guess_pulse']['numericincrements'],
-    "numberofpixels" : config[prog]['param_nml']['guess_pulse']['numberofpixels'],
-    "inputenergy" : config[prog]['param_nml']['guess_pulse']['inputenergy'],
-    "widthhalfmax" : config[prog]['param_nml']['guess_pulse']['widthhalfmax'],
-    "omegazero" : central_frequency
-  }
-
-  # Definition of the variables present in the jinja template for the job script (except the target state and the name of the rendered parameters file)
-
-  script_render_vars = {
-    "mol_name" : mol_name,
-    "user_email" : config['general']['user_email'],
-    "mail_type" : config['general']['mail_type'],
-    "job_walltime" : job_walltime,
-    "job_mem_per_cpu" : job_mem_per_cpu, # in MB
-    "partition" : job_partition,     
-    "set_env" : clusters_cfg[cluster_name]['progs'][prog]['set_env'],       
-    "command" : clusters_cfg[cluster_name]['progs'][prog]['command'],
-    "mol_dir" : mol_dir,
-    "nb_targets" : len(targets_list),
-    "output_dir" : chains_config['output_dir'][prog],
-    "results_dir" : config['results']['main_dir'],
-    "results_subdir" : config['results'][prog]['dir_name'],
-    "data_dir" : data_dir,
-    "job_script" : rendered_script,
-    "niter" : niter
-  }
-
-  print('%12s' % "[ DONE ]")
-
-  # =========================================================
-  # Rendering the templates and launching the jobs
-  # =========================================================
+  if not dry_run:
+    job_count = 0   # Launched jobs counter, this number will be showed on the console screen at the end of the execution
 
   # For each projector, render the parameters file and run the corresponding job
 
   for target in targets_list:
-      print("\nPreparing to launch job with %s as the target state ..." % target)
 
-      # Create the job directory for that specific target
-      job_dirname = proj_file + target
-      job_dir = os.path.join(mol_dir,job_dirname)
-      os.makedirs(job_dir)
-      print("    The %s job directory has been created in %s" % (job_dirname,mol_dir))
+    console_message = "Start procedure for the " + target + " target"
+    print("")
+    print(''.center(len(console_message)+11, '*'))
+    print(console_message.center(len(console_message)+10))
+    print(''.center(len(console_message)+11, '*'))
 
-      # Create the OPM parameters file for that specific target
-      rendered_param = "param" + "_" + target + ".nml"                                                              # Name of the rendered parameters file
-      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rendered_param), end ="")
-      param_render_vars["target"] = target
-      param_render_vars["processus"] = "OPM"
-      param_render_vars["source"] = " "
-      param_content = jinja_render(templates_dir, template_param, param_render_vars)           # Render the jinja template of the parameters file
-      with open(os.path.join(job_dir, rendered_param), "w", encoding='utf-8') as param_file:
-        param_file.write(param_content)
-      print('%12s' % "[ DONE ]")
+    # Define the job directory for that specific target
 
-      # Create the PCP parameters file for that specific target
-      rendered_param_PCP = "param" + "_" + target + "_PCP.nml"                                                      # Name of the rendered parameters file
-      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rendered_param_PCP), end ="")
-      param_render_vars["processus"] = "PCP"
-      param_render_vars["source"] = "../Pulse/Pulse_iter" + str(niter)
-      param_content = jinja_render(templates_dir, template_param, param_render_vars)           # Render the jinja template of the parameters file
-      with open(os.path.join(job_dir, rendered_param_PCP), "w", encoding='utf-8') as param_file:
-        param_file.write(param_content)
-      print('%12s' % "[ DONE ]")
+    job_dirname = proj_file + target
+    job_dir = os.path.join(mol_dir,job_dirname)
 
-      # Create the job script for that specific target
-      print("{:<80}".format("    Rendering the jinja template to create the %s file ..." % rendered_script), end ="")
-      script_render_vars["target"] = target
-      script_render_vars["rendered_param"] = rendered_param
-      script_render_vars["rendered_param_PCP"] = rendered_param_PCP
-      script_render_vars["job_dirname"] = job_dirname
-      script_content = jinja_render(templates_dir, template_script, script_render_vars)  # Render the jinja template of the job script
-      with open(os.path.join(job_dir, rendered_script), "w", encoding='utf-8') as script_file:
-        script_file.write(script_content)
-      print('%12s' % "[ DONE ]")
+    # Get the path to the jinja templates directory (a directory named "templates" in the same directory as this script)
+    
+    templates_dir = os.path.join(code_dir,"templates")
+
+    # Build a dictionary that will contain all information related to the molecule (or system)
+
+    system = {
+      "states_list" : states_list,
+      "mime" : mime,
+      "momdip_mtx" : momdip_mtx,
+      "eigenvalues" : eigenvalues,
+      "eigenvectors" : eigenvectors,
+      "transpose" : transpose,
+      "momdip_es_mtx" : momdip_es_mtx,
+      "nb_targets" : len(targets_list),
+      "target" : target
+    }
+
+    # Build a dictionary that will contain all information related to the data directory
+
+    data = {
+      "path" : data_dir,
+      "mime_file" : mime_file,
+      "energies_file" : energies_file,
+      "momdip_0" : momdip_0,
+      "momdip_e" : momdip_e,
+      "mat_et0" : mat_et0,
+      "mat_0te" : mat_0te,
+      "init_file" : init_file,
+      "final_file" : final_file,
+      "proj_file" : proj_file
+    }
+
+    # Build a dictionary that will contain all information related to the job
+
+    job_specs = {
+      "prog" : prog,
+      "scale_index" : scale_index,
+      "cluster_name" : cluster_name,
+      "scale_label" : jobscale["label"],
+      "scale_limit" : jobscale_limit,
+      "partition" : job_partition,
+      "walltime" : job_walltime,
+      "mem_per_cpu" : job_mem_per_cpu
+    }
+
+    # Build a dictionary containing the additional variables that might be needed by the rendering function
+    # If your rendering function needs anything else, you can add it in this dictionary
+
+    misc = {  
+        "code_dir" : code_dir,
+        "templates_dir" : templates_dir,
+        "mol_name" : mol_name,
+        "config_name" : os.path.basename(config_file),
+        "parsing_fct" : parsing_fct,
+        "mol_dir" : mol_dir,
+        "job_dirname" : job_dirname
+        }
+
+    # Call the rendering function (defined in control_renderer.py, see the documentation for more information)
+
+    rendered_content, rendered_script = eval("control_renderer." + render_fct)(clusters_cfg, config, system, data, job_specs, misc)
+
+    # Create the job directory
+
+    os.makedirs(job_dir)
+    print("\nThe %s job directory has been created in %s" % (job_dirname,mol_dir))
+
+    # Write the content of each rendered file into its own file with the corresponding filename
+
+    for filename, file_content in rendered_content.items():
+      rendered_file_path = os.path.join(job_dir, filename)
+      with open(rendered_file_path, "w", encoding='utf-8') as result_file:
+        result_file.write(file_content)
+      print("\nThe %s file has been created into the job directory" % filename)
+    
+    # Launch the job
+    
+    if not dry_run:
+
+      print("{:<80}".format("\nLaunching the job ..."), end="")
+      os.chdir(job_dir)
+
+      # Define the launch command
+
+      launch_command = submit_command +  " " + delay_command + " " + rendered_script
+
+      # Execute the command and get the command status
+
+      retcode = os.system(launch_command)
       
-      # Launch the job
-      if not dry_run:
-        print("{:<80}".format("    Launching the job ..."), end="")
-        os.chdir(job_dir)
-        launch_command = clusters_cfg[cluster_name]['submit_command'] + " " + rendered_script
-        retcode = os.system(launch_command)
-        if retcode != 0 :
-          print("ALERT: Job submit encountered an issue")
-          print("Aborting ...")
-          exit(1)
-        print('%12s' % "[ DONE ]")
+      # If something went wrong when submitting the job, do not raise an exception and just quit the execution. It is likely a problem linked to the cluster.
+
+      if retcode != 0 :
+        print("Job submit encountered an issue")
+        print("Aborting ...")
+        exit(5)
+    
+      job_count += 1
+
+      print('%12s' % "[ DONE ]")
+
+    console_message = "End of procedure for the " + target + " target"
+    print("")
+    print(''.center(len(console_message)+10, '*'))
+    print(console_message.center(len(console_message)+10))
+    print(''.center(len(console_message)+10, '*'))
+
+  if not dry_run:
+    print("")
+    if job_count == 1:
+      print("One job has been succesfully launched.")
+    elif job_count > 1:
+      print("%s jobs have been succesfully launched." % job_count)
+    else:
+      print("WARNING: No jobs could be launched.")
       
   print("")
   print("".center(columns,"*"))

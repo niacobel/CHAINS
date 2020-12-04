@@ -84,7 +84,7 @@ def qchem_tddft(file_content:list):
     cpt_triplet = 0
     cpt_singlet = 0
 
-    # Define the ground state of our molecule (wich is the first state and has a null energy)
+    # Define the ground state of our molecule (which is the first state and has a null energy)
     
     states_list = [{'Number': 0, 'Multiplicity': 'Singlet', 'Energy': 0.0, 'Label': 'S0'}]
 

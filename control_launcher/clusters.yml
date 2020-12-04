@@ -18,7 +18,6 @@ shared:
       job_scales: &unique_qoctra
         label: unique
         scale_limit: 100
-        partition_name: default
         time: 0-15:00:00
         mem_per_cpu: 2000 # in MB
 
