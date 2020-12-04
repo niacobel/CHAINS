@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --output=slurm_output.log
-#SBATCH --job-name={{ prog }}_{{ mol_name }}_{{ config_name }}
+#SBATCH --job-name={{ profile }}_{{ mol_name }}_{{ config_name }}
 #SBATCH --mail-user={{ user_email }}
 #SBATCH --mail-type={{ mail_type }}
 #SBATCH --time={{ job_walltime }}

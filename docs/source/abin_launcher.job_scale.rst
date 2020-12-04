@@ -73,13 +73,13 @@ If you want to change the scaling function that will be called via ``ABIN LAUNCH
 .. code-block:: yaml
 
    mycluster:
-      progs:
-         myprog1:
+      profiles:
+         myprofile1:
             scaling_function: name-of-scaling-function
-         myprog2:
+         myprofile2:
             scaling_function: name-of-scaling-function
 
-where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <abin_arguments>`) while ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_). This way, a different scaling function can be assigned to each program.
+where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <abin_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (such as ``orca`` or ``qchem``). This way, a different scaling function can be assigned to each profile.
 
 Total number of electrons
 -------------------------
@@ -105,8 +105,8 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
 .. code-block:: yaml
 
    myclusterA:
-     progs:
-       myprog1:
+     profiles:
+       myprofile1:
          scaling_function: name-of-scaling-function
          job_scales:     
            - 
@@ -125,7 +125,7 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
              delay_command: value   # This is optional
            - 
              ...
-       myprog2:
+       myprofile2:
          scaling_function: name-of-scaling-function
          job_scales:     
            - 
@@ -146,8 +146,8 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
              ...
  
    myclusterB:
-     progs:
-       myprog1:
+     profiles:
+       myprofile1:
          scaling_function: name-of-scaling-function
          job_scales:     
            - 
@@ -167,7 +167,7 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
            - 
              ...
   
-       myprog2:
+       myprofile2:
          scaling_function: name-of-scaling-function
          job_scales:     
            - 
@@ -190,7 +190,7 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
 where
 
 - ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each cluster.
-- ``myprog1`` and ``myprog2`` are the names of the programs you want to run (such as ORCA_ or Q-CHEM_, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each program.
+- ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (such as ``orca`` or ``qchem``, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each profile.
 - ``label``, ``scale_limit``, ``time``, ``cores`` and ``mem_per_cpu`` are all **mandatory keys**, specifying the resources requirements of the jobs.
 - ``partition_name`` is an optional key containing the name of the cluster partition on which the job will be running.
 - ``delay_command`` is an optional key that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` argument of the ``sbatch`` command, see here_.
@@ -200,5 +200,3 @@ You can have as many job scales as you want, and they don't need to be defined i
 .. Hyperlink targets
 
 .. _here: https://slurm.schedmd.com/sbatch.html
-.. _ORCA: https://www.faccts.de/orca/
-.. _Q-CHEM: https://www.q-chem.com/

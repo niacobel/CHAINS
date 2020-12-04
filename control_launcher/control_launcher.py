@@ -103,7 +103,7 @@ def main():
 
     # Other important variable
 
-    prog = "qoctra"                         # Name of the qoctra key that appears in the clusters configuration YAML files
+    profile = "qoctra"                         # Name of the qoctra key that appears in the clusters configuration YAML files
 
     # ========================================================= #
     # Define codes directory                                    #
@@ -141,13 +141,13 @@ def main():
     if submit_command is None:
       raise control_errors.ControlError ("ERROR: There is no defined submit_command for the %s cluster in the clusters configuration file." % cluster_name.upper()) 
 
-    # Check if the program exists 
+    # Check if the profile exists 
 
-    if "progs" not in clusters_cfg[cluster_name]:
-      raise control_errors.ControlError ('ERROR: There is no "progs" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name.upper())    
+    if "profiles" not in clusters_cfg[cluster_name]:
+      raise control_errors.ControlError ('ERROR: There is no "profiles" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name.upper())    
 
-    if prog not in clusters_cfg[cluster_name]["progs"]:
-      raise control_errors.ControlError ('ERROR: There is no "%s" key defined for the %s cluster in the clusters configuration file. \nPlease add information for this program to the clusters configuration file.' % (prog, cluster_name.upper()))
+    if profile not in clusters_cfg[cluster_name]["profiles"]:
+      raise control_errors.ControlError ('ERROR: There is no "%s" key defined for the %s cluster in the clusters configuration file. \nPlease add information for this profile to the clusters configuration file.' % (profile, cluster_name.upper()))
 
     # ========================================================= #
     # Establishing the different job scales                     #
@@ -155,10 +155,10 @@ def main():
 
     # Gather all the different job scales from the clusters configuration file in a temporary dictionary
 
-    job_scales_tmp = clusters_cfg[cluster_name]['progs'][prog].get('job_scales')
+    job_scales_tmp = clusters_cfg[cluster_name]['profiles'][profile].get('job_scales')
 
     if job_scales_tmp is None:
-      raise control_errors.ControlError ("ERROR: There is no defined job_scales for the %s program in the %s cluster in the clusters configuration file." % (prog, cluster_name.upper())) 
+      raise control_errors.ControlError ("ERROR: There is no defined job_scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name.upper())) 
 
     # Defined the required keys in our job scales
 
@@ -180,7 +180,7 @@ def main():
 
       for key in required_keys:
         if key not in scale:
-          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s program in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), prog, cluster_name.upper()))           
+          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), profile, cluster_name.upper()))           
 
       # Extract the scale upper limit from the job scales
 
@@ -191,7 +191,7 @@ def main():
 
     job_scales = OrderedDict(sorted(job_scales.items()))
 
-    print("\nJob scales for %s on %s:" % (prog,cluster_name.upper()))
+    print("\nJob scales for %s on %s:" % (profile,cluster_name.upper()))
     print("")
     print(''.center(146, '-'))
     print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)','Delay Command'))
@@ -242,10 +242,10 @@ def main():
 
     # Define the rendering function that will render the job script and the parameters file(s) (defined in control_renderer.py)
 
-    render_fct = prog + "_render"
+    render_fct = profile + "_render"
 
     if (render_fct) not in dir(control_renderer) or not callable(getattr(control_renderer, render_fct)):
-      raise control_errors.ControlError ("ERROR: There is no function defined for the %s program in renderer.py." % prog)
+      raise control_errors.ControlError ("ERROR: There is no function defined for the %s profile in renderer.py." % profile)
 
   # ========================================================= #
   # Exception handling for the preparation step               #
@@ -302,7 +302,7 @@ def main():
     print('%12s' % "[ DONE ]")
 
     # Sort the eigenvalues and associated eigenvectors (see https://stackoverflow.com/questions/8092920/sort-eigenvalues-and-associated-eigenvectors-after-using-numpy-linalg-eig-in-pyt for reference)
-    
+
     idx = system['eigenvalues'].argsort()   
     system['eigenvalues'] = system['eigenvalues'][idx]
     system['eigenvectors'] = system['eigenvectors'][:,idx]
@@ -458,14 +458,14 @@ def main():
   """
   # MIME
 
-  mime_file = config[prog]['created_files']['mime_file']
+  mime_file = config[profile]['created_files']['mime_file']
   print("{:<60}".format('\nCreating %s file ... ' % mime_file), end="")
   np.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
   print('%12s' % "[ DONE ]")
 
   # Energies
 
-  energies_file = config[prog]['created_files']['energies_file']
+  energies_file = config[profile]['created_files']['energies_file']
   print("{:<60}".format('\nCreating %s file ... ' % energies_file), end="")
   np.savetxt(os.path.join(data_dir,energies_file + '_cm-1'),system['eigenvalues'],fmt='%1.10e')
   np.savetxt(os.path.join(data_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e')
@@ -475,24 +475,24 @@ def main():
 
   # Eigenvectors matrix and eigenvectors transpose matrix
 
-  mat_et0 = config[prog]['created_files']['mat_et0']
+  mat_et0 = config[profile]['created_files']['mat_et0']
   print("{:<60}".format('\nCreating %s file ... ' % mat_et0), end="")
   np.savetxt(os.path.join(data_dir,mat_et0),system['eigenvectors'],fmt='% 18.10e')
   print('%12s' % "[ DONE ]")
 
-  mat_0te = config[prog]['created_files']['mat_0te']
+  mat_0te = config[profile]['created_files']['mat_0te']
   print ("{:<60}".format('\nCreating %s file ... ' % mat_0te), end="")
   np.savetxt(os.path.join(data_dir,mat_0te),system['transpose'],fmt='% 18.10e')
   print('%12s' % "[ DONE ]")
 
   # Dipole moments matrix
 
-  momdip_0 = config[prog]['created_files']['momdip_zero']
+  momdip_0 = config[profile]['created_files']['momdip_zero']
   print("{:<60}".format('\nCreating %s file ... ' % momdip_0), end="")
   np.savetxt(os.path.join(data_dir,momdip_0),system['momdip_mtx'],fmt='% 18.10e')
   print('%12s' % "[ DONE ]")
 
-  momdip_e = config[prog]['created_files']['momdip_eigen']
+  momdip_e = config[profile]['created_files']['momdip_eigen']
   print("{:<60}".format('\nCreating %s file ... ' % momdip_e), end="")
   np.savetxt(os.path.join(data_dir,momdip_e),system['momdip_es_mtx'],fmt='% 18.10e')	
   print('%12s' % "[ DONE ]")
@@ -503,7 +503,7 @@ def main():
 
   # Initial population
 
-  init_file = config[prog]['created_files']['init_pop']
+  init_file = config[profile]['created_files']['init_pop']
   print("{:<60}".format("\nCreating %s file ..." % init_file), end="") 
 
   init_pop = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
@@ -519,7 +519,7 @@ def main():
 
   # Final population (dummy file but still needed by QOCT-RA)
 
-  final_file = config[prog]['created_files']['final_pop']
+  final_file = config[profile]['created_files']['final_pop']
   print("{:<60}".format("\nCreating %s file ..." % final_file), end="") 
 
   final_pop = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
@@ -535,8 +535,8 @@ def main():
   # Projectors
 
   print('')
-  proj_file = config[prog]['created_files']['projectors']
-  target_state = config[prog]['target_state'] # The type of states that will be targeted by the control
+  proj_file = config[profile]['created_files']['projectors']
+  target_state = config[profile]['target_state'] # The type of states that will be targeted by the control
   targets_list = [] # List of target states
 
   for state in system['states_list']:
@@ -567,7 +567,7 @@ def main():
 
   # Use the number of states to determine the job scale
 
-  scale_index = len(system['states_list'])
+  scale_index = len(system['eigenvalues'])
 
   print("")
   print(''.center(50, '-'))
@@ -661,7 +661,7 @@ def main():
     # Build a dictionary that will contain all information related to the job
 
     job_specs = {
-      "prog" : prog,
+      "profile" : profile,
       "scale_index" : scale_index,
       "cluster_name" : cluster_name,
       "scale_label" : jobscale["label"],

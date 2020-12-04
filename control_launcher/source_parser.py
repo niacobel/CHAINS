@@ -47,17 +47,17 @@ def qchem_tddft(file_content:list):
     Returns
     -------
     system : dict
-        The extracted information of the source file. It contains three keys and their associated values: `states_list`, `mime` and `momdip_mtx` where
+        The extracted information of the source file. It contains three keys and their associated values: ``states_list``, ``mime`` and ``momdip_mtx`` where
         
-        - `states_list` is a list of dictionaries containing four keys each: `Number`, `Multiplicity`, `Energy` and `Label` where
+        - ``states_list`` is a list of dictionaries containing four keys each: ``Number``, ``Multiplicity``, ``Energy`` and ``Label`` where
 
-          - `Number` is the number of the state, starting at 0 (which is the ground state)
-          - `Multiplicity` is the multiplicity of the state (ex: singlet, triplet)
-          - `Energy` is the excitation energy of the state, in cm\ :sup:`-1`\ 
-          - `Label` is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
+          - ``Number`` is the number of the state, starting at 0 (which is the ground state)
+          - ``Multiplicity`` is the multiplicity of the state (ex: singlet, triplet)
+          - ``Energy`` is the excitation energy of the state, in cm\ :sup:`-1`\ 
+          - ``Label`` is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
 
-        - `mime` is a NumPy array, representing the Matrix Image of the MoleculE which acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the SOC couplings on the non-diagonal elements (in cm\ :sup:`-1`\ ).
-        - `momdip_mtx` is a NumPy array representing the transition dipole moments (in atomic units).
+        - ``mime`` is a NumPy array, representing the Matrix Image of the MoleculE which acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the SOC couplings on the non-diagonal elements (in cm\ :sup:`-1`\ ).
+        - ``momdip_mtx`` is a NumPy array representing the transition dipole moments (in atomic units).
 
     Raises
     ------

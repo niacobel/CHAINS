@@ -74,7 +74,7 @@ The input file is not the only file that needs to be created. We also need to cr
    #!/bin/bash
 
    #SBATCH --output=slurm_output.log
-   #SBATCH --job-name=orca_c2h6_svp
+   #SBATCH --job-name=sample_orca_c2h6_svp
    #SBATCH --mail-user=your@email.com
    #SBATCH --mail-type=FAIL
    #SBATCH --time=0-05:00:00
@@ -96,7 +96,7 @@ Now, we need to replace every variable part of this input by a Jinja variable:
    #!/bin/bash
 
    #SBATCH --output=slurm_output.log
-   #SBATCH --job-name=orca_{{ mol_name }}_{{ config_name }}
+   #SBATCH --job-name={{ profile }}_{{ mol_name }}_{{ config_name }}
    #SBATCH --mail-user={{ user_email }}
    #SBATCH --mail-type={{ mail_type }}
    #SBATCH --time={{ job_walltime }}
@@ -122,7 +122,7 @@ We are almost done, but there is one more thing we need to take into considerati
    #!/bin/bash
 
    #SBATCH --output=slurm_output.log
-   #SBATCH --job-name=orca_{{ mol_name }}_{{ config_name }}
+   #SBATCH --job-name={{ profile }}_{{ mol_name }}_{{ config_name }}
    #SBATCH --mail-user={{ user_email }}
    #SBATCH --mail-type={{ mail_type }}
    #SBATCH --time={{ job_walltime }}
@@ -172,7 +172,7 @@ ORCA input file:
 
 Job script:
 
-- ``{{ prog }}`` - already given as a :ref:`command line argument <abin_arguments>`
+- ``{{ profile }}`` - already given as a :ref:`command line argument <abin_arguments>`
 - ``{{ mol_name }}`` - name of the geometry file (minus the extension)
 - ``{{ config_name }}`` - name of the configuration file (minus the extension)
 - ``{{ user_email }}``
@@ -194,18 +194,22 @@ For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are depend
 .. code-block:: yaml
 
    myclusterA:
-     progs:
-       orca:
+     profiles:
+       sample_orca:
          set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
          command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
    
    myclusterB:
-     progs:
-       orca:
+     profiles:
+       sample_orca:
          set_env: another-module
          command: another-command
 
 Note that for intuitiveness purposes, the name of the YAML keys is identical to the name of the Jinja variables (``method`` for ``{{ method }}``, ``basis_set`` for ``{{ basis_set }}``, etc.), but nothing prevents you from doing things differently.
+
+.. Caution::
+
+   If for whatever reason, you don't want or need to assign a value to one of the YAML keys in the configuration files (perhaps because the default value is what you need), you must still specify its value as an empty string (``""``). Otherwise, the value will be printed as ``None``, which might cause some problems when running your program.
 
 .. _rendering_fct:
 
@@ -219,7 +223,7 @@ General definition
 
 All the rendering functions must be defined in the ``renderer.py`` file and need to obey some restrictions in order to be callable by ``ABIN LAUNCHER``:
 
-- They need to be called *prog_render*, where *prog* is the name of the program as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. 
+- They need to be called *profile_render*, where *profile* is the name of the profile as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. 
 - They take six dictionaries as arguments: ``mendeleev``, ``clusters_cfg``, ``config``, ``file_data``, ``job_specs`` and ``misc`` (see the next subsection for details).
 - They must return two variables : 
 
@@ -240,7 +244,7 @@ As said in the previous subsection, the rendering functions take six dictionarie
 
 - ``job_specs`` contains the information about the resources requirements, defined by the :doc:`job scaling <abin_launcher.job_scale>` process, as well as other details about the job:
 
-   - ``prog``, the name of the program as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. You can either use this variable or explicitly state it in the code.
+   - ``profile``, the name of the profile as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. You can either use this variable or explicitly state it in the code.
    - ``scaling_fct``, the name of the chosen :ref:`scaling function <scaling_fcts>`
    - ``scale_index``, the computed value of the scale_index
    - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`
@@ -269,7 +273,7 @@ In essence, the rendering functions have a pretty simple structure: their task i
 
 .. code-block:: python
 
-   def prog_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
+   def profile_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
 
       # Define the names of the templates
 
@@ -352,11 +356,11 @@ where ``lemaitre3`` is the name of our cluster.
 Function definition
 ~~~~~~~~~~~~~~~~~~~
 
-Now that we know what our different files look like, let's define the rendering function, called ``orca_render``, associated with our example:
+Now that we know what our different files look like, let's define the rendering function, called ``sample_orca_render``, associated with our example:
 
 .. code-block:: python
 
-   def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
+   def sample_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
 
 We first have to define the names of our Jinja templates.
 
@@ -410,9 +414,9 @@ Let's proceed with the second template in the same manner:
          "job_cores" : job_specs['cores'],
          "job_mem_per_cpu" : job_specs['mem_per_cpu'],
          "partition" : job_specs['partition'],     
-         "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
-         "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-         "prog" : job_specs['prog']
+         "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
+         "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command'],
+         "profile" : job_specs['profile']
       }
 
       rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)

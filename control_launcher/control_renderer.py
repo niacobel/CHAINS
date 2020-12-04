@@ -39,7 +39,7 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
     return output_text
 
 def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the input file associated with the ORCA program.
+    """Renders the job script and the two parameters files (OPM & PCP) associated with the qoctra profile.
 
     Parameters
     ----------
@@ -84,13 +84,13 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
 
     # Check if all the files specified in the clusters YAML file exists in the "templates" directory of CONTROL LAUNCHER.
     
-    for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
+    for filename in clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates'].values():    
         control_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
 
     # Define the names of the templates, given in the YAML clusters configuration file.
 
-    template_param = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['parameters_file']
-    template_script = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_script']
+    template_param = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['parameters_file']
+    template_script = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['job_script']
 
     # Define the names of the rendered files.
 
@@ -114,7 +114,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     
     # Define here the number of iterations for QOCT-RA, as it will be used multiple times later on
 
-    niter = config[job_specs['prog']]['param_nml']['control']['niter']
+    niter = config[job_specs['profile']]['param_nml']['control']['niter']
 
     # Defining the Jinja variables
 
@@ -126,20 +126,20 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
       "final_file_path" : os.path.join(data['path'],data['final_file']),
       "proj_file_path" : os.path.join(data['path'],data['proj_file']),
       "target" : misc['target'],
-      "nstep" : config[job_specs['prog']]['param_nml']['control']['nstep'],
-      "dt" : config[job_specs['prog']]['param_nml']['control']['dt'],
+      "nstep" : config[job_specs['profile']]['param_nml']['control']['nstep'],
+      "dt" : config[job_specs['profile']]['param_nml']['control']['dt'],
       "processus" : "OPM",
       "source" : " ",
       "niter" : niter,
-      "threshold" : config[job_specs['prog']]['param_nml']['control']['threshold'],
-      "alpha0" : config[job_specs['prog']]['param_nml']['control']['alpha0'],
-      "ndump" : config[job_specs['prog']]['param_nml']['control']['ndump'],
-      "ndump2" : config[job_specs['prog']]['param_nml']['post_control']['ndump2'],
+      "threshold" : config[job_specs['profile']]['param_nml']['control']['threshold'],
+      "alpha0" : config[job_specs['profile']]['param_nml']['control']['alpha0'],
+      "ndump" : config[job_specs['profile']]['param_nml']['control']['ndump'],
+      "ndump2" : config[job_specs['profile']]['param_nml']['post_control']['ndump2'],
       "mat_et0_path" : os.path.join(data['path'],data['mat_et0']),
-      "numericincrements" : config[job_specs['prog']]['param_nml']['guess_pulse']['numericincrements'],
-      "numberofpixels" : config[job_specs['prog']]['param_nml']['guess_pulse']['numberofpixels'],
-      "inputenergy" : config[job_specs['prog']]['param_nml']['guess_pulse']['inputenergy'],
-      "widthhalfmax" : config[job_specs['prog']]['param_nml']['guess_pulse']['widthhalfmax'],
+      "numericincrements" : config[job_specs['profile']]['param_nml']['guess_pulse']['numericincrements'],
+      "numberofpixels" : config[job_specs['profile']]['param_nml']['guess_pulse']['numberofpixels'],
+      "inputenergy" : config[job_specs['profile']]['param_nml']['guess_pulse']['inputenergy'],
+      "widthhalfmax" : config[job_specs['profile']]['param_nml']['guess_pulse']['widthhalfmax'],
       "omegazero" : central_frequency
     }
 
@@ -186,13 +186,13 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
       "partition" : job_specs['partition'],
       "rendered_param" : rendered_param_opm,
       "rendered_param_PCP" : rendered_param_pcp,
-      "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
-      "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
+      "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
+      "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command'],
       "mol_dir" : misc['mol_dir'],
       "nb_targets" : misc['nb_targets'],
-      "output_dir" : chains_config['output_dir'][job_specs['prog']],
+      "output_dir" : chains_config['output_dir'][job_specs['profile']],
       "results_dir" : config['results']['main_dir'],
-      "results_subdir" : config['results'][job_specs['prog']]['dir_name'],
+      "results_subdir" : config['results'][job_specs['profile']]['dir_name'],
       "data_dir" : data['path'],
       "job_dirname" : misc['job_dirname'],
       "job_script" : rendered_script,

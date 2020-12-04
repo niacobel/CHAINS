@@ -12,7 +12,7 @@ Loading the clusters configuration file "clusters.yml" ...                      
 
 This script is running on the LEMAITRE3 cluster
 
-Job scales for orca on LEMAITRE3:
+Job scales for sample_orca on LEMAITRE3:
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 Scale Limit     Label                Partition Name       Time                 Cores      Mem per CPU (MB)     Delay Command                           
@@ -33,9 +33,9 @@ Looking for .yml or .yaml files in      /home/users/n/i/niacobel/abin_docs_sampl
      Start procedure for the molecule ch4     
 ***********************************************
 
-Treating 'ch4' geometry with 'tzvp' configuration ...                          Submitted batch job 69269196 on cluster lemaitre3
+Treating 'ch4' geometry with 'tzvp' configuration ...                          Submitted batch job 69307472 on cluster lemaitre3
 
-Treating 'ch4' geometry with 'svp' configuration ...                           Submitted batch job 69269197 on cluster lemaitre3
+Treating 'ch4' geometry with 'svp' configuration ...                           Submitted batch job 69307473 on cluster lemaitre3
 
 Geometry file archived to /home/users/n/i/niacobel/abin_docs_sample/molecules/launched
 
@@ -47,9 +47,9 @@ Geometry file archived to /home/users/n/i/niacobel/abin_docs_sample/molecules/la
      Start procedure for the molecule c3h8     
 ************************************************
 
-Treating 'c3h8' geometry with 'tzvp' configuration ...                         Submitted batch job 69269198 on cluster lemaitre3
+Treating 'c3h8' geometry with 'tzvp' configuration ...                         Submitted batch job 69307474 on cluster lemaitre3
 
-Treating 'c3h8' geometry with 'svp' configuration ...                          Submitted batch job 69269199 on cluster lemaitre3
+Treating 'c3h8' geometry with 'svp' configuration ...                          Submitted batch job 69307475 on cluster lemaitre3
 
 Geometry file archived to /home/users/n/i/niacobel/abin_docs_sample/molecules/launched
 
@@ -61,9 +61,9 @@ Geometry file archived to /home/users/n/i/niacobel/abin_docs_sample/molecules/la
      Start procedure for the molecule c2h6     
 ************************************************
 
-Treating 'c2h6' geometry with 'tzvp' configuration ...                         Submitted batch job 69269200 on cluster lemaitre3
+Treating 'c2h6' geometry with 'tzvp' configuration ...                         Submitted batch job 69307476 on cluster lemaitre3
 
-Treating 'c2h6' geometry with 'svp' configuration ...                          Submitted batch job 69269201 on cluster lemaitre3
+Treating 'c2h6' geometry with 'svp' configuration ...                          Submitted batch job 69307477 on cluster lemaitre3
 
 Geometry file archived to /home/users/n/i/niacobel/abin_docs_sample/molecules/launched
 

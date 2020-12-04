@@ -5,7 +5,7 @@ Overview
 What is ABIN LAUNCHER?
 ======================
 
-The **Ab Initio Input Builder and Job Launcher**, named ``ABIN LAUNCHER`` for short, is a script that creates input files for a given ab initio program, and then submits (or "launches") the corresponding calculation to a job scheduler. It can operate with one or more molecules (through their respective geometry files) and one or more configurations (the parameters for the ab initio program). ``ABIN LAUNCHER`` is the first main script of CHAINS and is executed twice through it:
+The **Ab Initio Input Builder and Job Launcher**, named ``ABIN LAUNCHER`` for short, is a script that creates input files for ab initio programs, and then submits (or "launches") the corresponding calculations on a job scheduler. It can operate with one or more molecules (through their respective geometry files) and one or more configurations (the parameters for the ab initio program). ``ABIN LAUNCHER`` is the first main script of CHAINS and is executed twice through it:
 
 - The first time, it is used to build the input files associated with the ORCA_ program, which performs the geometry optimization of the molecule. 
 - The second time, it is used to build the input files associated with the the Q-CHEM_ program, which performs the calculation of the different properties of our molecule. 
@@ -103,13 +103,13 @@ Other arguments
 
 There are three other required arguments for executing ``ABIN LAUNCHER``:
 
-- :guilabel:`-p / \\--program`, the **name of the program** you want to run.
+- :guilabel:`-p / \\--profile`, the **name of the profile** you want to run jobs with.
 
-   This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive. 
+   This one must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. This is case-sensitive. The profile defines what type of scaling and rendering will be performed.
 
 .. Tip::
 
-   This argument does not need to be the same name as the software you actually want to execute on the cluster. It is just a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different values for this argument that run the same software (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
+   This argument is just a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. In some cases, you might want to have two different profiles for this argument that run the same program (such as ``orca_basic`` and ``orca_chains``, or ``qchem_multithread`` and ``qchem_mpi`` for example).
 
 - :guilabel:`-cl / \\--cluster_name`, the **name of the cluster** you are running on.
 
@@ -169,7 +169,7 @@ where
       mycluster:
         submit_command: <submit_command>
 
-   where ``mycluster`` is the name of your cluster (given as the :guilabel:`-cl / \\--cluster_name` command line argument).
+   where ``mycluster`` is the name of your cluster (the same that was given as the :guilabel:`-cl / \\--cluster_name` command line argument).
 
 - ``<delay_command>`` is an optional command that can delay the submission of a particular job, which can prove useful if you want to prioritize certain job sizes (consult the :doc:`abin_launcher.job_scale` specific documentation for details). In SLURM's case, this is covered by the ``--begin`` argument.
 - ``<job script>`` is the name of the file that will be created through the :doc:`rendering process <abin_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.

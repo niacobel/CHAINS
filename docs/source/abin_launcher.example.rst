@@ -2,7 +2,7 @@
 Sample run
 **********
 
-This section will cover a sample run of ``ABIN LAUNCHER``, to get a concrete example of its operating mode. Our study case here includes three molecules (or geometry files) and two configuration files. Our goal is to optimize the geometry of those three molecules with two different basis sets through ORCA_. 
+This section will cover a sample run of ``ABIN LAUNCHER``, to get a concrete example of its operating mode. Our study case here includes three molecules (or geometry files) and two configuration files. Our goal is to optimize the geometry of those three molecules with two different basis sets through ORCA_. The profile we will define for this occasion will be called ``sample_orca``.
 
 .. Tip::
 
@@ -112,13 +112,13 @@ Running ABIN LAUNCHER
 
 .. Tip::
 
-   Before executing ``ABIN LAUNCHER``, remember to load (manually or through your user profile configuration) your Python distribution (version 3.5+), which must include PyYAML (version 5.1+) and Jinja2 (version 2.10+).
+   Before executing ``ABIN LAUNCHER``, remember to load your Python 3.5+ distribution (either manually or through your `.bashrc or .bash_profile files <https://linuxize.com/post/bashrc-vs-bash-profile/>`_), which must include PyYAML (version 5.1+) and Jinja2 (version 2.10+).
 
 We can now execute ``abin_launcher.py`` by running the command (from ``abin_docs_sample``):
 
 .. code-block:: console
 
-   $ python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
+   $ python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p sample_orca -o orca_jobs/ -cl lemaitre3
 
 This is what appears on the console screen (here captured in a file for ease of reading):
 
@@ -129,12 +129,16 @@ This is what appears on the console screen (here captured in a file for ease of 
 And if we take a look at the job queue, we can see that our 6 ORCA jobs have indeed been submitted to the job scheduler:
 
 .. figure:: figures/abin_launcher_squeue.*
-    :scale: 70%
+    :scale: 65%
     :align: center
     :alt: Jobs queue after running ABIN LAUNCHER
     :figclass: align-center
     
     Jobs queue after running ``ABIN LAUNCHER``
+
+.. Tip::
+
+   If you don't want to explicitly enter this command each time you want to run ``ABIN_LAUNCHER``, you can always define an `alias <https://linuxize.com/post/how-to-create-bash-aliases/>`_ in your ``~/.bashrc`` file!
 
 Directory structure after execution
 -----------------------------------

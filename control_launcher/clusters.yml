@@ -10,7 +10,7 @@
 # Those keys are shared between the clusters, they will be used for information for which the cluster doesn't matter
 
 shared: 
-  progs:
+  profiles:
     qoctra: 
       jinja_templates: &qoctra_jinja
         parameters_file: param.nml.jinja             # The rendered file will be named param_<target>.nml, where <target> is the state label corresponding to the projector that will be used
@@ -28,7 +28,7 @@ shared:
 lemaitre3:
 # address lemaitre3.cism.ucl.ac.be
   submit_command: sbatch
-  progs:
+  profiles:
     qoctra:
       jinja_templates: *qoctra_jinja
       set_env:

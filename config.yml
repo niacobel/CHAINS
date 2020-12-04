@@ -1,4 +1,4 @@
-# This is the program configuration file, it contains every information about the configurations of the different scripts and programs your molecule will run through.
+# This is the profile configuration file, it contains every information about the configurations of the different scripts and programs your molecule will run through.
 # This is a YAML file, see https://yaml.org/ for more information
 
 # ========================================================= #

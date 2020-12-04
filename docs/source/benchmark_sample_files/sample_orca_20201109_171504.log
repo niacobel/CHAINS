@@ -11,7 +11,7 @@
 
 Scanning tmp file /home/users/n/i/niacobel/abin_docs_sample/benchmark/archive/orca_lemaitre3_tmp_20201109_171504.csv ... 
     Detected CSV dialect in tmp file: excel
-    Detected CSV header in tmp file : ['Program', 'Cluster', 'Jobscale', 'Partition', 'Cores', 'MB/CPU', 'Walltime', 'Job ID', 'Job Name', 'Scaling Function', 'Scale Index', 'Submit Date', 'Eligible Date', 'Start Date', 'End Date', 'Nodes', 'Nodes List']
+    Detected CSV header in tmp file : ['Profile', 'Cluster', 'Jobscale', 'Partition', 'Cores', 'MB/CPU', 'Walltime', 'Job ID', 'Job Name', 'Scaling Function', 'Scale Index', 'Submit Date', 'Eligible Date', 'Start Date', 'End Date', 'Nodes', 'Nodes List']
 
 
 ************************************
@@ -142,7 +142,7 @@ End of processing
 ******************************************************
 
 Used dialect in the final CSV file: excel
-Header used in final CSV file: ['Program', 'Cluster', 'Jobscale', 'Partition', 'Cores', 'MB/CPU', 'Walltime', 'Job ID', 'Job Name', 'Scaling Function', 'Scale Index', 'Submit Date', 'Eligible Date', 'Start Date', 'End Date', 'Nodes', 'Nodes List', 'Reserved', 'Elapsed', 'Time Efficiency', 'Max RSS (MB)', 'RAM Efficiency', 'Total CPU', 'Wall CPU', 'CPU Efficiency']
+Header used in final CSV file: ['Profile', 'Cluster', 'Jobscale', 'Partition', 'Cores', 'MB/CPU', 'Walltime', 'Job ID', 'Job Name', 'Scaling Function', 'Scale Index', 'Submit Date', 'Eligible Date', 'Start Date', 'End Date', 'Nodes', 'Nodes List', 'Reserved', 'Elapsed', 'Time Efficiency', 'Max RSS (MB)', 'RAM Efficiency', 'Total CPU', 'Wall CPU', 'CPU Efficiency']
 
 Writing newly processed lines to the final file /home/users/n/i/niacobel/abin_docs_sample/benchmark/orca_lemaitre3_final.csv ...      [DONE]
 

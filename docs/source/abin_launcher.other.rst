@@ -13,8 +13,8 @@ The clusters configuration file, named ``clusters.yml``, is the YAML file contai
 
    myclusterA:
      submit_command: value
-     progs:
-       myprog1:
+     profiles:
+       myprofile1:
          set_env: value
          command: value
          scaling_function: name-of-scaling-function
@@ -37,7 +37,7 @@ The clusters configuration file, named ``clusters.yml``, is the YAML file contai
              delay_command: value   # This is optional
            - 
              ...
-       myprog2:
+       myprofile2:
          set_env: value
          command: value
          scaling_function: name-of-scaling-function
@@ -67,13 +67,13 @@ The clusters configuration file, named ``clusters.yml``, is the YAML file contai
 where
 
 - ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`).
-- ``myprog1`` and ``myprog2`` are the names of the programs you want to run (also given as a :ref:`command line argument <abin_arguments>`).
+- ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (also given as a :ref:`command line argument <abin_arguments>`).
 
 If you want a more concrete example, let's consider the following situation:
 
 - Two clusters who use SLURM as the job scheduler, named ``lemaitre3`` and ``vega``
-- We want to run two programs: ORCA_ and Q-CHEM_
-- Both programs use ``total_nb_elec`` as the scaling function
+- We have two profiles: ``orca`` and ``qchem``
+- Both profiles use ``total_nb_elec`` as the scaling function
 - ORCA is available on both clusters, but Q-CHEM is specific to the ``vega`` cluster
 
 This is what the file might look like in this situation:
@@ -82,7 +82,7 @@ This is what the file might look like in this situation:
 
    lemaitre3:
      submit_command: sbatch
-     progs:
+     profiles:
        orca:
          set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
          command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
@@ -120,7 +120,7 @@ This is what the file might look like in this situation:
 
    vega:
      submit_command: sbatch
-     progs:
+     profiles:
        orca:
          set_env: module load ORCA/4.0.0.2-OpenMPI-2.0.2
          command: /apps/brussel/interlagos/software/ORCA/4.0.0.2-OpenMPI-2.0.2/orca

@@ -10,7 +10,7 @@
 # Those keys are shared between the clusters, they will be used for information for which the cluster doesn't matter
 
 shared: 
-  progs:
+  profiles:
     orca:
       jinja_templates: &orca_jinja
         input: orca.inp.jinja                          # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the geometry file
@@ -30,7 +30,7 @@ shared:
 dragon1:
 # address dragon1.umons.ac.be
   submit_command: sbatch
-  progs:
+  profiles:
     orca:
       jinja_templates: *orca_jinja
       set_env:
@@ -52,21 +52,29 @@ dragon1:
           scale_limit: 1500
           time: 5-00:00:00
           cores: 8
-          mem_per_cpu: 2000 # in MB
+          mem_per_cpu: 3000 # in MB
           delay_command: --begin=now+60
         - 
           label: big
           scale_limit: 2000
           partition_name: Long
-          time: 15-00:00:00
+          time: 8-00:00:00
           cores: 8
-          mem_per_cpu: 4000 # in MB  
+          mem_per_cpu: 5000 # in MB  
           delay_command: --begin=now+120
+        - 
+          label: very big
+          scale_limit: 2500
+          partition_name: Long
+          time: 15-00:00:00
+          cores: 16
+          mem_per_cpu: 8000 # in MB  
+          delay_command: --begin=now+180
 
 dragon2:
 # address dragon2.umons.ac.be
   submit_command: sbatch
-  progs:
+  profiles:
     orca:
       jinja_templates: *orca_jinja
       set_env:
@@ -108,7 +116,7 @@ dragon2:
 lemaitre3:
 # address lemaitre3.cism.ucl.ac.be
   submit_command: sbatch
-  progs:
+  profiles:
     orca:
       jinja_templates: *orca_jinja
       set_env: 
@@ -154,13 +162,14 @@ lemaitre3:
 hercules:
 # address hercules2.ptci.unamur.be
   submit_command: sbatch
-  progs:
+  profiles:
     qchem:
       jinja_templates:
         input: qchem.in.jinja                        # The rendered file will be named <mol_name>.in, where <mol_name> is the name of the geometry file
         job_script: qchem_job.sh.jinja              
       set_env: 
-        - module purge
+        - module --force purge
+        - module load tis/2017.01
         - module load Q-Chem/5.3.0-SHMEM
         - export QCSCRATCH=${TMPDIR}
       command: srun qchem -nt ${SLURM_CPUS_PER_TASK}
@@ -180,8 +189,8 @@ hercules:
           mem_per_cpu: 1000 # in MB
         - 
           label: small
-          scale_limit: 800
-          time: 3-00:00:00
+          scale_limit: 750
+          time: 4-00:00:00
           cores: 8
           mem_per_cpu: 1500 # in MB
         - 
@@ -208,7 +217,7 @@ hercules:
 vega:
 # address vega.ulb.ac.be
   submit_command: sbatch
-  progs:
+  profiles:
     orca:
       jinja: *orca_jinja
       set_env: 

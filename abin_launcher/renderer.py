@@ -91,13 +91,13 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
 
     # Check if all the files specified in the clusters YAML file exists in the "templates" directory of ABIN LAUNCHER.
     
-    for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
+    for filename in clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates'].values():    
         abin_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
 
     # Define the names of the templates, given in the YAML clusters configuration file.
 
-    template_input = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']
-    template_script = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_script']
+    template_input = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['input']
+    template_script = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['job_script']
 
     # Define the names of the rendered files.
 
@@ -121,11 +121,11 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     # Defining the Jinja variables
 
     input_render_vars = {
-        "method" : config[job_specs['prog']]['method'],
-        "basis_set" : config[job_specs['prog']]['basis_set'],
-        "aux_basis_set" : config[job_specs['prog']]['aux_basis_set'],
-        "job_type" : config[job_specs['prog']]['job_type'],
-        "other" : config[job_specs['prog']]['other'],
+        "method" : config[job_specs['profile']]['method'],
+        "basis_set" : config[job_specs['profile']]['basis_set'],
+        "aux_basis_set" : config[job_specs['profile']]['aux_basis_set'],
+        "job_type" : config[job_specs['profile']]['job_type'],
+        "other" : config[job_specs['profile']]['other'],
         "job_cores" : job_specs['cores'],
         "orca_mem_per_cpu" : orca_mem_per_cpu,
         "charge" : config['general']['charge'],
@@ -159,13 +159,13 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
         "job_cores" : job_specs['cores'],
         "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
         "partition" : job_specs['partition'],     
-        "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
-        "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-        "output_dir" : chains_config['output_dir'][job_specs['prog']],
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
+        "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command'],
+        "output_dir" : chains_config['output_dir'][job_specs['profile']],
         "results_dir" : chains_config['results_dir'],
         "chains_dir" : chains_path,
         "check_dir" : check_script_path,
-        "results_subdir" : job_specs['prog'].upper(),
+        "results_subdir" : job_specs['profile'].upper(),
         "job_script" : rendered_script,
         "config_file" : misc['config_name']
     }
@@ -174,8 +174,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
    
     script_render_vars.update({
         "benchmark_path" : "${CECIHOME}/BENCHMARK",
-        "prefix": job_specs['prog'] + "_" + job_specs['cluster_name'],
-        "prog" : job_specs['prog'],
+        "prefix": job_specs['profile'] + "_" + job_specs['cluster_name'],
+        "profile" : job_specs['profile'],
         "cluster_name" : job_specs['cluster_name'],
         "jobscale_label" : job_specs['scale_label'],
         "job_walltime" : job_specs['walltime'],
@@ -243,13 +243,13 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
 
     # Check if all the files specified in the clusters YAML file exists in the "templates" directory of ABIN LAUNCHER.
     
-    for filename in clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates'].values():    
+    for filename in clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates'].values():    
         abin_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
 
     # Define the names of the templates, given in the YAML clusters configuration file.
 
-    template_input = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['input']
-    template_script = clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['jinja_templates']['job_script']
+    template_input = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['input']
+    template_script = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['job_script']
 
     # Define the names of the rendered files.
 
@@ -269,10 +269,10 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     # Defining the Jinja variables
 
     input_render_vars = {
-        "job_type" : config[job_specs['prog']]['job_type'],
-        "exchange" : config[job_specs['prog']]['exchange'],
-        "basis_set" : config[job_specs['prog']]['basis_set'],
-        "cis_n_roots" : config[job_specs['prog']]['cis_n_roots'],
+        "job_type" : config[job_specs['profile']]['job_type'],
+        "exchange" : config[job_specs['profile']]['exchange'],
+        "basis_set" : config[job_specs['profile']]['basis_set'],
+        "cis_n_roots" : config[job_specs['profile']]['cis_n_roots'],
         "charge" : config['general']['charge'],
         "multiplicity" : config['general']['multiplicity'],
         "coordinates" : file_data['atomic_coordinates']
@@ -304,13 +304,13 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
         "job_cores" : job_specs['cores'],
         "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
         "partition" : job_specs['partition'],     
-        "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],       
-        "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-        "output_dir" : chains_config['output_dir'][job_specs['prog']],
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
+        "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command'],
+        "output_dir" : chains_config['output_dir'][job_specs['profile']],
         "results_dir" : chains_config['results_dir'],
         "chains_dir" : chains_path,
         "check_dir" : check_script_path,
-        "results_subdir" : job_specs['prog'].upper(),
+        "results_subdir" : job_specs['profile'].upper(),
         "job_script" : rendered_script,
         "config_file" : misc['config_name']
     }
@@ -319,8 +319,8 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
    
     script_render_vars.update({
         "benchmark_path" : "${CECIHOME}/BENCHMARK",
-        "prefix": job_specs['prog'] + "_" + job_specs['cluster_name'],
-        "prog" : job_specs['prog'],
+        "prefix": job_specs['profile'] + "_" + job_specs['cluster_name'],
+        "profile" : job_specs['profile'],
         "cluster_name" : job_specs['cluster_name'],
         "jobscale_label" : job_specs['scale_label'],
         "job_walltime" : job_specs['walltime'],

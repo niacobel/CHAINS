@@ -31,7 +31,7 @@ mkdir -p ${benchmark_path}
 
 # If the file doesn't already exist, create it with a header as first line
 
-header="Program;Cluster;Jobscale;Partition;Cores;MB/CPU;Walltime;Job ID;Job Name;Scaling Function;Scale Index;Submit Date;Eligible Date;Start Date;End Date;Nodes;Nodes List"
+header="Profile;Cluster;Jobscale;Partition;Cores;MB/CPU;Walltime;Job ID;Job Name;Scaling Function;Scale Index;Submit Date;Eligible Date;Start Date;End Date;Nodes;Nodes List"
 
 if [ ! -f "${benchmark_path}/${filename}" ]; then
     echo -e "\nFile ${filename} does not exist in ${benchmark_path}, a new one will be created."
@@ -69,7 +69,7 @@ dates=$(echo "${dates_raw}${end_time}" | tr -s _ " ")
 
 # Store everything into a variable
 
-infos="{{ prog }};{{ cluster_name }};{{ jobscale_label }};${req}{{ job_mem_per_cpu }};{{ job_walltime }};$SLURM_JOB_ID;$SLURM_JOB_NAME;{{ scaling_function }};{{ scale_index }};${dates};$SLURM_NNODES;$SLURM_NODELIST"
+infos="{{ profile }};{{ cluster_name }};{{ jobscale_label }};${req}{{ job_mem_per_cpu }};{{ job_walltime }};$SLURM_JOB_ID;$SLURM_JOB_NAME;{{ scaling_function }};{{ scale_index }};${dates};$SLURM_NNODES;$SLURM_NODELIST"
 
 echo -e "\nContent:"
 echo -e "${infos}"

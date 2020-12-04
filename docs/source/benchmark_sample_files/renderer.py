@@ -43,7 +43,7 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 # =================================================================== #
 # =================================================================== #
 
-def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
+def sample_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
     """Renders the job script and the input file associated with the ORCA program.
     
     Parameters
@@ -118,9 +118,9 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
       "job_cores" : job_specs['cores'],
       "job_mem_per_cpu" : job_specs['mem_per_cpu'],
       "partition" : job_specs['partition'],
-      "set_env" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['set_env'],
-      "command" : clusters_cfg[job_specs['cluster_name']]['progs'][job_specs['prog']]['command'],
-      "prog" : job_specs['prog']
+      "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],
+      "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command'],
+      "profile" : job_specs['profile']
     }
 
     # Add variables specific to the benchmarking template
@@ -128,7 +128,7 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     script_render_vars.update({
       "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
       "prefix": "orca_lemaitre3",
-      "prog" : job_specs['prog'],
+      "profile" : job_specs['profile'],
       "cluster_name" : job_specs['cluster_name'],
       "jobscale_label" : job_specs['scale_label'],
       "job_walltime" : job_specs['walltime'],

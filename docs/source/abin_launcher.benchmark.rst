@@ -46,7 +46,7 @@ The role of the Jinja template
 
 At the end of the job script, some additional commands, provided by the ``benchmark.jinja`` template, will fetch the following information:
 
-- The name of the program and the name of the cluster
+- The name of the profile and the name of the cluster
 - The chosen job scale and its associated resources requirements
 - The job ID and name
 - The scaling function and the computed scale index
@@ -106,7 +106,7 @@ Since that template requires some specific variables, add the following code to 
    script_render_vars.update({
       "benchmark_path" : <value>,
       "prefix": <value>,
-      "prog" : job_specs['prog'],
+      "profile" : job_specs['profile'],
       "cluster_name" : job_specs['cluster_name'],
       "jobscale_label" : job_specs['scale_label'],
       "job_walltime" : job_specs['walltime'],
@@ -172,10 +172,10 @@ If some lines of the temporary CSV files were to cause any kind of problem, they
 
 \* Be careful to not erase a *real* temporary CSV file by doing so.
 
-Dealing with multiple programs or clusters
+Dealing with multiple profiles or clusters
 ------------------------------------------
 
-Unfortunately, this tool works with one program and one cluster at a time. If you have multiple programs you want to run with ``ABIN LAUNCHER``, or multiple clusters, you will have to configure the benchmarking tool for each of the program-cluster combination.
+Unfortunately, this tool works with one profile and one cluster at a time. If you have multiple profiles you want to run with ``ABIN LAUNCHER``, or multiple clusters, you will have to configure the benchmarking tool for each of the profile-cluster combination.
 
 This implies that you need to:
 
@@ -183,7 +183,7 @@ This implies that you need to:
 - Add the Jinja variables definition (``script_render_vars.update``) to all the rendering functions.
 - Add the cron task command to the crontab of every cluster 
 
-Multiple programs can share the same crontab task if you don't mind their lines being in the same CSV file.
+Multiple profiles can share the same crontab task if you don't mind their lines being in the same CSV file.
 
 Sample run
 ==========
@@ -239,14 +239,14 @@ At the end of ``sample_orca_job.sh.jinja``, we add the following line:
 
    {% include "benchmark.jinja" %}
 
-and in the ``orca_render`` function of ``renderer.py``, we add
+and in the ``sample_orca_render`` function of ``renderer.py``, we add
 
 .. code-block:: python
 
    script_render_vars.update({
       "benchmark_path" : "/home/users/n/i/niacobel/abin_docs_sample/benchmark",
       "prefix": "sample_orca",
-      "prog" : job_specs['prog'],
+      "profile" : job_specs['profile'],
       "cluster_name" : job_specs['cluster_name'],
       "jobscale_label" : job_specs['scale_label'],
       "job_walltime" : job_specs['walltime'],
@@ -297,7 +297,7 @@ We just run ``ABIN LAUNCHER`` as normal, by executing the main script (from ``ab
 
 .. code-block:: console
 
-   $ python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p orca -o orca_jobs/ -cl lemaitre3
+   $ python abin_launcher/abin_launcher.py -m molecules/ -cf configs/ -p sample_orca -o orca_jobs/ -cl lemaitre3
 
 We obtain the same results than before, with the six launched jobs. 
 
@@ -351,7 +351,7 @@ where our final CSV file, ``sample_orca_final.csv``, contains:
 Once loaded into Microsoft Excel, we can then get a nice view of every important data about our jobs:
 
 .. figure:: figures/benchmark_csv.png
-    :scale: 50%
+    :scale: 35%
     :align: center
     :alt: Excel view of the final CSV file
     :figclass: align-center
