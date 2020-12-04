@@ -62,7 +62,7 @@ def get_MaxRSS(jobID:int) -> int:
   # Check if there no unknown value
 
   for line in maxRSS_list:
-    if line[-1].lower() != 'k' and line[-1].lower() != 'm':
+    if line[-1].lower() != 'k' and line[-1].lower() != 'm' and line[-1] != '0':
       raise ValueError ("One of the values returned by 'sacct -j {} --format=MaxRSS%12 --noheader' is of unknown units".format(jobID))
 
   # Get rid of the k / K or m / M at the end of the numbers (and convert KB to MB while we're at it)
