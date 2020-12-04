@@ -13,7 +13,7 @@ The rendering process makes use of three main elements:
 - The content needed to "fill" those templates with the information specific to each calculation, partially provided by a new YAML file, called the configuration file
 - The rendering function that will make the link between those two, i.e. filling the templates with the content
 
-Those elements are presented in more details in the following subsections. 
+Those elements are presented in more details in the following subsections. If you haven't consulted it yet, it is strongly suggested to take a look at the :doc:`basics.know` section, which contains tutorials that might prove helpful in your understanding of this section.
 
 .. Important::
 
@@ -22,7 +22,7 @@ Those elements are presented in more details in the following subsections.
 Jinja templates
 ===============
 
-To illustrate how to create those Jinja templates, let's consider two basic examples. 
+Rather than trying to explain how to create your templates in a vacuum, let's consider two basic examples to illustrate this process.
 
 .. warning::
 
