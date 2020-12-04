@@ -756,7 +756,7 @@ def main():
     elif job_count > 1:
       print("%s jobs have been succesfully launched." % job_count)
     else:
-      print("WARNING: No jobs could be launched.")
+      print("WARNING: No job could be launched.")
 
   print("")
   print("".center(columns,"*"))
