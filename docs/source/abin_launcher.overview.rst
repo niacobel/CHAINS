@@ -37,7 +37,7 @@ As for what each file does, everything will be explained in more details in the 
 
 - ``abin_launcher.py`` is the main script itself, the one that needs to be executed.
 - ``geom_scan.py`` is the library of functions that define how to scan the geometry files, i.e. how to read and interpret them.
-- ``scaling_fcts`` is the library of functions that define how to determine the job size, by calculating what we defined as the "scale index".
+- ``scaling_fcts.py`` is the library of functions that define how to determine the job size, by calculating what we defined as the "scale index".
 - ``renderer.py`` is the library of functions that define how to render the Jinja templates, i.e. how to create the input files and the job script.
 - ``abin_errors.py`` contains all the classes and functions defining :ref:`how to handle errors <abin_errors>`.
 - ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, called the :ref:`clusters configuration file <clusters_file>`.

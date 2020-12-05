@@ -607,6 +607,7 @@ def main():
             "code_dir" : code_dir,
             "templates_dir" : templates_dir,
             "mol_name" : mol_name,
+            "mol_content" : mol_content,
             "config_name" : config_name
             }
 

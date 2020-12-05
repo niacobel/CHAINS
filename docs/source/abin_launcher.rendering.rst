@@ -236,25 +236,26 @@ The six arguments
 
 As said in the previous subsection, the rendering functions take six dictionaries as arguments. Since those functions might want various information depending on each specific case, we tried to include as many pertinent details as you might want to refer to during your rendering process. Thus, the six dictionaries are defined as follows:
 
-- ``mendeleev`` is the content of the ``mendeleev.yml`` file
-- ``clusters_cfg`` is the content of the :ref:`clusters configuration file <clusters_file>`
-- ``config`` is the content of the YAML configuration file
+- ``mendeleev`` is the content of the ``mendeleev.yml`` file.
+- ``clusters_cfg`` is the content of the :ref:`clusters configuration file <clusters_file>`.
+- ``config`` is the content of the YAML configuration file.
 - ``file_data`` is the variable built by the :doc:`scanning function <abin_launcher.scan>`.
 
 - ``job_specs`` contains the information about the resources requirements, defined by the :doc:`job scaling <abin_launcher.job_scale>` process, as well as other details about the job:
 
    - ``profile``, the name of the profile as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. You can either use this variable or explicitly state it in the code.
-   - ``scaling_fct``, the name of the chosen :ref:`scaling function <scaling_fcts>`
-   - ``scale_index``, the computed value of the scale_index
-   - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`
+   - ``scaling_fct``, the name of the chosen :ref:`scaling function <scaling_fcts>`.
+   - ``scale_index``, the computed value of the scale_index.
+   - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`.
    - ``scale_label``, ``scale_limit``, ``partition``, ``walltime``, ``cores`` and ``mem_per_cpu`` are all the information associated to the chosen :ref:`job scale <job_scales>`.
 
 - ``misc`` contains all other pertinent details:
 
-   - ``code_dir`` is the path towards the ``ABIN LAUNCHER`` directory
+   - ``code_dir`` is the path towards the ``ABIN LAUNCHER`` directory.
    - ``templates_dir`` is the path towards the ``templates`` directory in the ``ABIN LAUNCHER`` directory.
-   - ``mol_name`` is the name of the geometry file (minus the extension)
-   - ``config_name`` is the name of the configuration file
+   - ``mol_name`` is the name of the geometry file (minus the extension).
+   - ``mol_content`` is the content of the geometry file (in the form of a list where each element is a line of the file).
+   - ``config_name`` is the name of the configuration file.
 
 Using the Jinja templates
 -------------------------
