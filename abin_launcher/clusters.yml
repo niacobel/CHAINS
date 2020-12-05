@@ -12,6 +12,7 @@
 shared: 
   profiles:
     orca:
+      rendering_function: &orca_rdr orca_render
       jinja_templates: &orca_jinja
         input: orca.inp.jinja                          # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the geometry file
         job_script: orca_job.sh.jinja                                           
@@ -32,6 +33,7 @@ dragon1:
   submit_command: sbatch
   profiles:
     orca:
+      rendering_function: *orca_rdr
       jinja_templates: *orca_jinja
       set_env:
         - module --force purge
@@ -76,6 +78,7 @@ dragon2:
   submit_command: sbatch
   profiles:
     orca:
+      rendering_function: *orca_rdr
       jinja_templates: *orca_jinja
       set_env:
         - module --force purge
@@ -118,6 +121,7 @@ lemaitre3:
   submit_command: sbatch
   profiles:
     orca:
+      rendering_function: *orca_rdr
       jinja_templates: *orca_jinja
       set_env: 
         - module --force purge
@@ -164,6 +168,7 @@ hercules:
   submit_command: sbatch
   profiles:
     qchem:
+      rendering_function: qchem_render
       jinja_templates:
         input: qchem.in.jinja                        # The rendered file will be named <mol_name>.in, where <mol_name> is the name of the geometry file
         job_script: qchem_job.sh.jinja              
@@ -219,6 +224,7 @@ vega:
   submit_command: sbatch
   profiles:
     orca:
+      rendering_function: *orca_rdr
       jinja: *orca_jinja
       set_env: 
         - module purge
@@ -240,6 +246,7 @@ vega:
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+120
     qchem:
+      rendering_function: qchem_render
       jinja_templates:
         input: qchem.in.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
         job_script: qchem_job.sh.jinja               

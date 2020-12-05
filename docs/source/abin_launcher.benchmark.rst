@@ -172,18 +172,18 @@ If some lines of the temporary CSV files were to cause any kind of problem, they
 
 \* Be careful to not erase a *real* temporary CSV file by doing so.
 
-Dealing with multiple profiles or clusters
-------------------------------------------
+Dealing with multiple profiles
+------------------------------
 
-Unfortunately, this tool works with one profile and one cluster at a time. If you have multiple profiles you want to run with ``ABIN LAUNCHER``, or multiple clusters, you will have to configure the benchmarking tool for each of the profile-cluster combination.
+Unfortunately, this tool only works with one profile at a time. If you have multiple profiles you want to run with ``ABIN LAUNCHER`` (or even similar profiles on multiple clusters), you will have to configure the benchmarking tool for each of those profiles.
 
 This implies that you need to:
 
-- Add the include line to all job script templates.
+- Add the ``{% include "benchmark.jinja" %}`` line to all job script templates.
 - Add the Jinja variables definition (``script_render_vars.update``) to all the rendering functions.
-- Add the cron task command to the crontab of every cluster 
+- Add the cron task command to the crontab of every cluster where the rendering functions will be executed.
 
-Multiple profiles can share the same crontab task if you don't mind their lines being in the same CSV file.
+Multiple profiles can share the same cron task if you don't mind their lines being in the same CSV file. To prepare for this eventuality, the first column of the CSV file is the name of the profile, to help differentiate them.
 
 Sample run
 ==========

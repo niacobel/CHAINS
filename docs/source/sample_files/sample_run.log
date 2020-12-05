@@ -8,11 +8,17 @@ Codes directory:                        /home/users/n/i/niacobel/abin_docs_sampl
 
 Loading AlexGustafsson's Mendeleev Table ...                                                                                                    [ DONE ]
 
-Loading the clusters configuration file "clusters.yml" ...                                                                                      [ DONE ]
+Loading the clusters configuration file ...                                                                                                     [ DONE ]
 
-This script is running on the LEMAITRE3 cluster
+Cluster name:                           lemaitre3                                                                                           
 
-Job scales for sample_orca on LEMAITRE3:
+Profile:                                sample_orca                                                                                         
+
+Scaling function for that profile:      total_nb_elec                                                                                       
+
+Rendering function for that profile:    sample_orca_render                                                                                  
+
+Job scales for that profile:
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 Scale Limit     Label                Partition Name       Time                 Cores      Mem per CPU (MB)     Delay Command                           
@@ -23,7 +29,7 @@ Scale Limit     Label                Partition Name       Time                 C
 1500            big                  batch                2-00:00:00           8          4000                 --begin=now+120                         
 --------------------------------------------------------------------------------------------------------------------------------------------------
 
-Jobs main directory:                    /home/users/n/i/niacobel/abin_docs_sample/orca_jobs                                                 
+Jobs root directory:                    /home/users/n/i/niacobel/abin_docs_sample/orca_jobs                                                 
 
 Looking for .xyz geometry files in      /home/users/n/i/niacobel/abin_docs_sample/molecules ...                                                 [ DONE ]
 

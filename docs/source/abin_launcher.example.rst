@@ -6,7 +6,7 @@ This section will cover a sample run of ``ABIN LAUNCHER``, to get a concrete exa
 
 .. Tip::
 
-   Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/sample_files>`_. The other files can be fetched directly from ``ABIN LAUNCHER``'s :ref:`directory <abin_directory>`. Note that for this example, the ``renderer.py`` file from the ``sample_files`` directory replaces the one present in ``ABIN LAUNCHER``'s directory (which is a more complex one, used by CHAINS).
+   Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/sample_files>`_. The other files can be fetched directly from ``ABIN LAUNCHER``'s :ref:`directory <abin_directory>`. Note that for this example, the ``renderer.py`` and ``clusters.yml`` file from the ``sample_files`` directory replaces the ones present in ``ABIN LAUNCHER``'s directory (which are more complex ones, used by CHAINS).
 
 Preparation
 ===========
@@ -40,7 +40,7 @@ We will also use the rendering function we defined in the :ref:`rendering sectio
 Clusters configuration file
 ---------------------------
 
-For this run, we will be running on the LEMAITRE3 cluster from the CECI_, the job scheduler is SLURM and the chosen scaling function is ``total_nb_elec``. 
+For this run, we will be running on the ``lemaitre3`` cluster from the CECI_, the job scheduler is SLURM and the chosen scaling function is ``total_nb_elec``. 
 
 The clusters configuration file looks like:
 

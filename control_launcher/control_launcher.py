@@ -130,24 +130,24 @@ def main():
     # Check the name of the cluster
 
     if cluster_name not in clusters_cfg:
-      raise control_errors.ControlError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name.upper())
+      raise control_errors.ControlError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name)
 
-    print("\nThis script is running on the %s cluster" % cluster_name.upper())
+    print("\nThis script is running on the %s cluster" % cluster_name)
 
     # Check if the submit_command key has been defined
 
     submit_command = clusters_cfg[cluster_name].get("submit_command")
 
     if submit_command is None:
-      raise control_errors.ControlError ("ERROR: There is no defined submit_command for the %s cluster in the clusters configuration file." % cluster_name.upper()) 
+      raise control_errors.ControlError ("ERROR: There is no defined submit_command for the %s cluster in the clusters configuration file." % cluster_name) 
 
     # Check if the profile exists 
 
     if "profiles" not in clusters_cfg[cluster_name]:
-      raise control_errors.ControlError ('ERROR: There is no "profiles" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name.upper())    
+      raise control_errors.ControlError ('ERROR: There is no "profiles" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name)    
 
     if profile not in clusters_cfg[cluster_name]["profiles"]:
-      raise control_errors.ControlError ('ERROR: There is no "%s" key defined for the %s cluster in the clusters configuration file. \nPlease add information for this profile to the clusters configuration file.' % (profile, cluster_name.upper()))
+      raise control_errors.ControlError ('ERROR: There is no "%s" key defined for the %s cluster in the clusters configuration file. \nPlease add information for this profile to the clusters configuration file.' % (profile, cluster_name))
 
     # ========================================================= #
     # Establishing the different job scales                     #
@@ -158,7 +158,7 @@ def main():
     job_scales_tmp = clusters_cfg[cluster_name]['profiles'][profile].get('job_scales')
 
     if job_scales_tmp is None:
-      raise control_errors.ControlError ("ERROR: There is no defined job_scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name.upper())) 
+      raise control_errors.ControlError ("ERROR: There is no defined job_scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
 
     # Defined the required keys in our job scales
 
@@ -180,7 +180,7 @@ def main():
 
       for key in required_keys:
         if key not in scale:
-          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), profile, cluster_name.upper()))           
+          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), profile, cluster_name))           
 
       # Extract the scale upper limit from the job scales
 
@@ -191,7 +191,7 @@ def main():
 
     job_scales = OrderedDict(sorted(job_scales.items()))
 
-    print("\nJob scales for %s on %s:" % (profile,cluster_name.upper()))
+    print("\nJob scales for %s on %s:" % (profile,cluster_name))
     print("")
     print(''.center(146, '-'))
     print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)','Delay Command'))
@@ -586,7 +586,7 @@ def main():
       break
 
   if not jobscale:
-    raise control_errors.ControlError ("ERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
+    raise control_errors.ControlError ("ERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name)
 
   # Obtaining the information associated to our job scale
 

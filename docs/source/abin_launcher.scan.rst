@@ -4,7 +4,7 @@ Scanning the geometry file
 
 While ``ABIN LAUNCHER`` scans the geometry file, it is looking for information about the chemical formula and the atomic coordinates of our molecule. The way it does that is by calling a function defined in the ``geom_scan.py`` file, called a **scanning function**. The only argument this function needs is the content of the geometry file, stored as a list in the ``mol_content`` variable (each element of the list corresponds to a line of the file). 
 
-Note that at this time, only the XYZ format is supported for geometry files and so there is only a single scanning function, called ``xyz_scan``. The XYZ format is rather well known and you should be able to convert your geometry files quite easily. However, if the need arises, consult the :ref:`other_formats` subsection for more details on how to handle another format.
+Note that at this time, only the XYZ format is supported for geometry files and so there is only a single scanning function, called ``xyz_scan``. The XYZ format is rather well known and you should be able to convert your geometry files to this format quite easily. However, if the need arises, consult the :ref:`other_formats` subsection for more details on how to handle another format.
 
 XYZ format
 ==========
@@ -62,13 +62,13 @@ Format as a new command line argument
 
 If you want to add support for another format, it is probably a good idea to add a new command line argument that will be given when executing ``ABIN LAUNCHER``. Everything has already been prepared for that eventuality. As such, you only need to change two lines in ``abin_launcher.py``:
 
-Just uncomment
+Just uncomment this line (remove the # at the beginning of the line)
 
 .. code-block:: python
 
    required.add_argument('-f', '--format', type=str, help="Format of the geometry files that need to be read.", required=True)
 
-then replace
+then replace this line
 
 .. code-block:: python
 
@@ -93,8 +93,8 @@ Defining a new scanning function
 
 All the scanning functions must be defined in the ``geom_scan.py`` file and need to obey some restrictions in order to be callable by ``ABIN LAUNCHER``:
 
-- They need to be called *fmt_scan*, where *fmt* is the name of the format of the geometry file as it will be given in the command line (stored in the ``mol_fmt`` variable in ``abin_launcher.py``).
-- They only take one argument: a list containing the lines of the geometry file (``mol_content``).
-- They must return a dictionary (``file_data``), following the pattern :code:`{ 'chemical_formula' : { }, 'atomic_coordinates' : [ ] }` (you can add additional keys if you want).
+- They must be named *fmt_scan*, where *fmt* is the format of the geometry file as it will be given in the command line.
+- They must only take one argument: a list containing the lines of the geometry file (``mol_content``).
+- They must return a dictionary (``file_data``), following the pattern :code:`{ 'chemical_formula' : { }, 'atomic_coordinates' : [ ] }`. You can have additional keys if you want, but those two are mandatory.
   
 If a problem arises when scanning the molecule file, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).

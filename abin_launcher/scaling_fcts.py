@@ -25,7 +25,7 @@ def total_nb_elec(mendeleev:dict,file_data:dict):
     Raises
     ------
     AbinError
-        If there is no atomic number defined in mendeleev for one of the constituting atoms of the molecule. Exception raised in the ``get_nb_elec_for_element`` subfunction.
+        If there is no atomic number defined in mendeleev for one of the constituting atoms of the molecule. *(This exception is raised in the* ``get_nb_elec_for_element`` *subfunction.)*
     """
 
     # Definition of the function that can fetch the number of electrons associated with each element in Gustafsson's table

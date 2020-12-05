@@ -42,7 +42,7 @@ For example, let's say we want to run a geometry optimization on the |Si36Ge11H6
         cores: 16
         mem_per_cpu: 4000 # in MB
 
-The ``scale_limit`` key defines the upper limit of that job scale for the scale index. This means our molecule is too big for the ``tiny`` and ``small`` scales, which have an upper limit of 50 and 500, respectively. It will then uses the resources defined in the ``medium`` scale, which are: a time limit of 2 days, 8 CPUs and 2 GB of memory per CPU.
+The ``scale_limit`` key defines the upper limit of that job scale for the scale index. This means our molecule is too big for the ``tiny`` and ``small`` scales, which have an upper limit of 50 and 500, respectively. It will then uses the resources defined in the ``medium`` scale, which are: a time limit of 2 days, 8 CPUs and 2000 MB of memory per CPU.
 
 Obviously, the key part of this process lies in the quality of the job scales definition. The finer they are, the better the scaling will be. Since this is highly dependent on the program you want to run and the cluster on which it will be running, you will need to do extensive testing on your part. If your cluster uses SLURM as a job scheduler, you might want to take a look at the :doc:`abin_launcher.benchmark` section.
 
@@ -58,17 +58,17 @@ Scaling functions
 General definition
 ------------------
 
-All the scaling functions must be defined in the ``scaling_fcts.py`` file and need to obey some restrictions in order to be callable by ``ABIN LAUNCHER``:
+All the scaling functions are defined in the ``scaling_fcts.py`` file and obey some restrictions, in order to be callable by ``ABIN LAUNCHER``:
 
 - They only take two dictionaries as arguments: the content of the ``mendeleev.yml`` file and the ``file_data`` variable, as built by the :doc:`scanning function <abin_launcher.scan>`.
-- They must return an integer or a float, that will act as the scale index.
+- They return an integer or a float, that will act as the scale index.
   
-If a problem arises when computing the scale index, an ``AbinError`` exception should be raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
+If a problem arises when computing the scale index, an ``AbinError`` exception is raised with a proper error message (see :ref:`how to handle errors <abin_errors>` for more details).
 
-Changing the scaling function
------------------------------
+Choosing a scaling function
+---------------------------
 
-If you want to change the scaling function that will be called via ``ABIN LAUNCHER``, you need to change the value of the ``scaling_function`` key in the :ref:`clusters configuration file <clusters_file>`.
+The scaling function that will be called by ``ABIN LAUNCHER`` is the one associated with the ``scaling_function`` YAML key defined in the :ref:`clusters configuration file <clusters_file>`:
 
 .. code-block:: yaml
 
@@ -87,6 +87,23 @@ Total number of electrons
 .. autofunction:: scaling_fcts.total_nb_elec
 
 This function starts by defining a sub-function called ``get_nb_elec_for_element`` that makes use of Mendeleev's Periodic Table (``mendeleev.yml``) in order to get the atomic number of an atom type. Then, the main function gets the different atom types and their respective amount from the ``chemical_formula`` key in ``file_data``. For each atom type, the function multiplies the associated number of electrons (obtained through the sub-function) with the amount of electrons of that type in the molecule. It finally sums up the value obtained for each atom type and returns it as the scale index.
+
+Example for the |C3H8| molecule:
+
+.. code-block:: text
+
+   --------------------------------------------------------------------
+   Atom Type    Atomic Number    Number of atoms    Number of electrons   
+   --------------------------------------------------------------------
+   H            1                8                  8                     
+   C            6                3                  18                    
+   --------------------------------------------------------------------
+   Total                         11                 26                    
+   --------------------------------------------------------------------
+   
+   Scale index:  26
+
+.. |C3H8| replace:: C\ :sub:`3`\ H\ :sub:`8`\ 
 
 Total number of atoms
 ---------------------

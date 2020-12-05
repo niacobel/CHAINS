@@ -223,7 +223,6 @@ General definition
 
 All the rendering functions must be defined in the ``renderer.py`` file and need to obey some restrictions in order to be callable by ``ABIN LAUNCHER``:
 
-- They need to be called *profile_render*, where *profile* is the name of the profile as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. 
 - They take six dictionaries as arguments: ``mendeleev``, ``clusters_cfg``, ``config``, ``file_data``, ``job_specs`` and ``misc`` (see the next subsection for details).
 - They must return two variables : 
 
@@ -315,7 +314,23 @@ In essence, the rendering functions have a pretty simple structure: their task i
 
       return rendered_content, rendered_script
 
-A concrete example of a rendering function is presented in the next subsection. Note however that some additional steps might be required depending on each specific case.
+A basic example of a rendering function is presented at the end of this section. Note however that some additional steps might be required depending on each specific case.
+
+Calling your rendering function
+-------------------------------
+
+The rendering function that will be called by ``ABIN LAUNCHER`` is the one associated with the ``rendering_function`` YAML key defined in the :ref:`clusters configuration file <clusters_file>`:
+
+.. code-block:: yaml
+
+   mycluster:
+      profiles:
+         myprofile1:
+            rendering_function: name-of-rendering-function
+         myprofile2:
+            rendering_function: name-of-rendering-function
+
+where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <abin_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (such as ``orca`` or ``qchem``). This way, a different rendering function can be assigned to each profile.
 
 Example of a rendering function
 -------------------------------

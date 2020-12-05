@@ -42,9 +42,9 @@ parser = argparse.ArgumentParser(add_help=False, description="For one or more ge
 required = parser.add_argument_group('Required arguments')
 required.add_argument("-m","--mol_inp", type=str, help="Path to either a geometry file or a directory containing multiple geometry files.", required=True)
 required.add_argument('-cf', '--config', type=str, help="Path to either a YAML configuration file or a directory containing multiple YAML configuration files, extension must be .yml or .yaml.", required=True)
+required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the YAML clusters configuration file.", required=True)
 required.add_argument("-p","--profile", type=str, help="Name of the profile you wish to run jobs with, as defined in the YAML clusters configuration file.", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job.", required=True)
-required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the YAML clusters configuration file.", required=True)
 #required.add_argument('-f', '--format', type=str, help="Format of the geometry files that need to be read.", required=True) #Uncomment this line if you add new scanning functions to geom_scan.py
 
 optional = parser.add_argument_group('Optional arguments')
@@ -101,9 +101,9 @@ def main():
     mol_inp = args.mol_inp                   # Geometry file or directory containing the geometry files
     config_inp = args.config                 # YAML configuration file or directory containing the YAML configuration files
 
+    cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
     profile = args.profile                      # Name of the profile for which files need to be created
     out_dir = args.out_dir                   # Directory where all jobs subdirectories will be created
-    cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
 
     # Optional arguments
 
@@ -150,7 +150,7 @@ def main():
     # Loading the clusters_file 
 
     clusters_file = abin_errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"YAML clusters configuration file","file")
-    print ("{:<141}".format('\nLoading the clusters configuration file "clusters.yml" ...'), end="")
+    print ("{:<141}".format('\nLoading the clusters configuration file ...'), end="")
     with open(clusters_file, 'r') as f_clusters:
       clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
@@ -158,33 +158,48 @@ def main():
     # Check the name of the cluster
 
     if cluster_name not in clusters_cfg:
-      raise abin_errors.AbinError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name.upper())
+      raise abin_errors.AbinError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name)
 
-    print("\nThis script is running on the %s cluster" % cluster_name.upper())
+    print ("{:<40} {:<100}".format('\nCluster name:',cluster_name))
 
     # Check if the submit_command key has been defined
 
     submit_command = clusters_cfg[cluster_name].get("submit_command")
 
     if submit_command is None:
-      raise abin_errors.AbinError ("ERROR: There is no defined submit_command for the %s cluster in the clusters configuration file." % cluster_name.upper()) 
+      raise abin_errors.AbinError ("ERROR: There is no defined submit_command for the %s cluster in the clusters configuration file." % cluster_name) 
 
     # Check if the profile exists 
 
     if "profiles" not in clusters_cfg[cluster_name]:
-      raise abin_errors.AbinError ('ERROR: There is no "profiles" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name.upper())    
+      raise abin_errors.AbinError ('ERROR: There is no "profiles" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name)    
 
     if profile not in clusters_cfg[cluster_name]["profiles"]:
       raise abin_errors.AbinError ("ERROR: The specified profile (%s) is unknown on this cluster. Possible profiles include: %s \nPlease use one of those, change cluster or add information for this profile to the clusters configuration file." % (profile, ', '.join(profile for profile in clusters_cfg[cluster_name]["profiles"].keys())))
     
+    print ("{:<40} {:<100}".format('\nProfile:',profile))
+
     # Get the scaling function that will determine the scale_index of the molecule (necessary for determining the job scale) - defined in scaling_fcts.py and specified in the clusters configuration file
 
     scaling_fct = clusters_cfg[cluster_name]["profiles"][profile].get("scaling_function")
 
     if scaling_fct is None:
-      raise abin_errors.AbinError ("ERROR: There is no defined scaling function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name.upper()))
+      raise abin_errors.AbinError ("ERROR: There is no defined scaling function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
     if (scaling_fct) not in dir(scaling_fcts) or not callable(getattr(scaling_fcts, scaling_fct)):
       raise abin_errors.AbinError ("ERROR: There is no scaling function named %s defined in scaling_fcts.py." % scaling_fct)
+
+    print ("{:<40} {:<100}".format('\nScaling function for that profile:',scaling_fct))
+
+    # Define the rendering function that will render the job script and the input file (depends on the profile)  - defined in renderer.py
+
+    render_fct = clusters_cfg[cluster_name]["profiles"][profile].get("rendering_function")
+
+    if render_fct is None:
+      raise abin_errors.AbinError ("ERROR: There is no defined rendering function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+    if (render_fct) not in dir(renderer) or not callable(getattr(renderer, render_fct)):
+      raise abin_errors.AbinError ("ERROR: There is no rendering function named %s defined in renderer.py." % render_fct)
+
+    print ("{:<40} {:<100}".format('\nRendering function for that profile:',render_fct))
 
     # ========================================================= #
     # Establishing the different job scales                     #
@@ -195,7 +210,7 @@ def main():
     job_scales_tmp = clusters_cfg[cluster_name]['profiles'][profile].get('job_scales')
 
     if job_scales_tmp is None:
-      raise abin_errors.AbinError ("ERROR: There is no defined job_scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name.upper())) 
+      raise abin_errors.AbinError ("ERROR: There is no defined job_scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
 
     # Defined the required keys in our job scales
 
@@ -217,7 +232,7 @@ def main():
 
       for key in required_keys:
         if key not in scale:
-          raise abin_errors.AbinError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), profile, cluster_name.upper()))           
+          raise abin_errors.AbinError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), profile, cluster_name))           
 
       # Extract the scale upper limit from the job scales
 
@@ -228,7 +243,7 @@ def main():
 
     job_scales = OrderedDict(sorted(job_scales.items()))
 
-    print("\nJob scales for %s on %s:" % (profile,cluster_name.upper()))
+    print("\nJob scales for that profile:")
     print("")
     print(''.center(146, '-'))
     print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)','Delay Command'))
@@ -248,19 +263,12 @@ def main():
     if (scan_fct) not in dir(geom_scan) or not callable(getattr(geom_scan, scan_fct)):
       raise abin_errors.AbinError ("ERROR: There is no function defined for the %s format in geom_scan.py." % mol_fmt)
 
-    # Define the rendering function that will render the job script and the input file (depends on the profile)  - defined in renderer.py
-
-    render_fct = profile + "_render"
-
-    if (render_fct) not in dir(renderer) or not callable(getattr(renderer, render_fct)):
-      raise abin_errors.AbinError ("ERROR: There is no function defined for the %s profile in renderer.py." % profile)
-
     # ========================================================= #
     # Check other arguments                                     #
     # ========================================================= #
 
     out_dir = abin_errors.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
-    print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
+    print ("{:<40} {:<100}".format('\nJobs root directory:',out_dir))
 
     if max_mol != None and max_mol <= 0:
       raise abin_errors.AbinError ("ERROR: The specified max_mol value (%s) must be a non-zero positive integer" % max_mol)
@@ -457,7 +465,7 @@ def main():
           break
 
       if not jobscale:
-        raise abin_errors.AbinError("ERROR: The job scale of this molecule is too big for this cluster (%s). Please change cluster." % cluster_name.upper())
+        raise abin_errors.AbinError("ERROR: The job scale of this molecule is too big for this cluster (%s). Please change cluster." % cluster_name)
       
       # ========================================================= #
       # Determining the ressources needed for the job             #

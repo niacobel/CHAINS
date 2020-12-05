@@ -105,10 +105,6 @@ Other arguments
 
 There are three other required arguments for executing ``ABIN LAUNCHER``:
 
-- :guilabel:`-p / \\--profile`, the **name of the profile** you want to run jobs with.
-
-   The profile is a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. It defines what type of scaling and rendering will be performed, as well as which program will be run and how. As will be explained further in this documentation, this value must be the same as the one given in the :ref:`clusters configuration file <clusters_file>` and in the name of the :ref:`rendering function <rendering_fct>` *(This is case-sensitive!)*.
-
 - :guilabel:`-cl / \\--cluster_name`, the **name of the cluster** you are running on.
 
    This value must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. *(This is case-sensitive!)*
@@ -117,9 +113,13 @@ There are three other required arguments for executing ``ABIN LAUNCHER``:
 
    This argument does not need to be the same name as the actual name of your machine. It is just a label used by ``ABIN LAUNCHER`` to know which information to get from its clusters configuration file.
 
+- :guilabel:`-p / \\--profile`, the **name of the profile** you want to run jobs with.
+
+   The profile is a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. It specifies what type of scaling and rendering will be performed, which defines which program will be run and how. As will be shown throughout this documentation, the profiles are defined in the :ref:`clusters configuration file <clusters_file>` and the name given in the command line must match one of the names given in the file. *(This is case-sensitive!)*.
+
 - :guilabel:`-o / \\--out_dir`, the **output directory** 
 
-   This is the directory where each job subdirectory will be created. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
+   This is the jobs root directory, where each job subdirectory will be created. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
 
 There are also a number of optional arguments that can be used to adapt to each specific situation. Their description in the :ref:`command line arguments <abin_arguments>` subsection should be self-explanatory.
 
