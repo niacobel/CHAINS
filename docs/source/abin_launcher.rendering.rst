@@ -152,7 +152,7 @@ However, we can also take this template one step further:
 
 where the module to load has been replaced by ``{{ set_env }}`` and the command to execute the program has been replaced by ``{{ command }}``. With this, it becomes possible to load and run the same program on another SLURM cluster, where the module and/or the command might be different.
 
-As long as we know what the job script must look like, we can define a template for pretty much any job.
+As long as we know what the job script must look like, we can define a template for pretty much any job on any cluster with any job scheduler.
 
 YAML configuration file
 =======================
@@ -243,7 +243,7 @@ As said in the previous subsection, the rendering functions take six dictionarie
 
 - ``job_specs`` contains the information about the resources requirements, defined by the :doc:`job scaling <abin_launcher.job_scale>` process, as well as other details about the job:
 
-   - ``profile``, the name of the profile as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`. You can either use this variable or explicitly state it in the code.
+   - ``profile``, the name of the profile as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`.
    - ``scaling_fct``, the name of the chosen :ref:`scaling function <scaling_fcts>`.
    - ``scale_index``, the computed value of the scale_index.
    - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`.

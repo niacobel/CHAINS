@@ -74,7 +74,21 @@ def xyz_scan(mol_content:list):
     
     if checksum_nlines != nb_atoms:
       raise abin_errors.AbinError("ERROR: Number of atomic coordinates lines (%s) doesn't match the number of atoms mentioned in the first line of the .xyz file (%s) !" % (checksum_nlines, nb_atoms))
-  
+
+    print("")
+    print(''.center(68, '-'))
+    print("{:<16} {:<12} {:<18}".format(' ','Atom Type','Number of atoms'))
+    print(''.center(68, '-'))
+
+    for atom,nb_atom in file_data['chemical_formula'].items():
+      print("{:<16} {:<12} {:<18}".format(' ',atom, nb_atom))
+
+    print(''.center(68, '-'))
+    print("{:<29} {:<18}".format('Total',sum(file_data['chemical_formula'].values())))
+    print(''.center(68, '-'))
+
+    print("\n%s lines of atomic coordinates have been registered." % checksum_nlines)
+
     # Scanning complete, now return file_data
 
     return file_data

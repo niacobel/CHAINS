@@ -69,19 +69,19 @@ def total_nb_elec(mendeleev:dict,file_data:dict):
     total_elec = 0
 
     print("")
-    print(''.center(68, '-'))
-    print("{:<12} {:<16} {:<18} {:<22}".format('Atom Type','Atomic Number','Number of atoms','Number of electrons'))
-    print(''.center(68, '-'))
+    print(''.center(69, '-'))
+    print("{:<12} {:<16} {:<19} {:<22}".format('Atom Type','Atomic Number','Number of atoms','Number of electrons'))
+    print(''.center(69, '-'))
 
     for atom,nb_atom in file_data['chemical_formula'].items():
       atomic_number = get_nb_elec_for_element(atom,mendeleev)
       subtotal_elec = nb_atom * atomic_number
-      print("{:<12} {:<16} {:<18} {:<22}".format(atom, atomic_number, nb_atom, subtotal_elec))
+      print("{:<12} {:<16} {:<19} {:<22}".format(atom, atomic_number, nb_atom, subtotal_elec))
       total_elec += subtotal_elec
 
-    print(''.center(68, '-'))
-    print("{:<29} {:<18} {:<22}".format('Total',sum(file_data['chemical_formula'].values()),total_elec))
-    print(''.center(68, '-'))
+    print(''.center(69, '-'))
+    print("{:<29} {:<19} {:<22}".format('Total',sum(file_data['chemical_formula'].values()),total_elec))
+    print(''.center(69, '-'))
 
     return total_elec
 

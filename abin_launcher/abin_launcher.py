@@ -409,19 +409,31 @@ def main():
 
       sys.stdout = mol_log
       
+      print ("{:<49} {:<100}".format('Cluster name:',cluster_name))      
+      print ("{:<50} {:<100}".format('\nProfile:',profile))
+
       # ========================================================= #
-      # Reading the content of the geometry file                  #
+      # Scanning the geometry file                                #
       # ========================================================= #
-    
-      print("{:<80}".format("\nScanning %s file ..." % mol_filename), end="")
+
+      section_title = "1. Scanning the geometry file"
+
+      print("")
+      print("")
+      print(''.center(len(section_title)+10, '*'))
+      print(section_title.center(len(section_title)+10))
+      print(''.center(len(section_title)+10, '*'))
+
+      print ("{:<50} {:<100}".format('\nScanning function:',scan_fct))
+
+      print("{:<51}".format("\nLoading %s file ..." % mol_filename), end="")
       with open(os.path.join(mol_inp_path,mol_filename), 'r') as mol_file:
         mol_content = mol_file.read().splitlines()
+      print("[ DONE ]")
 
       # Call the scanning function (defined in geom_scan.py, see the documentation for more information)
 
       file_data = eval("geom_scan." + scan_fct)(mol_content)
-
-      print('%12s' % "[ DONE ]")
 
       # ========================================================= #
       # Check if all atom types do exist in Mendeleev's table     #
@@ -435,10 +447,10 @@ def main():
           raise abin_errors.AbinError ("ERROR: Element %s is not defined in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % atom)
       
       # ========================================================= #
-      # Determining the scale index                               #
+      # Determining the job scale                                 #
       # ========================================================= #
       
-      section_title = "1. Scale index determination"
+      section_title = "2. Job scaling"
 
       print("")
       print("")
@@ -446,12 +458,37 @@ def main():
       print(section_title.center(len(section_title)+10))
       print(''.center(len(section_title)+10, '*'))
       
+      print ("{:<50} {:<100}".format('\nScaling function:',scaling_fct))
+
+      print("\nAvailable job scales:")
+      print("")
+      print(''.center(146, '-'))
+      print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)','Delay Command'))
+      print(''.center(146, '-'))
+      for scale_limit, scale in job_scales.items():
+        print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format(scale_limit, scale['label'], scale.get('partition_name', "not specified"), scale['time'], scale['cores'], scale['mem_per_cpu'], scale.get('delay_command', "not specified")))
+      print(''.center(146, '-'))
+
+      subsection_title = "A. Scaling function"
+
+      print("")
+      print("")
+      print(subsection_title)
+      print(''.center(len(subsection_title), '='))
+
       # Call the scaling function (defined in scaling_fcts.py, see the documentation for more information)
-      
+
       scale_index = eval("scaling_fcts." + scaling_fct)(mendeleev, file_data)
 
-      print("\nScale index: ", scale_index)
+      print("{:<50} {:<100}".format("\nScale index:", scale_index))
       
+      subsection_title = "B. Calculation requirements"
+
+      print("")
+      print("")
+      print(subsection_title)
+      print(''.center(len(subsection_title), '='))
+
       # Pick the adequate job scale
 
       jobscale = None
@@ -466,19 +503,7 @@ def main():
 
       if not jobscale:
         raise abin_errors.AbinError("ERROR: The job scale of this molecule is too big for this cluster (%s). Please change cluster." % cluster_name)
-      
-      # ========================================================= #
-      # Determining the ressources needed for the job             #
-      # ========================================================= #
-      
-      section_title = "2. Calculation requirements"
-
-      print("")
-      print("")
-      print(''.center(len(section_title)+10, '*'))
-      print(section_title.center(len(section_title)+10))
-      print(''.center(len(section_title)+10, '*'))
-      
+            
       # Obtaining the information associated to our job scale
       
       job_partition = jobscale.get('partition_name')
@@ -563,10 +588,10 @@ def main():
           raise abin_errors.AbinError ("ERROR: A directory for the %s geometry with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
 
         # ========================================================= #
-        # Rendering the needed input files                          #
+        # Rendering the templates                                   #
         # ========================================================= #
 
-        section_title = "3. Generation of the job script and input files"
+        section_title = "3. Rendering the templates"
 
         print("")
         print("")
@@ -574,12 +599,21 @@ def main():
         print(section_title.center(len(section_title)+10))
         print(''.center(len(section_title)+10, '*'))
 
+        print ("{:<50} {:<100}".format('\nRendering function:',render_fct))
+
         # Load config file
 
-        print ("{:<80}".format('\nLoading the configuration file %s ...' % config_filename), end="")
+        print ("{:<51}".format('\nLoading %s file ...' % config_filename), end="")
         with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
           config = yaml.load(f_config, Loader=yaml.FullLoader)
-        print('%12s' % "[ DONE ]")
+        print("[ DONE ]")
+
+        subsection_title = "A. Rendering function"
+
+        print("")
+        print("")
+        print(subsection_title)
+        print(''.center(len(subsection_title), '='))
 
         # Get the path to the jinja templates directory (a directory named "templates" in the same directory as this script)
         
@@ -614,37 +648,30 @@ def main():
         # Call the rendering function (defined in renderer.py, see the documentation for more information)
 
         rendered_content, rendered_script = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)
-        
+
+        print("\nAll the templates have been succesfully rendered.")
+
         # ========================================================= #
-        # The end step                                              #
+        # Creating the job directory and its content             #
         # ========================================================= #
 
-        section_title = "4. The end step"
+        subsection_title = "B. Creating the files"
 
         print("")
         print("")
-        print(''.center(len(section_title)+10, '*'))
-        print(section_title.center(len(section_title)+10))
-        print(''.center(len(section_title)+10, '*'))
+        print(subsection_title)
+        print(''.center(len(subsection_title), '='))
 
-        # Creating the job subdirectory where the job will be launched and creating all the relevant files in it.
-      
         job_dir = os.path.join(out_dir,mol_name + "_" + config_name)
 
+        print ("{:<20} {:<100}".format('\nJob directory:',job_dir))
+
         if os.path.exists(job_dir): # Overwrite was already checked previously, no need to check it again
+          print("    /!\ Deleting the old %s directory ..." % job_dir, end="")
           shutil.rmtree(job_dir)
+          print('%12s' % "[ DONE ]")
 
         os.makedirs(job_dir)
-
-        print("\nThe %s subdirectory has been created at %s" % (mol_name + "_" + config_name, out_dir))
-        
-        # Copying the config file and the geometry file into the job subdirectory
-        
-        shutil.copy(os.path.join(mol_inp_path,mol_filename), job_dir)
-        shutil.copy(os.path.join(config_inp_path,config_filename), job_dir)
-
-        print("\nThe files %s and %s have been successfully copied into the subdirectory." % (config_filename, mol_filename))
-        print("")
 
         # Writing the content of each rendered file into its own file with the corresponding filename
 
@@ -652,13 +679,32 @@ def main():
           rendered_file_path = os.path.join(job_dir, filename)
           with open(rendered_file_path, "w", encoding='utf-8') as result_file:
             result_file.write(file_content)
-          print("The %s file has been created into the subdirectory" % filename)
+          print("    ├── The %s file has been created into the directory" % filename)
+
+        # Copying the config file and the geometry file into the job subdirectory
+        
+        shutil.copy(os.path.join(mol_inp_path,mol_filename), job_dir)
+        shutil.copy(os.path.join(config_inp_path,config_filename), job_dir)
+
+        print("    └── The geometry file (%s) and the configuration file (%s) have been successfully copied into the directory." % (mol_filename, config_filename))
+
+        # ========================================================= #
+        # Submitting the job                                        #
+        # ========================================================= #
+
+        section_title = "4. Submitting the job"
+
+        print("")
+        print("")
+        print(''.center(len(section_title)+10, '*'))
+        print(section_title.center(len(section_title)+10))
+        print(''.center(len(section_title)+10, '*'))
 
         # Launch the job
         
         if not dry_run:
 
-          print("{:<80}".format("\nLaunching the job ..."), end="")
+          print("{:<51}".format("\nLaunching the job ..."), end="")
           os.chdir(job_dir)
 
           # Define the launch command
@@ -679,6 +725,12 @@ def main():
         
           job_count += 1
 
+          print("[ DONE ]")
+        
+        else:
+
+          print("\nThe dry run option has been enabled, this job will not be submitted to the job scheduler.")
+          sys.stdout = original_stdout                            # Reset the standard output to its original value
           print('%12s' % "[ DONE ]")
 
         # ================================================================== #
