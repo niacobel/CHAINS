@@ -1,26 +1,63 @@
+Cluster name:                                     lemaitre3                                                                                           
 
-Scanning c3h8.xyz file ...                                                         [ DONE ]
+Profile:                                          sample_orca                                                                                         
 
 
-**************************************
-     1. Scale index determination     
-**************************************
+***************************************
+     1. Scanning the geometry file     
+***************************************
+
+Scanning function:                                xyz_scan                                                                                            
+
+Loading c3h8.xyz file ...                         [ DONE ]
 
 --------------------------------------------------------------------
-Atom Type    Atomic Number    Number of atoms    Number of electrons   
+                 Atom Type    Number of atoms   
 --------------------------------------------------------------------
-H            1                8                  8                     
-C            6                3                  18                    
+                 H            8                 
+                 C            3                 
 --------------------------------------------------------------------
-Total                         11                 26                    
+Total                         11                
 --------------------------------------------------------------------
 
-Scale index:  26
+11 lines of atomic coordinates have been registered.
 
 
-*************************************
-     2. Calculation requirements     
-*************************************
+************************
+     2. Job scaling     
+************************
+
+Scaling function:                                 total_nb_elec                                                                                       
+
+Available job scales:
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+Scale Limit     Label                Partition Name       Time                 Cores      Mem per CPU (MB)     Delay Command                           
+--------------------------------------------------------------------------------------------------------------------------------------------------
+50              tiny                 not specified        0-00:10:00           4          500                  not specified                           
+700             small                batch                1-00:00:00           8          500                  not specified                           
+1000            medium               batch                2-00:00:00           8          2000                 --begin=now+60                          
+1500            big                  batch                2-00:00:00           8          4000                 --begin=now+120                         
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+A. Scaling function
+===================
+
+---------------------------------------------------------------------
+Atom Type    Atomic Number    Number of atoms     Number of electrons   
+---------------------------------------------------------------------
+H            1                8                   8                     
+C            6                3                   18                    
+---------------------------------------------------------------------
+Total                         11                  26                    
+---------------------------------------------------------------------
+
+Scale index:                                      26                                                                                                  
+
+
+B. Calculation requirements
+===========================
 
 --------------------------------------------------
 Scale index:         26                            
@@ -37,26 +74,36 @@ Delay command:       not specified
 --------------------------------------------------
 
 
-*********************************************************
-     3. Generation of the job script and input files     
-*********************************************************
+************************************
+     3. Rendering the templates     
+************************************
 
-Loading the configuration file tzvp.yml ...                                        [ DONE ]
+Rendering function:                               sample_orca_render                                                                                  
+
+Loading tzvp.yml file ...                         [ DONE ]
+
+
+A. Rendering function
+=====================
 
 Rendering the jinja template for the orca input file ...                           [ DONE ]
 
 Rendering the jinja template for the orca job script ...                           [ DONE ]
 
+All the templates have been succesfully rendered.
 
-*************************
-     4. The end step     
-*************************
 
-The c3h8_tzvp subdirectory has been created at /home/users/n/i/niacobel/abin_docs_sample/orca_jobs
+B. Creating the files
+=====================
 
-The files tzvp.yml and c3h8.xyz have been successfully copied into the subdirectory.
+Job directory:      /home/users/n/i/niacobel/abin_docs_sample/orca_jobs/c3h8_tzvp                                       
+    ├── The c3h8.inp file has been created into the directory
+    ├── The orca_job.sh file has been created into the directory
+    └── The geometry file (c3h8.xyz) and the configuration file (tzvp.yml) have been successfully copied into the directory.
 
-The c3h8.inp file has been created into the subdirectory
-The orca_job.sh file has been created into the subdirectory
 
-Launching the job ...                                                              [ DONE ]
+*******************************
+     4. Submitting the job     
+*******************************
+
+Launching the job ...                             [ DONE ]

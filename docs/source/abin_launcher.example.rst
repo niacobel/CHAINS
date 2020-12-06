@@ -201,6 +201,9 @@ As you can see, since they have been successfully processed, the geometry files 
 
 A subdirectory has also been created in ``orca_jobs`` for each of the six jobs. Those subdirectories contain the copies of the geometry and the configuration files, the rendered input file and job script, as well as a log file containing the details of the treatment of this geometry-configuration combination by ``ABIN LAUNCHER``. *(The output files created by ORCA will also end up in those subdirectories.)*
 
+The log file
+------------
+
 As an example, here is what the ``c3h8_tzvp.log`` file looks like:
 
 .. literalinclude:: sample_files/c3h8_tzvp.log
