@@ -39,7 +39,7 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
     return output_text
 
 def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the two parameters files (OPM & PCP) associated with the qoctra profile.
+    """Renders the job script and the two parameters files (OPM & PCP) associated with the QOCT-RA program.
 
     Parameters
     ----------
@@ -94,8 +94,8 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
 
     # Define the names of the rendered files.
 
-    rendered_param_opm = "param_" + misc['target'] + "_OPM.nml"
-    rendered_param_pcp = "param_" + misc['target'] + "_PCP.nml"
+    rendered_param_opm = "param_" + data['transition']['label'] + "_OPM.nml"
+    rendered_param_pcp = "param_" + data['transition']['label'] + "_PCP.nml"
     rendered_script = "qoctra_job.sh"
 
     # Initialize the dictionary that will be returned by the function
@@ -119,13 +119,13 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     # Defining the Jinja variables
 
     param_render_vars = {
-      "mol_name" : misc['mol_name'],
-      "energies_file_path" : os.path.join(data['path'],data['energies_file'] + '_ua'),
+      "source_name" : misc['source_name'],
+      "energies_file_path" : os.path.join(data['path'],data['energies_file']),
       "momdip_e_path" : os.path.join(data['path'],data['momdip_e']),
-      "init_file_path" : os.path.join(data['path'],data['init_file']),
-      "final_file_path" : os.path.join(data['path'],data['final_file']),
-      "proj_file_path" : os.path.join(data['path'],data['proj_file']),
-      "target" : misc['target'],
+      "init_file_path" : os.path.join(data['path'],data['transition']['init_file']),
+      "final_file_path" : os.path.join(data['path'],"final"),
+      "proj_file_path" : os.path.join(data['path'],data['transition']['target_file']),
+      "transition" : data['transition']['label'],
       "nstep" : config[job_specs['profile']]['param_nml']['control']['nstep'],
       "dt" : config[job_specs['profile']]['param_nml']['control']['dt'],
       "processus" : "OPM",
@@ -177,19 +177,19 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     # Defining the Jinja variables
 
     script_render_vars = {
-      "mol_name" : misc['mol_name'],
-      "target" : misc['target'],
+      "source_name" : misc['source_name'],
+      "transition" : data['transition']['label'],
       "user_email" : config['general']['user_email'],
       "mail_type" : config['general']['mail_type'],
       "job_walltime" : job_specs['walltime'],
-      "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+      "job_memory" : job_specs['memory'], # in MB
       "partition" : job_specs['partition'],
       "rendered_param" : rendered_param_opm,
       "rendered_param_PCP" : rendered_param_pcp,
       "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
       "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command'],
       "mol_dir" : misc['mol_dir'],
-      "nb_targets" : misc['nb_targets'],
+      "nb_transitions" : misc['nb_transitions'],
       "output_dir" : chains_config['output_dir'][job_specs['profile']],
       "results_dir" : config['results']['main_dir'],
       "results_subdir" : config['results'][job_specs['profile']]['dir_name'],

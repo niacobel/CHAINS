@@ -43,21 +43,6 @@ qchem:
 # ========================================================= #
 
 qoctra:
-# Name of the script that will be used to extract relevant information for QOCT-RA (it must have an extension ".py" but don't include it in this value)
-  parser_script: qchem_parser
- # Define here the type of states you want to target (must correspond with a type of value stored in the states_list at state[1])
-  target_state: Triplet
-# Define here the names of the files that will be created in the molecule folder (in a "data" subfolder)
-  created_files: 
-    mime_file: mime
-    energies_file: energies
-    mat_et0: mat_et0                      # corresponds to the eigenvectors matrix of the MIME diagonalization
-    mat_0te: mat_0te                      # corresponds to the eigenvectors transpose matrix of the MIME diagonalization
-    momdip_zero: momdip_0
-    momdip_eigen: momdip_e
-    init_pop: initial                     # will be followed by "_1"
-    final_pop: final                      # dummy file, will be followed by "_1"
-    projectors: projector                 # will be followed by the state label and "_1" (ex: projectorT2_1)
 # Define here the parameters that appear in the namelist parameters file
   param_nml:
     control:

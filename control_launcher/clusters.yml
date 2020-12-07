@@ -11,15 +11,26 @@
 
 shared: 
   profiles:
-    qoctra: 
-      jinja_templates: &qoctra_jinja
+    qoctra: &qoctra
+      parsing_function: qchem_tddft
+      transition_function: proj_ground_to_triplet
+      data_dir:
+        mime_file: mime
+        energies_file: energies
+        mat_et0: mat_et0                      # corresponds to the eigenvectors matrix of the MIME diagonalization
+        mat_0te: mat_0te                      # corresponds to the eigenvectors transpose matrix of the MIME diagonalization
+        momdip_zero: momdip_0
+        momdip_eigen: momdip_e
+      rendering_function: qoctra_render
+      jinja_templates:
         parameters_file: param.nml.jinja             # The rendered file will be named param_<target>.nml, where <target> is the state label corresponding to the projector that will be used
         job_script: qoctra_job.sh.jinja                    
-      job_scales: &unique_qoctra
-        label: unique
-        scale_limit: 100
-        time: 0-15:00:00
-        mem_per_cpu: 2000 # in MB
+      job_scales:
+        - 
+          label: unique
+          scale_limit: 50
+          time: 1-00:00:00
+          memory: 2000 # in MB
 
 # ========================================================= #
 #                        UCL Clusters                       #
@@ -30,11 +41,9 @@ lemaitre3:
   submit_command: sbatch
   profiles:
     qoctra:
-      jinja_templates: *qoctra_jinja
+      <<: *qoctra
       set_env:
         - module --force purge
         - module load releases/2019b
         - module load OpenBLAS/0.3.7-GCC-8.3.0
       command: gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64
-      job_scales:
-        - <<: *unique_qoctra

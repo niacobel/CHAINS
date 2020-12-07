@@ -11,8 +11,6 @@
 ########################################################################################################################################################
 
 import argparse
-import copy
-import importlib
 import os
 import shutil
 import sys
@@ -42,10 +40,10 @@ parser = argparse.ArgumentParser(add_help=False, description="This script prepar
 
 required = parser.add_argument_group('Required arguments')
 required.add_argument("-s","--source", type=str, help="Path to the source file containing all the necessary information that needs to be processed.", required=True)
-required.add_argument("-p","--parsing_fct", type=str, help="Name of the parsing function that will be used to parse the source file, as defined in source_parser.py.", required=True)
 required.add_argument('-cf', '--config', type=str, help="Path to the YAML configuration file.", required=True)
-required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job.", required=True)
 required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the YAML clusters configuration file.", required=True)
+required.add_argument("-p","--profile", type=str, help="Name of the profile you wish to run jobs with, as defined in the YAML clusters configuration file.", required=True)
+required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job.", required=True)
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
@@ -91,19 +89,16 @@ def main():
     # Required arguments
 
     source = args.source                     # Source file containing all the necessary information
-    parsing_fct = args.parsing_fct           # Name of the parsing function, as defined in source_parser.py
-    out_dir = args.out_dir                   # Directory where all jobs subdirectories will be created
-    config_file = args.config                # YAML configuration file
+    config_file = args.config                # YAML configuration file or directory containing the YAML configuration files
+
     cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
+    profile = args.profile                   # Name of the profile for which files need to be created
+    out_dir = args.out_dir                   # Directory where all jobs subdirectories will be created
 
     # Optional arguments
 
     overwrite = args.overwrite               # Flag for removing job subdirectories before creating a new one, if they have the same name
     dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
-
-    # Other important variable
-
-    profile = "qoctra"                         # Name of the qoctra key that appears in the clusters configuration YAML files
 
     # ========================================================= #
     # Define codes directory                                    #
@@ -132,7 +127,7 @@ def main():
     if cluster_name not in clusters_cfg:
       raise control_errors.ControlError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name)
 
-    print("\nThis script is running on the %s cluster" % cluster_name)
+    print ("{:<40} {:<100}".format('\nCluster name:',cluster_name))
 
     # Check if the submit_command key has been defined
 
@@ -147,7 +142,42 @@ def main():
       raise control_errors.ControlError ('ERROR: There is no "profiles" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name)    
 
     if profile not in clusters_cfg[cluster_name]["profiles"]:
-      raise control_errors.ControlError ('ERROR: There is no "%s" key defined for the %s cluster in the clusters configuration file. \nPlease add information for this profile to the clusters configuration file.' % (profile, cluster_name))
+      raise control_errors.ControlError ("ERROR: The specified profile (%s) is unknown on this cluster. Possible profiles include: %s \nPlease use one of those, change cluster or add information for this profile to the clusters configuration file." % (profile, ', '.join(profile for profile in clusters_cfg[cluster_name]["profiles"].keys())))
+    
+    print ("{:<40} {:<100}".format('\nProfile:',profile))
+
+    # Get the parsing function that will fetch the relevant information from the source file - defined in source_parser.py and specified in the clusters configuration file
+
+    parsing_fct = clusters_cfg[cluster_name]["profiles"][profile].get("parsing_function")
+
+    if parsing_fct is None:
+      raise control_errors.ControlError ("ERROR: There is no defined parsing function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+    if (parsing_fct) not in dir(source_parser) or not callable(getattr(source_parser, parsing_fct)):
+      raise control_errors.ControlError ("ERROR: There is no parsing function named %s defined in source_parser.py." % parsing_fct)
+
+    print ("{:<40} {:<100}".format('\nParsing function for that profile:',parsing_fct))
+
+    # Get the transition function that will determine the initial and target states of the control procedure - defined in transition_fcts.py and specified in the clusters configuration file
+
+    transition_fct = clusters_cfg[cluster_name]["profiles"][profile].get("transition_function")
+
+    if transition_fct is None:
+      raise control_errors.ControlError ("ERROR: There is no defined transition function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+    if (transition_fct) not in dir(transition_fcts) or not callable(getattr(transition_fcts, transition_fct)):
+      raise control_errors.ControlError ("ERROR: There is no transition function named %s defined in transition_fcts.py." % transition_fct)
+
+    print ("{:<40} {:<100}".format('\nTransition function for that profile:',transition_fct))
+
+    # Define the rendering function that will render the job script and the input file (depends on the profile)  - defined in control_renderer.py
+
+    render_fct = clusters_cfg[cluster_name]["profiles"][profile].get("rendering_function")
+
+    if render_fct is None:
+      raise control_errors.ControlError ("ERROR: There is no defined rendering function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+    if (render_fct) not in dir(control_renderer) or not callable(getattr(control_renderer, render_fct)):
+      raise control_errors.ControlError ("ERROR: There is no rendering function named %s defined in renderer.py." % render_fct)
+
+    print ("{:<40} {:<100}".format('\nRendering function for that profile:',render_fct))
 
     # ========================================================= #
     # Establishing the different job scales                     #
@@ -158,11 +188,11 @@ def main():
     job_scales_tmp = clusters_cfg[cluster_name]['profiles'][profile].get('job_scales')
 
     if job_scales_tmp is None:
-      raise control_errors.ControlError ("ERROR: There is no defined job_scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
+      raise control_errors.ControlError ("ERROR: There is no defined job scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
 
     # Defined the required keys in our job scales
 
-    required_keys = frozenset({"label", "scale_limit", "time", "mem_per_cpu" })
+    required_keys = frozenset({"label", "scale_limit", "time", "memory" })
 
     # Define an array for correct English spelling during printing
 
@@ -180,7 +210,8 @@ def main():
 
       for key in required_keys:
         if key not in scale:
-          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), profile, cluster_name))           
+          scale_number = job_scales_tmp.index(scale) + 1
+          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, scale_number, ("th" if not scale_number in special_numbers else special_numbers[scale_number]), profile, cluster_name))           
 
       # Extract the scale upper limit from the job scales
 
@@ -193,12 +224,12 @@ def main():
 
     print("\nJob scales for %s on %s:" % (profile,cluster_name))
     print("")
-    print(''.center(146, '-'))
-    print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format('Scale Limit','Label','Partition Name','Time','Cores','Mem per CPU (MB)','Delay Command'))
-    print(''.center(146, '-'))
+    print(''.center(136, '-'))
+    print ("{:<15} {:<20} {:<20} {:<20} {:<20} {:<40}".format('Scale Limit','Label','Partition Name','Time','Memory (MB)','Delay Command'))
+    print(''.center(136, '-'))
     for scale_limit, scale in job_scales.items():
-      print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format(scale_limit, scale['label'], scale.get('partition_name', "not specified"), scale['time'], scale.get('cores', "default"), scale['mem_per_cpu'], scale.get('delay_command', "not specified")))
-    print(''.center(146, '-'))
+      print ("{:<15} {:<20} {:<20} {:<20} {:<20} {:<40}".format(scale_limit, scale['label'], scale.get('partition_name', "not specified"), scale['time'], scale['memory'], scale.get('delay_command', "not specified")))
+    print(''.center(136, '-'))
 
     # ========================================================= #
     # Check other arguments                                     #
@@ -207,12 +238,13 @@ def main():
     out_dir = control_errors.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
     print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
+    # Check the existence of the source file, then get its name and the name of the directory where it is located
+
     source = control_errors.check_abspath(source,"Command line argument -s / --source","file")
     print ("{:<40} {:<100}".format('\nSource file:',source))
 
-    if (parsing_fct) not in dir(source_parser) or not callable(getattr(source_parser, parsing_fct)):
-      raise control_errors.ControlError ("ERROR: There is no parsing function named %s defined in source_parser.py." % parsing_fct)
-    print ("{:<40} {:<100}".format('\nParsing function:',parsing_fct))
+    source_path = os.path.dirname(source)
+    source_filename = os.path.basename(source)
 
     # Check and load the configuration file for the information about the molecule
 
@@ -224,28 +256,12 @@ def main():
       config = yaml.load(f_config, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
-    # ========================================================= #
-    # Important files and directories                           #
-    # ========================================================= #
+    # Check if a directory already exists for that source file
 
-    # Get the name of the source file and the name of the directory where the source file is
+    source_name = str(source_filename.split('.')[0]) # Getting rid of the format extension to get the name of the source
 
-    source_path = os.path.dirname(source)
-    source_filename = os.path.basename(source)
-
-    # Check if a directory already exists for that molecule
-
-    mol_name = str(source_filename.split('.')[0]) # Getting rid of the format extension to get the name of the molecule
-
-    if os.path.exists(os.path.join(out_dir,mol_name)) and not overwrite:
-      raise control_errors.ControlError ("ERROR: A directory for the %s molecule (or source file) already exists in %s !" % (mol_name, out_dir))
-
-    # Define the rendering function that will render the job script and the parameters file(s) (defined in control_renderer.py)
-
-    render_fct = profile + "_render"
-
-    if (render_fct) not in dir(control_renderer) or not callable(getattr(control_renderer, render_fct)):
-      raise control_errors.ControlError ("ERROR: There is no function defined for the %s profile in renderer.py." % profile)
+    if os.path.exists(os.path.join(out_dir,source_name)) and not overwrite:
+      raise control_errors.ControlError ("ERROR: A directory for the %s source file already exists in %s !" % (source_name, out_dir))
 
   # ========================================================= #
   # Exception handling for the preparation step               #
@@ -273,7 +289,7 @@ def main():
     print(''.center(len(section_title)+10, '*'))
 
     # ========================================================= #
-    # Read the file                                             #
+    # Load the source file                                      #
     # ========================================================= #
 
     print ("{:<80}".format('\nLoading %s file ... ' % source_filename), end="")
@@ -286,6 +302,17 @@ def main():
     source_content = list(map(str.strip, source_content))   # Remove leading & trailing blank/spaces
     source_content = list(filter(None, source_content))     # Remove blank lines/no char
 
+    # ========================================================= #
+    # Parse the source file                                     #
+    # ========================================================= #
+
+    subsection_title = "A. Parsing function"
+
+    print("")
+    print("")
+    print(subsection_title)
+    print(''.center(len(subsection_title), '='))
+
     # Call the parsing function (defined in source_parser.py, see the documentation for more information)
 
     system = eval("source_parser." + parsing_fct)(source_content)
@@ -295,6 +322,13 @@ def main():
     # ========================================================= #
     # MIME diagonalization                                      #
     # ========================================================= #
+
+    subsection_title = "B. Eigenstates basis set"
+
+    print("")
+    print("")
+    print(subsection_title)
+    print(''.center(len(subsection_title), '='))
 
     print("{:<80}".format("\nDiagonalizing the MIME ..."), end="")
     # Using NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)   
@@ -311,12 +345,12 @@ def main():
     # Eigenvalues                                               #
     # ========================================================= #
 
-    # Converting the eigenvalues from cm-1 to ua, nm and eV
-    eigenvalues_ua = system['eigenvalues'] / 219474.6313705
-    eigenvalues_nm = 10000000 / system['eigenvalues']
-    eigenvalues_ev = system['eigenvalues'] / 8065.6
-
-    print("")
+    print("\nEigenvalues (Ha)")
+    print('')
+    for value in system['eigenvalues']:
+      print(value)
+    
+    """     print("")
     print(''.center(40, '-'))
     print('Eigenvalues'.center(40, ' '))
     print(''.center(40, '-'))
@@ -324,7 +358,7 @@ def main():
     print(''.center(40, '-'))
     for val in range(len(system['eigenvalues'])):
       print("{:<9.2f} {:<1.4e} {:<8.4f} {:<8.4f}".format(system['eigenvalues'][val],eigenvalues_ua[val],eigenvalues_ev[val],eigenvalues_nm[val]))
-    print(''.center(40, '-'))
+    print(''.center(40, '-')) """
 
     # ========================================================= #
     # Eigenvectors matrix                                       #
@@ -358,7 +392,7 @@ def main():
     # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
     system['mime_diag'] = np.matmul(np.matmul(system['transpose'],system['mime']),system['eigenvectors'])
         
-    print("\nMIME in the eigenstates basis set (cm-1)")
+    print("\nMIME in the eigenstates basis set (Ha)")
     print('')
     for row in system['mime_diag']:
       for val in row:
@@ -372,7 +406,7 @@ def main():
     # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
     system['momdip_es_mtx'] = np.matmul(np.matmul(system['transpose'],system['momdip_mtx']),system['eigenvectors'])
         
-    print("\nDipole moments matrix in the eigenstates basis set (ua)")
+    print("\nDipole moments matrix in the eigenstates basis set (atomic units)")
     print('')
     for row in system['momdip_es_mtx']:
       for val in row:
@@ -394,7 +428,7 @@ def main():
   # ===================================================================
   # ===================================================================
 
-  section_title = "2. Data files creation"
+  section_title = "2. Creating the data directory"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
@@ -402,29 +436,99 @@ def main():
   print(''.center(len(section_title)+10, '*'))
 
   # =========================================================
-  # Creating the molecule directory and the data subdirectory
+  # Creating the molecule directory
   # =========================================================
 
-  mol_dir = os.path.join(out_dir,mol_name)
+  mol_dir = os.path.join(out_dir,source_name)
 
   if os.path.exists(mol_dir): # Overwrite was already checked previously, no need to check it again
+    print("\n/!\ Deleting the old %s molecule directory ..." % mol_dir, end="")
     shutil.rmtree(mol_dir)
+    print('%12s' % "[ DONE ]")
 
   os.makedirs(mol_dir)
 
-  # Creating the data subdirectory where all the files describing the molecule will be stored
+  print ("{:<20} {:<100}".format('\nMolecule directory:',mol_dir))
+
+  # =========================================================
+  # Creating the data subdirectory
+  # =========================================================
+
   data_dir = os.path.join(mol_dir,"data")
   os.makedirs(data_dir)
 
-  print("\nThe data subdirectory has been created at %s" % data_dir)
+  print ("{:<20} {:<100}".format('\nData directory:',data_dir))
+
+  # =========================================================
+  # Transition function
+  # =========================================================
+
+  subsection_title = "A. Transition function"
+
+  print("")
+  print("")
+  print(subsection_title)
+  print(''.center(len(subsection_title), '='))
+
+  print ("{:<50} {:<100}".format('\nTransition function:',transition_fct))
+
+  # Call the transition function (defined in transition_fcts.py, see the documentation for more information)
+
+  transitions_list = eval("transition_fcts." + transition_fct)(system,data_dir)
+
+  print("\nAll the transition files have been succesfully created.")
+
+  # =========================================================
+  # Other files
+  # =========================================================
+
+  subsection_title = "B. Other files"
+
+  print("")
+  print("")
+  print(subsection_title)
+  print(''.center(len(subsection_title), '='))
+
+  print ("{:<20} {:<100}".format('\nData directory:',data_dir))
+
+  # MIME
+
+  mime_file = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mime_file']
+  np.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
+#  print("    ├── The %s file has been created into the directory" % mime_file)
+
+  # Energies
+
+  energies_file = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['energies_file']
+  np.savetxt(os.path.join(data_dir,energies_file),system['eigenvalues'],fmt='%1.10e')
+#  print("    ├── The %s file has been created into the directory" % energies_file)
+
+  # Eigenvectors matrix and eigenvectors transpose matrix
+
+  mat_et0 = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mat_et0']
+  np.savetxt(os.path.join(data_dir,mat_et0),system['eigenvectors'],fmt='% 18.10e')
+#  print("    ├── The %s file has been created into the directory" % mat_et0)
+
+  mat_0te = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mat_0te']
+  np.savetxt(os.path.join(data_dir,mat_0te),system['transpose'],fmt='% 18.10e')
+#  print("    ├── The %s file has been created into the directory" % mat_0te)
+
+  # Dipole moments matrix
+
+  momdip_0 = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['momdip_zero']
+  np.savetxt(os.path.join(data_dir,momdip_0),system['momdip_mtx'],fmt='% 18.10e')
+#  print("    ├── The %s file has been created into the directory" % momdip_0)
+
+  momdip_e = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['momdip_eigen']
+  np.savetxt(os.path.join(data_dir,momdip_e),system['momdip_es_mtx'],fmt='% 18.10e')	
+#  print("    ├── The %s file has been created into the directory" % momdip_e)
 
   # Copying the config file and the source file into the data subdirectory
   
   shutil.copy(os.path.join(source_path,source_filename), data_dir)
   shutil.copy(config_file, data_dir)
 
-  print("\nThe files %s and %s have been successfully copied into the data subdirectory." % (source_filename, os.path.basename(config_file)))
-  print("")
+#  print("    └── The source file (%s) and the configuration file (%s) have been successfully copied into the directory." % (source_filename, os.path.basename(config_file)))
 
   # =========================================================
   # Writing already calculated values to files
@@ -456,101 +560,6 @@ def main():
       print(";".join(map(str,line)), file = f)
   print('%12s' % "[ DONE ]")
   """
-  # MIME
-
-  mime_file = config[profile]['created_files']['mime_file']
-  print("{:<60}".format('\nCreating %s file ... ' % mime_file), end="")
-  np.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
-  print('%12s' % "[ DONE ]")
-
-  # Energies
-
-  energies_file = config[profile]['created_files']['energies_file']
-  print("{:<60}".format('\nCreating %s file ... ' % energies_file), end="")
-  np.savetxt(os.path.join(data_dir,energies_file + '_cm-1'),system['eigenvalues'],fmt='%1.10e')
-  np.savetxt(os.path.join(data_dir,energies_file + '_ua'),eigenvalues_ua,fmt='%1.10e')
-  np.savetxt(os.path.join(data_dir,energies_file + '_nm'),eigenvalues_nm,fmt='%1.10e')
-  np.savetxt(os.path.join(data_dir,energies_file + '_ev'),eigenvalues_ev,fmt='%1.10e')
-  print('%12s' % "[ DONE ]")
-
-  # Eigenvectors matrix and eigenvectors transpose matrix
-
-  mat_et0 = config[profile]['created_files']['mat_et0']
-  print("{:<60}".format('\nCreating %s file ... ' % mat_et0), end="")
-  np.savetxt(os.path.join(data_dir,mat_et0),system['eigenvectors'],fmt='% 18.10e')
-  print('%12s' % "[ DONE ]")
-
-  mat_0te = config[profile]['created_files']['mat_0te']
-  print ("{:<60}".format('\nCreating %s file ... ' % mat_0te), end="")
-  np.savetxt(os.path.join(data_dir,mat_0te),system['transpose'],fmt='% 18.10e')
-  print('%12s' % "[ DONE ]")
-
-  # Dipole moments matrix
-
-  momdip_0 = config[profile]['created_files']['momdip_zero']
-  print("{:<60}".format('\nCreating %s file ... ' % momdip_0), end="")
-  np.savetxt(os.path.join(data_dir,momdip_0),system['momdip_mtx'],fmt='% 18.10e')
-  print('%12s' % "[ DONE ]")
-
-  momdip_e = config[profile]['created_files']['momdip_eigen']
-  print("{:<60}".format('\nCreating %s file ... ' % momdip_e), end="")
-  np.savetxt(os.path.join(data_dir,momdip_e),system['momdip_es_mtx'],fmt='% 18.10e')	
-  print('%12s' % "[ DONE ]")
-
-  # =========================================================
-  # Density matrices
-  # =========================================================
-
-  # Initial population
-
-  init_file = config[profile]['created_files']['init_pop']
-  print("{:<60}".format("\nCreating %s file ..." % init_file), end="") 
-
-  init_pop = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
-  init_pop[0,0] = 1+0j # All the population is in the ground state at the beginning
-
-  with open(os.path.join(data_dir, init_file + "_1"), "w") as f:
-    for line in init_pop:
-      for val in line:
-        print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
-      print('', file = f)
-
-  print('%12s' % "[ DONE ]")
-
-  # Final population (dummy file but still needed by QOCT-RA)
-
-  final_file = config[profile]['created_files']['final_pop']
-  print("{:<60}".format("\nCreating %s file ..." % final_file), end="") 
-
-  final_pop = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
-
-  with open(os.path.join(data_dir, final_file + "_1"), "w") as f:
-    for line in final_pop:
-      for val in line:
-        print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
-      print('', file = f)
-
-  print('%12s' % "[ DONE ]")
-
-  # Projectors
-
-  print('')
-  proj_file = config[profile]['created_files']['projectors']
-  target_state = config[profile]['target_state'] # The type of states that will be targeted by the control
-  targets_list = [] # List of target states
-
-  for state in system['states_list']:
-    if state['Multiplicity'] == target_state:
-      targets_list.append(state['Label'])
-      print("{:<59}".format("Creating %s file ..." % (proj_file + state['Label'])), end="")
-      proj = np.zeros((len(system['states_list']),len(system['states_list'])),dtype=complex)
-      proj[state['Number'],state['Number']] = 1+0j
-      with open(os.path.join(data_dir, proj_file + state['Label'] + "_1"), "w") as f:
-        for line in proj:
-          for val in line:
-            print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
-          print('', file = f)
-      print('%12s' % "[ DONE ]")
 
   # ===================================================================
   # ===================================================================
@@ -592,8 +601,7 @@ def main():
 
   job_partition = jobscale.get('partition_name')
   job_walltime = jobscale['time']
-  job_cores = jobscale.get('cores')
-  job_mem_per_cpu = jobscale['mem_per_cpu']
+  job_memory = jobscale['memory']
   delay_command = jobscale.get("delay_command", '')
 
   print(''.center(50, '-'))
@@ -603,8 +611,7 @@ def main():
   print(''.center(50, '-'))
   print("{:<20} {:<30}".format("Job partition: ", (job_partition or "not specified")))
   print("{:<20} {:<30}".format("Job walltime: ", job_walltime))
-  print("{:<20} {:<30}".format("Number of cores: ", (job_cores or "default")))
-  print("{:<20} {:<30}".format("Mem per CPU (MB): ", job_mem_per_cpu))
+  print("{:<20} {:<30}".format("Memory (MB): ", job_memory))
   print("{:<20} {:<30}".format("Delay command: ", ("not specified" if delay_command == '' else delay_command)))
   print(''.center(50, '-'))
 
@@ -624,19 +631,19 @@ def main():
   if not dry_run:
     job_count = 0   # Launched jobs counter, this number will be showed on the console screen at the end of the execution
 
-  # For each projector, render the parameters file and run the corresponding job
+  # For each transition, render the parameters file and run the corresponding job
 
-  for target in targets_list:
+  for transition in transitions_list:
 
-    console_message = "Start procedure for the " + target + " target"
+    console_message = "Start procedure for the transition " + transition["label"]
     print("")
     print(''.center(len(console_message)+11, '*'))
     print(console_message.center(len(console_message)+10))
     print(''.center(len(console_message)+11, '*'))
 
-    # Define the job directory for that specific target
+    # Define the job directory for that specific transition
 
-    job_dirname = proj_file + target
+    job_dirname = transition["label"]
     job_dir = os.path.join(mol_dir,job_dirname)
 
     # Get the path to the jinja templates directory (a directory named "templates" in the same directory as this script)
@@ -653,9 +660,7 @@ def main():
       "momdip_e" : momdip_e,
       "mat_et0" : mat_et0,
       "mat_0te" : mat_0te,
-      "init_file" : init_file,
-      "final_file" : final_file,
-      "proj_file" : proj_file
+      "transition" : transition
     }
 
     # Build a dictionary that will contain all information related to the job
@@ -668,7 +673,7 @@ def main():
       "scale_limit" : jobscale_limit,
       "partition" : job_partition,
       "walltime" : job_walltime,
-      "mem_per_cpu" : job_mem_per_cpu
+      "memory" : job_memory
     }
 
     # Build a dictionary containing the additional variables that might be needed by the rendering function
@@ -677,13 +682,12 @@ def main():
     misc = {  
         "code_dir" : code_dir,
         "templates_dir" : templates_dir,
-        "mol_name" : mol_name,
+        "source_name" : source_name,
         "config_name" : os.path.basename(config_file),
         "parsing_fct" : parsing_fct,
         "mol_dir" : mol_dir,
         "job_dirname" : job_dirname,
-        "nb_targets" : len(targets_list),
-        "target" : target
+        "nb_transitions" : len(transitions_list)
         }
 
     # Call the rendering function (defined in control_renderer.py, see the documentation for more information)
@@ -729,7 +733,7 @@ def main():
 
       print('%12s' % "[ DONE ]")
 
-    console_message = "End of procedure for the " + target + " target"
+    console_message = "End of procedure for the transition " + transition["label"]
     print("")
     print(''.center(len(console_message)+10, '*'))
     print(console_message.center(len(console_message)+10))

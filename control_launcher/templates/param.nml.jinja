@@ -1,6 +1,6 @@
 ! Informations générales
 &GENERAL
-  systeme = "{{ mol_name }}",
+  systeme = "{{ source_name }}",
 /
 
 &OPTIONS                         ! [1] oui [0] non
@@ -17,7 +17,7 @@
   cheminMD = "{{ momdip_e_path }}",                     ! Unités atomiques
   eti = "{{ init_file_path }}_",
   etf = "{{ final_file_path }}_",
-  projector = "{{ proj_file_path }}{{ target }}_",     ! A la place d'un état final spécifique
+  projector = "{{ proj_file_path }}_",                  ! A la place d'un état final spécifique
 /
 
 ! Paramètres généraux du contrôle

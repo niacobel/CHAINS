@@ -12,23 +12,43 @@ import numpy as np
 import control_errors
 
 
-def ev_to_cm1(ev: float) -> float:
-    """Converts a value from eV to cm-1.
+def energy_unit_conversion(value:float,init:str,target:str) -> float:
+    """Converts a energy value from an initial unit to a target unit by using atomic units (Hartree) as an intermediary.
 
     Parameters
     ----------
-    ev : float
-        The value in eV we need to convert
+    value : float
+        The energy value we need to convert
+    init : str
+        The unit of the value we need to convert
+    target : str
+        The unit we must convert the value to
     
     Returns
     -------
-    cm : float
-        The eV value converted to cm-1
+    conv_value : float
+        The converted energy value
     """
 
-    cm = ev * 8065.6
+    # Define the dictionary of conversion factors, from atomic units (Hartree) to any unit you want (in lower cases). - Taken from the NIST website (https://physics.nist.gov/)
 
-    return cm
+    conv_factors = {
+      "ha" : 1,
+      "cm-1" : 2.1947463136320e+05,
+      "ev" : 27.211386245988,
+      "nm" : 2.1947463136320e+05 / 1e+07,
+      "hz" : 6.579683920502e+15,
+      "j" : 4.3597447222071e-18
+      }
+
+    if init.lower() not in conv_factors.keys():
+      raise control_errors.ControlError ("ERROR: The unit of the value you want to convert (%s) is currently not supported. Supported values include: %s" % (init, ', '.join(unit for unit in conv_factors.keys())))
+    elif target.lower() not in conv_factors.keys():
+      raise control_errors.ControlError ("ERROR: The unit you want to convert the value to (%s) is currently not supported. Supported values include: %s" % (target, ', '.join(unit for unit in conv_factors.keys())))
+    
+    conv_value = (value / conv_factors[init.lower()]) * conv_factors[target.lower()]
+
+    return conv_value
 
 # =================================================================== #
 # =================================================================== #
@@ -49,14 +69,14 @@ def qchem_tddft(file_content:list):
     system : dict
         The extracted information of the source file. It contains three keys and their associated values: ``states_list``, ``mime`` and ``momdip_mtx`` where
         
-        - ``states_list`` is a list of dictionaries containing four keys each: ``Number``, ``Multiplicity``, ``Energy`` and ``Label`` where
+        - ``states_list`` is a list of dictionaries containing four keys each: ``number``, ``multiplicity``, ``energy`` and ``label`` where
 
-          - ``Number`` is the number of the state, starting at 0 (which is the ground state)
-          - ``Multiplicity`` is the multiplicity of the state (ex: singlet, triplet)
-          - ``Energy`` is the excitation energy of the state, in cm\ :sup:`-1`\ 
-          - ``Label`` is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
+          - ``number`` is the number of the state, starting at 0 (which is the ground state)
+          - ``multiplicity`` is the multiplicity of the state (ex: singlet, triplet)
+          - ``energy`` is the excitation energy of the state, in cm\ :sup:`-1`\ 
+          - ``label`` is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (ex: T1 for the first triplet, S3 for the third singlet)
 
-        - ``mime`` is a NumPy array, representing the Matrix Image of the MoleculE which acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the SOC couplings on the non-diagonal elements (in cm\ :sup:`-1`\ ).
+        - ``mime`` is a NumPy array, representing the Matrix Image of the MoleculE which acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the SOC couplings on the non-diagonal elements (in Hartree).
         - ``momdip_mtx`` is a NumPy array representing the transition dipole moments (in atomic units).
 
     Raises
@@ -90,7 +110,7 @@ def qchem_tddft(file_content:list):
 
     # Define the ground state of our molecule (which is the first state and has a null energy)
     
-    system['states_list'] = [{'Number': 0, 'Multiplicity': 'Singlet', 'Energy': 0.0, 'Label': 'S0'}]
+    system['states_list'] = [{'number': 0, 'multiplicity': 'Singlet', 'energy': 0.0, 'label': 'S0'}]
 
     # Define the START and END expression patterns of the "TDDFT/TDA Excitation Energies" section of the output file
 
@@ -184,7 +204,7 @@ def qchem_tddft(file_content:list):
             search_energy = True # Resume searching for the energy of the next state
 
             # Append information about the current state to the states_list variable
-            system['states_list'].append({'Number': exc_state, 'Multiplicity': multiplicity, 'Energy': ev_to_cm1(exc_energy), 'Label': (first_letter + str(cpt))})
+            system['states_list'].append({'number': exc_state, 'multiplicity': multiplicity, 'energy': energy_unit_conversion(exc_energy,"ev","cm-1"), 'label': (first_letter + str(cpt))})
 
             continue
 
@@ -199,7 +219,7 @@ def qchem_tddft(file_content:list):
     print("{:<10} {:<15} {:<15} {:<10}".format('Number','Multiplicity','Energy (cm-1)','Label'))
     print(''.center(50, '-'))
     for state in system['states_list']:
-      print("{:<10} {:<15} {:<15.3f} {:<10}".format(state['Number'],state['Multiplicity'],state['Energy'],state['Label']))
+      print("{:<10} {:<15} {:<15.3f} {:<10}".format(state['number'],state['multiplicity'],state['energy'],state['label']))
     print(''.center(50, '-'))
 
     # ========================================================= #
@@ -279,8 +299,8 @@ def qchem_tddft(file_content:list):
               # state_1 is the state label, we need to convert it to the state number
               match = False
               for state in system['states_list']:
-                if state_1 == state['Label']:
-                  state_1 = state['Number']
+                if state_1 == state['label']:
+                  state_1 = state['number']
                   match = True
                   break
               if not match:
@@ -293,8 +313,8 @@ def qchem_tddft(file_content:list):
               # state_2 is the state label, we need to convert it to the state number
               match = False
               for state in system['states_list']:
-                if state_2 == state['Label']:
-                  state_2 = state['Number']
+                if state_2 == state['label']:
+                  state_2 = state['number']
                   match = True
                   break
               if not match:
@@ -302,7 +322,7 @@ def qchem_tddft(file_content:list):
 
               value = float(matching_line.group('soc_value'))
               if value < 0:
-                raise control_errors.ControlError ("ERROR: The SOC value between the %s and %s states is negative (%s)" % ([state['Label'] for state in system['states_list'] if state['Number'] == state_1],[state['Label'] for state in system['states_list'] if state['Number'] == state_2],value))
+                raise control_errors.ControlError ("ERROR: The SOC value between the %s and %s states is negative (%s)" % ([state['label'] for state in system['states_list'] if state['number'] == state_1],[state['label'] for state in system['states_list'] if state['number'] == state_2],value))
 
               tpl = (state_1, state_2, value)
        
@@ -337,7 +357,7 @@ def qchem_tddft(file_content:list):
     # Creation of the MIME - Diagonal values (Excitation energies)
 
     for state in system['states_list']:
-      system['mime'][state['Number']][state['Number']] = state['Energy']
+      system['mime'][state['number']][state['number']] = state['energy']
 
     print('%12s' % "[ DONE ]")
 
@@ -347,6 +367,17 @@ def qchem_tddft(file_content:list):
       for val in row:
         print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
+
+    # Convert the MIME to Hartree units
+
+    system['mime'] = system['mime'] * energy_unit_conversion(1,"cm-1","ha")
+
+    print("\nMIME (Ha)")
+    print('')
+    for row in system['mime']:
+      for val in row:
+        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+      print('')    
 
     # ========================================================= #
     #                    Dipole Moments List                    #
@@ -427,7 +458,7 @@ def qchem_tddft(file_content:list):
       system['momdip_mtx'][k1][k2] = val
       system['momdip_mtx'][k2][k1] = val    # For symetry purposes
 
-    print("\nDipole moments matrix in the zero order basis set (ua)")
+    print("\nDipole moments matrix in the zero order basis set (atomic units)")
     print('')
     for row in system['momdip_mtx']:
       for val in row:

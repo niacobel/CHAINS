@@ -102,7 +102,7 @@ def main():
     config_inp = args.config                 # YAML configuration file or directory containing the YAML configuration files
 
     cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
-    profile = args.profile                      # Name of the profile for which files need to be created
+    profile = args.profile                   # Name of the profile for which files need to be created
     out_dir = args.out_dir                   # Directory where all jobs subdirectories will be created
 
     # Optional arguments
@@ -210,7 +210,7 @@ def main():
     job_scales_tmp = clusters_cfg[cluster_name]['profiles'][profile].get('job_scales')
 
     if job_scales_tmp is None:
-      raise abin_errors.AbinError ("ERROR: There is no defined job_scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
+      raise abin_errors.AbinError ("ERROR: There is no defined job scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
 
     # Defined the required keys in our job scales
 
@@ -232,7 +232,8 @@ def main():
 
       for key in required_keys:
         if key not in scale:
-          raise abin_errors.AbinError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, job_scales_tmp.index(scale), ("th" if not job_scales_tmp.index(scale) in special_numbers else special_numbers[job_scales_tmp.index(scale)]), profile, cluster_name))           
+          scale_number = job_scales_tmp.index(scale) + 1
+          raise abin_errors.AbinError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, scale_number, ("th" if not scale_number in special_numbers else special_numbers[scale_number]), profile, cluster_name))           
 
       # Extract the scale upper limit from the job scales
 
