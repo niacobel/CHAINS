@@ -735,7 +735,7 @@ def main():
         try:
           rendered_content, rendered_script = eval("control_renderer." + render_fct)(clusters_cfg, config, system, data, job_specs, misc)
         except KeyError as error:
-          raise control_errors.ControlError ("ERROR: The %s YAML key is missing from the '%s' configuration file." % (error,config_name))
+          raise control_errors.ControlError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the' %s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
 
         # Create the job directory
 

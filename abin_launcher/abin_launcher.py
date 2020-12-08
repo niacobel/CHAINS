@@ -648,7 +648,10 @@ def main():
 
         # Call the rendering function (defined in renderer.py, see the documentation for more information)
 
-        rendered_content, rendered_script = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)
+        try:
+          rendered_content, rendered_script = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)
+        except KeyError as error:
+          raise abin_errors.AbinError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the' %s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
 
         print("\nAll the templates have been succesfully rendered.")
 
