@@ -70,6 +70,10 @@ def main():
   # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
   try:
 
+    # Save a reference to the original standard output as it will be modified later on (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
+
+    original_stdout = sys.stdout
+
     # Get the size of the terminal in order to have a prettier output, if you need something more robust, go check http://granitosaurus.rocks/getting-terminal-size.html
 
     columns, rows = shutil.get_terminal_size()
@@ -303,12 +307,36 @@ def main():
 
   # =================================================================== #
   # =================================================================== #
-  #                       PARSING THE SOURCE FILE                       #
+  #                        DATA FILES GENERATION                        #
   # =================================================================== #
   # =================================================================== #
 
   # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
   try:
+
+    console_message = "Start of the data files generation procedure for the " + source_name + " file"
+    print("")
+    print(''.center(len(console_message)+11, '*'))
+    print(console_message.center(len(console_message)+10))
+    print(''.center(len(console_message)+11, '*'))
+
+    # Create an output log file containing all the information about the data files generation
+
+    data_log_name = source_name + ".log"
+    data_log = open(os.path.join(out_dir,data_log_name), 'w', encoding='utf-8')
+
+    # Redirect standard output to the data_log file (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
+
+    sys.stdout = data_log
+    
+    print ("{:<49} {:<100}".format('Cluster name:',cluster_name))      
+    print ("{:<50} {:<100}".format('\nProfile:',profile))
+
+    # =================================================================== #
+    # =================================================================== #
+    #                       Parsing the source file                       #
+    # =================================================================== #
+    # =================================================================== #
 
     section_title = "1. Parsing the source file"
 
@@ -317,14 +345,20 @@ def main():
     print(section_title.center(len(section_title)+10))
     print(''.center(len(section_title)+10, '*'))
 
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+
+    sys.stdout = original_stdout                                 
+    print ("{:<80}".format('\nParsing the source file ...'), end="")
+    sys.stdout = data_log    
+
     # ========================================================= #
     # Load the source file                                      #
     # ========================================================= #
 
-    print ("{:<80}".format('\nLoading %s file ... ' % source_filename), end="")
+    print ("{:<50}".format('\nLoading %s file ... ' % source_filename), end="")
     with open(source, 'r') as source_file:
       source_content = source_file.read().splitlines()
-    print('%12s' % "[ DONE ]")
+    print("[ DONE ]")
 
     # Cleaning up the source file from surrounding spaces and blank lines
 
@@ -332,7 +366,7 @@ def main():
     source_content = list(filter(None, source_content))     # Remove blank lines/no char
 
     # ========================================================= #
-    # Parse the source file                                     #
+    # Call the parsing function                                 #
     # ========================================================= #
 
     subsection_title = "A. Parsing function"
@@ -341,6 +375,8 @@ def main():
     print("")
     print(subsection_title)
     print(''.center(len(subsection_title), '='))
+
+    print ("{:<50} {:<100}".format('\nParsing function:',parsing_fct))
 
     # Call the parsing function (defined in source_parser.py, see the documentation for more information)
 
@@ -359,10 +395,10 @@ def main():
     print(subsection_title)
     print(''.center(len(subsection_title), '='))
 
-    print("{:<80}".format("\nDiagonalizing the MIME ..."), end="")
+    print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
     # Using NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)   
     system['eigenvalues'], system['eigenvectors'] = np.linalg.eig(system['mime'])
-    print('%12s' % "[ DONE ]")
+    print("[ DONE ]")
 
     # Sort the eigenvalues and associated eigenvectors (see https://stackoverflow.com/questions/8092920/sort-eigenvalues-and-associated-eigenvectors-after-using-numpy-linalg-eig-in-pyt for reference)
 
@@ -431,24 +467,18 @@ def main():
       for val in row:
         print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
-
-  # ========================================================= #
-  # Exception handling for the parsing process                #
-  # ========================================================= #
-
-  except control_errors.ControlError as error:
-    print("")
-    print(error)
-    exit(-1)
   
-  # =================================================================== #
-  # =================================================================== #
-  #                            DATA DIRECTORY                           #
-  # =================================================================== #
-  # =================================================================== #
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+    
+    sys.stdout = original_stdout                                 
+    print('%12s' % "[ DONE ]")
+    sys.stdout = data_log    
 
-  # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-  try:
+    # =================================================================== #
+    # =================================================================== #
+    #                            Data Directory                           #
+    # =================================================================== #
+    # =================================================================== #
 
     section_title = "2. Creating the data directory"
 
@@ -456,6 +486,12 @@ def main():
     print(''.center(len(section_title)+10, '*'))
     print(section_title.center(len(section_title)+10))
     print(''.center(len(section_title)+10, '*'))
+
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+
+    sys.stdout = original_stdout                                 
+    print ("{:<80}".format('\nCreating the data directory ...'), end="")
+    sys.stdout = data_log  
 
     # ========================================================= #
     # Creating the molecule directory                           #
@@ -521,70 +557,83 @@ def main():
 
     mime_file = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mime_file']
     np.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
-    #print("    ├── The %s file has been created into the directory" % mime_file)
-    print("    The %s file has been created into the directory" % mime_file)
+    print("    ├── The %s file has been created into the directory" % mime_file)
 
     # Energies
 
     energies_file = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['energies_file']
     np.savetxt(os.path.join(data_dir,energies_file),system['eigenvalues'],fmt='%1.10e')
-    #print("    ├── The %s file has been created into the directory" % energies_file)
-    print("    The %s file has been created into the directory" % energies_file)
+    print("    ├── The %s file has been created into the directory" % energies_file)
 
     # Eigenvectors matrix and eigenvectors transpose matrix
 
     mat_et0 = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mat_et0']
     np.savetxt(os.path.join(data_dir,mat_et0),system['eigenvectors'],fmt='% 18.10e')
-    #print("    ├── The %s file has been created into the directory" % mat_et0)
-    print("    The %s file has been created into the directory" % mat_et0)
+    print("    ├── The %s file has been created into the directory" % mat_et0)
 
     mat_0te = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mat_0te']
     np.savetxt(os.path.join(data_dir,mat_0te),system['transpose'],fmt='% 18.10e')
-    #print("    ├── The %s file has been created into the directory" % mat_0te)
-    print("    The %s file has been created into the directory" % mat_0te)
+    print("    ├── The %s file has been created into the directory" % mat_0te)
 
     # Dipole moments matrix
 
     momdip_0 = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['momdip_zero']
     np.savetxt(os.path.join(data_dir,momdip_0),system['momdip_mtx'],fmt='% 18.10e')
-    #print("    ├── The %s file has been created into the directory" % momdip_zero)
-    print("    The %s file has been created into the directory" % momdip_0)
+    print("    ├── The %s file has been created into the directory" % momdip_0)
 
     momdip_e = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['momdip_eigen']
     np.savetxt(os.path.join(data_dir,momdip_e),system['momdip_es_mtx'],fmt='% 18.10e')	
-    #print("    ├── The %s file has been created into the directory" % momdip_eigen)
-    print("    The %s file has been created into the directory" % momdip_e)
+    print("    ├── The %s file has been created into the directory" % momdip_e)
 
     # Copying the source file into the data subdirectory
     
     shutil.copy(os.path.join(source_path,source_filename), data_dir)
-    #print("    └── The source file (%s) has been successfully copied into the directory." % source_filename)
-    print("    The source file (%s) has been successfully copied into the directory." % source_filename)
+    print("    └── The source file (%s) has been successfully copied into the directory." % source_filename)
 
-  # ========================================================= #
-  # Exception handling for the data creating process          #
-  # ========================================================= #
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+    
+    sys.stdout = original_stdout                                 
+    print('%12s' % "[ DONE ]")
+    sys.stdout = data_log    
 
-  except control_errors.ControlError as error:
-    print("")
-    print(error)
-    exit(-1)
+    # =================================================================== #
+    # =================================================================== #
+    #                             Job Scaling                             #
+    # =================================================================== #
+    # =================================================================== #
 
-  # =================================================================== #
-  # =================================================================== #
-  #                       CALCULATION REQUIREMENTS                      #
-  # =================================================================== #
-  # =================================================================== #
-
-  # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-  try:
-
-    section_title = "3. Calculation requirements"
+    section_title = "3. Job scaling"
 
     print("")
     print(''.center(len(section_title)+10, '*'))
     print(section_title.center(len(section_title)+10))
     print(''.center(len(section_title)+10, '*'))
+
+    sys.stdout = original_stdout                                 
+    print ("{:<80}".format('\nDetermining the job scale ...'), end="")
+    sys.stdout = data_log  
+
+    subsection_title = "A. Available job scales"
+
+    print("")
+    print("")
+    print(subsection_title)
+    print(''.center(len(subsection_title), '='))
+
+    print("")
+    print(''.center(136, '-'))
+    print ("{:<15} {:<20} {:<20} {:<20} {:<20} {:<40}".format('Scale Limit','Label','Partition Name','Time','Memory (MB)','Delay Command'))
+    print(''.center(136, '-'))
+    for scale_limit, scale in job_scales.items():
+      print ("{:<15} {:<20} {:<20} {:<20} {:<20} {:<40}".format(scale_limit, scale['label'], scale.get('partition_name', "not specified"), scale['time'], scale['memory'], scale.get('delay_command', "not specified")))
+    print(''.center(136, '-'))
+
+    subsection_title = "B. Calculation requirements"
+
+    print("")
+    print("")
+    print(subsection_title)
+    print(''.center(len(subsection_title), '='))
 
     # Use the number of states to determine the job scale
 
@@ -627,13 +676,29 @@ def main():
     print("{:<20} {:<30}".format("Delay command: ", ("not specified" if delay_command == '' else delay_command)))
     print(''.center(50, '-'))
 
+    # ========================================================= #
+    # End of logging for the data files generation              #
+    # ========================================================= #
+
+    sys.stdout = original_stdout                                  # Reset the standard output to its original value
+    print('%12s' % "[ DONE ]")
+    data_log.close()
+    shutil.move(os.path.join(out_dir,data_log_name), data_dir)    # Archive the log file in the data directory
+
+    console_message = "End of the data files generation procedure for the " + source_name + " file"
+    print("")
+    print(''.center(len(console_message)+11, '*'))
+    print(console_message.center(len(console_message)+10))
+    print(''.center(len(console_message)+11, '*'))
+
   # ========================================================= #
-  # Exception handling for the scaling process                #
+  # Exception handling for the data files generation          #
   # ========================================================= #
 
   except control_errors.ControlError as error:
-    print("")
+    sys.stdout = original_stdout                        # Reset the standard output to its original value
     print(error)
+    os.remove(os.path.join(out_dir,data_log_name))      # Remove the log file since there was a problem
     exit(-1)
 
   # =================================================================== #
@@ -641,13 +706,6 @@ def main():
   #           RENDERING THE TEMPLATES AND SUBMITTING THE JOBS           #
   # =================================================================== #
   # =================================================================== #
-
-  section_title = "4. Rendering the templates and submitting the jobs"
-
-  print("")
-  print(''.center(len(section_title)+10, '*'))
-  print(section_title.center(len(section_title)+10))
-  print(''.center(len(section_title)+10, '*'))
 
   if not dry_run:
     job_count = 0   # Launched jobs counter, this number will be showed on the console screen at the end of the execution
@@ -670,14 +728,16 @@ def main():
         # Getting rid of the format extension to get the name of the configuration
 
         config_name = str(config_filename.split('.')[0])
-        print("{:<80}".format("\nTreating '%s' transition with '%s' configuration ..." % (transition["label"], config_name)))
+        print("{:<80}".format("\nTreating '%s' transition with '%s' configuration ..." % (transition["label"], config_name)), end="")
 
-        # Load config file
+        # Create an output log file for each transition - config combination
 
-        print ("{:<51}".format('\nLoading %s file ...' % config_filename), end="")
-        with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
-          config = yaml.load(f_config, Loader=yaml.FullLoader)
-        print("[ DONE ]")
+        log_name = transition["label"] + "_" + config_name + ".log"
+        log = open(os.path.join(mol_dir,log_name), 'w', encoding='utf-8')
+
+        # Redirect standard output to the log file (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
+
+        sys.stdout = log
 
         # Define the name and path of the job directory for that specific transition-configuration combination
 
@@ -686,6 +746,33 @@ def main():
 
         if os.path.exists(job_dir) and not overwrite:
           raise control_errors.ControlError ("ERROR: A directory for the %s transition with the '%s' configuration already exists in %s !" % (transition["label"], config_name, mol_dir))
+
+        # ========================================================= #
+        # Rendering the templates                                   #
+        # ========================================================= #
+
+        section_title = "1. Rendering the templates"
+
+        print("")
+        print(''.center(len(section_title)+10, '*'))
+        print(section_title.center(len(section_title)+10))
+        print(''.center(len(section_title)+10, '*'))
+
+        print ("{:<50} {:<100}".format('\nRendering function:',render_fct))
+
+        # Load config file
+
+        print ("{:<51}".format('\nLoading %s file ...' % config_filename), end="")
+        with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
+          config = yaml.load(f_config, Loader=yaml.FullLoader)
+        print("[ DONE ]")
+
+        subsection_title = "A. Rendering function"
+
+        print("")
+        print("")
+        print(subsection_title)
+        print(''.center(len(subsection_title), '='))
 
         # Get the path to the jinja templates directory (a directory named "templates" in the same directory as this script)
         
@@ -736,9 +823,22 @@ def main():
         try:
           rendered_content, rendered_script = eval("control_renderer." + render_fct)(clusters_cfg, config, system, data, job_specs, misc)
         except KeyError as error:
-          raise control_errors.ControlError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the' %s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
+          raise control_errors.ControlError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the '%s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
 
-        # Create the job directory
+        print("\nAll the templates have been succesfully rendered.")
+
+        # ========================================================= #
+        # Creating the job directory and its content                #
+        # ========================================================= #
+
+        subsection_title = "B. Creating the files"
+
+        print("")
+        print("")
+        print(subsection_title)
+        print(''.center(len(subsection_title), '='))
+
+        print ("{:<20} {:<100}".format('\nJob directory:',job_dir))
 
         if os.path.exists(job_dir): # Overwrite was already checked previously, no need to check it again
           print("    /!\ Deleting the old %s directory ..." % job_dir, end="")
@@ -746,7 +846,6 @@ def main():
           print('%12s' % "[ DONE ]")
 
         os.makedirs(job_dir)
-        print("\nThe %s job directory has been created in %s" % (job_dirname,mol_dir))
 
         # Write the content of each rendered file into its own file with the corresponding filename
 
@@ -754,18 +853,36 @@ def main():
           rendered_file_path = os.path.join(job_dir, filename)
           with open(rendered_file_path, "w", encoding='utf-8') as result_file:
             result_file.write(file_content)
-          print("\nThe %s file has been created into the job directory" % filename)
+          print("    ├── The %s file has been created into the directory" % filename)
         
+        # Copying the config file into the job directory
+        
+        shutil.copy(os.path.join(config_inp_path,config_filename), job_dir)
+
+        print("    └── The configuration file (%s) has been successfully copied into the directory." % config_filename)
+
+        # ========================================================= #
+        # Submitting the job                                        #
+        # ========================================================= #
+
+        section_title = "2. Submitting the job"
+
+        print("")
+        print("")
+        print(''.center(len(section_title)+10, '*'))
+        print(section_title.center(len(section_title)+10))
+        print(''.center(len(section_title)+10, '*'))
+
         # Launch the job
         
         if not dry_run:
 
-          print("{:<80}".format("\nLaunching the job ..."), end="")
+          print("{:<51}".format("\nLaunching the job ..."), end="")
           os.chdir(job_dir)
 
           # Define the launch command
 
-          launch_command = submit_command +  " " + delay_command + " " + rendered_script
+          launch_command = submit_command + " " + delay_command + " " + rendered_script
 
           # Execute the command and get the command status
 
@@ -774,24 +891,41 @@ def main():
           # If something went wrong when submitting the job, do not raise an exception and just quit the execution. It is likely a problem linked to the cluster.
 
           if retcode != 0 :
+            sys.stdout = original_stdout                             # Reset the standard output to its original value
             print("Job submit encountered an issue")
             print("Aborting ...")
             exit(5)
         
           job_count += 1
 
+          print("[ DONE ]")
+        
+        else:
+
+          print("\nThe dry run option has been enabled, this job will not be submitted to the job scheduler.")
+          sys.stdout = original_stdout                            # Reset the standard output to its original value
           print('%12s' % "[ DONE ]")
 
+        # ================================================================== #
+        # End of logging for that transition - config combination            #
+        # ================================================================== #
+
+        sys.stdout = original_stdout                            # Reset the standard output to its original value
+        log.close()                                             # End of logging
+        shutil.move(os.path.join(mol_dir,log_name), job_dir)    # Archive the log file in the job directory
+
       # ========================================================= #
-      # Exception handling for the configuration files            #
+      # Exception handling for the rendering and submitting steps #
       # ========================================================= #
 
       # In case of an error specific to the configuration file, skip it
 
       except control_errors.ControlError as error:
+        sys.stdout = original_stdout                            # Reset the standard output to its original value
         print(error)
         print("Skipping configuration '%s'" % config_name)
-        continue  
+        os.remove(os.path.join(mol_dir,log_name))               # Remove the log file since there was a problem
+        continue        
 
     console_message = "End of procedure for the transition " + transition["label"]
     print("")

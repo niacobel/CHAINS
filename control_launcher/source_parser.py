@@ -98,7 +98,7 @@ def qchem_tddft(file_content:list):
     #                        States List                        #
     # ========================================================= #
 
-    print("{:<80}".format("\nParsing the source file looking for the excited states ...  "), end="")
+    print("{:<50}".format("\nParsing the excited states ...  "), end="")
 
     # Initialization of the variables
 
@@ -208,7 +208,7 @@ def qchem_tddft(file_content:list):
 
             continue
 
-    print('%12s' % "[ DONE ]")
+    print("[ DONE ]")
 
     # Print the states list
 
@@ -226,7 +226,7 @@ def qchem_tddft(file_content:list):
     #                          SOC List                         #
     # ========================================================= #
 
-    print("{:<80}".format("\nParsing the source file looking for the spin-orbit couplings ...  "), end="")
+    print("{:<50}".format("\nParsing the spin-orbit couplings ...  "), end="")
 
     # Initialization of the variables
 
@@ -333,13 +333,13 @@ def qchem_tddft(file_content:list):
           tpl = None
           continue
 
-    print('%12s' % "[ DONE ]")
+    print("[ DONE ]")
 
     # ========================================================= #
     #                       MIME Creation                       #
     # ========================================================= #
 
-    print("{:<80}".format("\nBuilding the MIME ... "), end="")   
+    print("{:<50}".format("\nBuilding the MIME ... "), end="")   
 
     # Initialize the MIME as a zero-filled matrix
 
@@ -359,7 +359,7 @@ def qchem_tddft(file_content:list):
     for state in system['states_list']:
       system['mime'][state['number']][state['number']] = state['energy']
 
-    print('%12s' % "[ DONE ]")
+    print("[ DONE ]")
 
     print("\nMIME (cm-1)")
     print('')
@@ -383,7 +383,7 @@ def qchem_tddft(file_content:list):
     #                    Dipole Moments List                    #
     # ========================================================= #
 
-    print("{:<80}".format("\nParsing the source file looking for the transition dipole moments ...  "), end="")
+    print("{:<50}".format("\nParsing the transition dipole moments ...  "), end="")
 
     # Initialization of the variables
 
@@ -439,7 +439,7 @@ def qchem_tddft(file_content:list):
           # Add the new line to the momdip_list
           momdip_list.append(line)
 
-    print('%12s' % "[ DONE ]")
+    print("[ DONE ]")
 
     # ========================================================= #
     #                   Dipole Moments Matrix                   #

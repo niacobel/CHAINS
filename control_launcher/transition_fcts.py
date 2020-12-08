@@ -113,9 +113,11 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
     print("{:<60}".format('\nCreating states.csv file ... '), end="")
     with open(os.path.join(data_dir, "states.csv"), "w") as f:
       print("Number;Multiplicity;Energy (cm-1);Label", file = f)
+      #print(";".join(map(str,state.keys())), file = f)
       for state in system['states_list']:
         # Print every item in state, separated by ";"
-        print(";".join(map(str,state)), file = f)
+        #print((str(state['number'])+";"+state['multiplicity']+";"+str(state['energy'])+";"+state['label']), file = f)
+        print(";".join(map(str,state.values())), file = f)
     print('%12s' % "[ DONE ]")
 
     """
