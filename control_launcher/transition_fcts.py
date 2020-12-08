@@ -35,6 +35,10 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
           - ``target_file`` is the name of the target state file
     """
 
+    # ========================================================= #
+    #                     Initial state file                    #
+    # ========================================================= #
+    
     # Initial population in the ground state
 
     init_file = "initial"
@@ -53,7 +57,11 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
 
     print('%12s' % "[ DONE ]")
 
-    # Final population (dummy file but still needed by QOCT-RA)
+    # ========================================================= #
+    #                  Final state file (dummy)                 #
+    # ========================================================= #
+
+    # Dummy file but still needed by QOCT-RA
 
     final_file = "final"
 
@@ -69,7 +77,11 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
 
     print('%12s' % "[ DONE ]")
 
-    # Projectors (each targeting a different triplet)
+    # ========================================================= #
+    #                      Projector files                      #
+    # ========================================================= #
+
+    # Each projector targets a different triplet
 
     transitions_list = [] # List of target state files (projectors)
 
@@ -93,5 +105,35 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
             print('', file = f)
         
         print('%12s' % "[ DONE ]")
+
+    #! ========================================================= #
+    #!                 Temporary states list file                #
+    #! ========================================================= #
+
+    print("{:<60}".format('\nCreating states.csv file ... '), end="")
+    with open(os.path.join(data_dir, "states.csv"), "w") as f:
+      print("Number;Multiplicity;Energy (cm-1);Label", file = f)
+      for state in system['states_list']:
+        # Print every item in state, separated by ";"
+        print(";".join(map(str,state)), file = f)
+    print('%12s' % "[ DONE ]")
+
+    """
+    print("{:<60}".format('\nCreating coupling_list.csv file ... '), end="")
+    with open(os.path.join(data_dir, "coupling_list.csv"), "w") as f:
+      print("State 1;State 2;Energy (cm-1)", file = f)
+      for line in ori_coupling_list:
+        # Print every item in line, separated by ";"
+        print(";".join(map(str,line)), file = f)
+    print('%12s' % "[ DONE ]")
+
+    print("{:<60}".format('\nCreating momdip_list.csv file ... '), end="")
+    with open(os.path.join(data_dir, "momdip_list.csv"), "w") as f:
+      print("State 1;State 2;Dipole (a.u.)", file = f)
+      for line in momdip_list:
+        # Print every item in line, separated by ";"
+        print(";".join(map(str,line)), file = f)
+    print('%12s' % "[ DONE ]")
+    """
 
     return transitions_list

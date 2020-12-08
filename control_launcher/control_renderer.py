@@ -83,9 +83,9 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     print('%12s' % "[ DONE ]")
 
     # Check if all the files specified in the clusters YAML file exists in the "templates" directory of CONTROL LAUNCHER.
-    
+
     for filename in clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates'].values():    
-        control_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
+      control_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
 
     # Define the names of the templates, given in the YAML clusters configuration file.
 
@@ -105,7 +105,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     # ========================================================= #
     #             Rendering the OPM parameters file             #
     # ========================================================= #
-  
+
     print("{:<80}".format("\nRendering the jinja template for the OPM parameters file ...  "), end="")
 
     # Determine the central frequency of the guess pulse in cm-1 (here defined as the average of the eigenvalues)
@@ -114,7 +114,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     
     # Define here the number of iterations for QOCT-RA, as it will be used multiple times later on
 
-    niter = config[job_specs['profile']]['param_nml']['control']['niter']
+    niter = config[job_specs['profile']]['control']['niter']
 
     # Defining the Jinja variables
 
@@ -126,20 +126,20 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
       "final_file_path" : os.path.join(data['path'],"final"),
       "proj_file_path" : os.path.join(data['path'],data['transition']['target_file']),
       "transition" : data['transition']['label'],
-      "nstep" : config[job_specs['profile']]['param_nml']['control']['nstep'],
-      "dt" : config[job_specs['profile']]['param_nml']['control']['dt'],
+      "nstep" : config[job_specs['profile']]['control']['nstep'],
+      "dt" : config[job_specs['profile']]['control']['dt'],
       "processus" : "OPM",
       "source" : " ",
       "niter" : niter,
-      "threshold" : config[job_specs['profile']]['param_nml']['control']['threshold'],
-      "alpha0" : config[job_specs['profile']]['param_nml']['control']['alpha0'],
-      "ndump" : config[job_specs['profile']]['param_nml']['control']['ndump'],
-      "ndump2" : config[job_specs['profile']]['param_nml']['post_control']['ndump2'],
+      "threshold" : config[job_specs['profile']]['control']['threshold'],
+      "alpha0" : config[job_specs['profile']]['control']['alpha0'],
+      "ndump" : config[job_specs['profile']]['control']['ndump'],
+      "ndump2" : config[job_specs['profile']]['post_control']['ndump2'],
       "mat_et0_path" : os.path.join(data['path'],data['mat_et0']),
-      "numericincrements" : config[job_specs['profile']]['param_nml']['guess_pulse']['numericincrements'],
-      "numberofpixels" : config[job_specs['profile']]['param_nml']['guess_pulse']['numberofpixels'],
-      "inputenergy" : config[job_specs['profile']]['param_nml']['guess_pulse']['inputenergy'],
-      "widthhalfmax" : config[job_specs['profile']]['param_nml']['guess_pulse']['widthhalfmax'],
+      "numericincrements" : config[job_specs['profile']]['guess_pulse']['numericincrements'],
+      "numberofpixels" : config[job_specs['profile']]['guess_pulse']['numberofpixels'],
+      "inputenergy" : config[job_specs['profile']]['guess_pulse']['inputenergy'],
+      "widthhalfmax" : config[job_specs['profile']]['guess_pulse']['widthhalfmax'],
       "omegazero" : central_frequency
     }
 
@@ -152,7 +152,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     # ========================================================= #
     #             Rendering the PCP parameters file             #
     # ========================================================= #
-  
+
     print("{:<80}".format("\nRendering the jinja template for the PCP parameters file ...  "), end="")
 
     # Defining the Jinja variables by updating the dictionary defined for the OPM parameters file

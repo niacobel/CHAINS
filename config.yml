@@ -42,23 +42,24 @@ qchem:
 #                    QOCT-RA Information                    #
 # ========================================================= #
 
+# QOCT-RA PARAMETERS
+# They will be used "as-is" in the QOCT-RA parameters file
+
 qoctra:
-# Define here the parameters that appear in the namelist parameters file
-  param_nml:
-    control:
-      nstep: 20000                                  # Number of time steps
-      dt: 7.d0                                      # Duration of a time step (a.u. of time)
-      niter: 3000                                   # Number of iterations
-      threshold: 0.9999d0                           # Convergence threshold for the fidelity
-      alpha0: 250.0d0                               # Constraint on the field amplitude
-      ndump: 30                                     # Number of iterations between each writing of the field
-    guess_pulse:
-      numericincrements: 8                          # Type of shape (in terms of bits, there are 2^number of increments for phase and amplitude) If set to 0 then it is not used
-      numberofpixels: 128                           # Number of pixels (pixel width = 2 / total time)
-      inputenergy: 900.0                            # Total energy of the input pulse in the shaper (in micro Joules per cm squared)
-      widthhalfmax: 1000.0                          # Full Width at Half Maximum of the input pulse (in cm-1)
-    post_control:
-      ndump2: 1000                                  # Number of steps between each analysis of the populations, phases, positions and energies
+  control:
+    nstep: 20000                                  # Number of time steps
+    dt: 7.d0                                      # Duration of a time step (a.u. of time)
+    niter: 3000                                   # Number of iterations
+    threshold: 0.9999d0                           # Convergence threshold for the fidelity
+    alpha0: 250.0d0                               # Constraint on the field amplitude
+    ndump: 30                                     # Number of iterations between each writing of the field
+  guess_pulse:
+    numericincrements: 8                          # Type of shape (in terms of bits, there are 2^number of increments for phase and amplitude) If set to 0 then it is not used
+    numberofpixels: 128                           # Number of pixels (pixel width = 2 / total time)
+    inputenergy: 900.0                            # Total energy of the input pulse in the shaper (in micro Joules per cm squared)
+    widthhalfmax: 1000.0                          # Full Width at Half Maximum of the input pulse (in cm-1)
+  post_control:
+    ndump2: 1000                                  # Number of steps between each analysis of the populations, phases, positions and energies
 
 # ========================================================= #
 #               Results Treatment Information               #
