@@ -49,7 +49,7 @@ required.add_argument("-o","--out_dir", type=str, help="Path to the directory wh
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
-optional.add_argument("-ow","--overwrite",action="store_true",help="If a job subdirectory for the same source file already exists, remove it before creating a new one.")
+optional.add_argument("-ow","--overwrite",action="store_true",help="If a data directory for the same source file or a job directory for the same transition-configuration combination already exists, remove it before creating a new one.")
 optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files and directories.")
 
 # =================================================================== #
@@ -250,13 +250,7 @@ def main():
 
     source_path = os.path.dirname(source)
     source_filename = os.path.basename(source)
-
-    # Check if a directory already exists for that source file
-
     source_name = str(source_filename.split('.')[0]) # Getting rid of the format extension to get the name of the source
-
-    if os.path.exists(os.path.join(out_dir,source_name)) and not overwrite:
-      raise control_errors.ControlError ("ERROR: A directory for the %s source file already exists in %s !" % (source_name, out_dir))
 
     # Check config file(s)
     # ====================
@@ -469,12 +463,7 @@ def main():
 
     mol_dir = os.path.join(out_dir,source_name)
 
-    if os.path.exists(mol_dir): # Overwrite was already checked previously, no need to check it again
-      print("\n/!\ Deleting the old %s molecule directory ..." % mol_dir, end="")
-      shutil.rmtree(mol_dir)
-      print('%12s' % "[ DONE ]")
-
-    os.makedirs(mol_dir)
+    os.makedirs(mol_dir,exist_ok=True)
 
     print ("{:<20} {:<100}".format('\nMolecule directory:',mol_dir))
 
@@ -483,6 +472,15 @@ def main():
     # ========================================================= #
 
     data_dir = os.path.join(mol_dir,"data")
+
+    if os.path.exists(data_dir):
+      if not overwrite:
+        raise control_errors.ControlError ("ERROR: A data directory for the %s source file already exists in %s !" % (source_name, out_dir))
+      else:
+        print("\n/!\ Deleting the old %s data directory ..." % data_dir, end="")
+        shutil.rmtree(data_dir)
+        print('%12s' % "[ DONE ]")
+    
     os.makedirs(data_dir)
 
     print ("{:<20} {:<100}".format('\nData directory:',data_dir))
@@ -686,6 +684,9 @@ def main():
         job_dirname = transition["label"] + "_" + config_name
         job_dir = os.path.join(mol_dir,job_dirname)
 
+        if os.path.exists(job_dir) and not overwrite:
+          raise control_errors.ControlError ("ERROR: A directory for the %s transition with the '%s' configuration already exists in %s !" % (transition["label"], config_name, mol_dir))
+
         # Get the path to the jinja templates directory (a directory named "templates" in the same directory as this script)
         
         templates_dir = os.path.join(code_dir,"templates")
@@ -738,6 +739,11 @@ def main():
           raise control_errors.ControlError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the' %s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
 
         # Create the job directory
+
+        if os.path.exists(job_dir): # Overwrite was already checked previously, no need to check it again
+          print("    /!\ Deleting the old %s directory ..." % job_dir, end="")
+          shutil.rmtree(job_dir)
+          print('%12s' % "[ DONE ]")
 
         os.makedirs(job_dir)
         print("\nThe %s job directory has been created in %s" % (job_dirname,mol_dir))
