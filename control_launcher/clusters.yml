@@ -44,7 +44,6 @@ lemaitre3:
         - module --force purge
         - module load releases/2019b
         - module load OpenBLAS/0.3.7-GCC-8.3.0
-      command: gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64
 
 # ========================================================= #
 #                      ULiège Clusters                      #
@@ -60,4 +59,3 @@ nic4:
         - module --force purge
         - module load EasyBuild
         - module load OpenBLAS/0.3.7-GCC-8.3.0
-      command: gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64

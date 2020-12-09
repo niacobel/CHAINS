@@ -47,7 +47,7 @@ cd $SCRATCH
 # Compile the code (cluster dependent)
 
 echo -e ">>> Start of QOCT-RA compilation"
-{{ command }} $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
+gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
 rm mymod.mod  
 echo -e ">>> End of QOCT-RA compilation"
 
