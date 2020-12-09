@@ -52,6 +52,10 @@ results_path=$(yaml "${chains_config}" "['results_dir']")
 
 control_dir="${chains_path}/control_launcher"
 
+# Define the directory where the log files will be stored
+
+control_logs="${WATCH_DIR}/control_logs"
+
 ####################################
 #         Start of execution       #
 ####################################
@@ -66,18 +70,18 @@ if [ $(ls ${OUT_FILEPATH} 2>/dev/null | wc -l) -eq 0 ]; then
 else
 
   file_list=$(ls ${OUT_FILEPATH} 2>/dev/null)
+  mkdir -p "${control_logs}"
 
   for filepath in ${file_list}
   do
     filename="$(basename -- "${filepath}")"
     MOL_NAME=${filename%.*}
     mkdir -p "${out_dir}"
-    python "${control_dir}/control_launcher.py" -s "${filepath}" -p "qchem_tddft" -cf "${results_path}/${MOL_NAME}/config.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -d > "${out_dir}/${MOL_NAME}.log"
+    python "${control_dir}/control_launcher.py" -s "${filepath}" -cf "${results_path}/${MOL_NAME}/config.yml" -o "${out_dir}" -cl "${cluster_name}" -p "qoctra" -ow -d > "${control_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log"
     status=$?
 
     if [ ${status} -eq 0 ]; then
-      # If successful, archive the source file and the log file
-      mv ${out_dir}/${MOL_NAME}.log ${out_dir}/${MOL_NAME}/${MOL_NAME}.log
+      # If successful, archive the source file
       mkdir -p ${WATCH_DIR}/launched
       mv ${filepath} ${WATCH_DIR}/launched/
     fi
