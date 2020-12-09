@@ -40,7 +40,7 @@ As for what each file does, everything will be explained in more details in the 
 - ``scaling_fcts.py`` is the library of functions that define how to determine the job size, by calculating what we defined as the "scale index".
 - ``renderer.py`` is the library of functions that define how to render the Jinja templates, i.e. how to create the input files and the job script.
 - ``abin_errors.py`` contains all the classes and functions defining :ref:`how to handle errors <abin_errors>`.
-- ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, called the :ref:`clusters configuration file <clusters_file>`.
+- ``clusters.yml`` is the YAML file containing all the information specific to the different clusters, called the :ref:`clusters configuration file <abin_clusters_file>`.
 - ``mendeleev.yml`` is a YAML version of Mendeleev's periodic table procured by `AlexGustafsson's molecular-data Github repository`_.
 - ``templates`` is the directory containing all the Jinja templates that will be used by ``ABIN LAUNCHER``. 
 
@@ -81,7 +81,7 @@ The executable part of ``ABIN LAUNCHER`` is the main script, ``abin_launcher.py`
 
 .. Important::
 
-   An important file that will be often referenced throughout this documentation is the **YAML clusters configuration file** (``clusters.yml``). Rather than presenting it in its entirety at the beginning, the relevant bits of information will be introduced in the different sections, but you can have a full overview of that file in its :ref:`specific documentation <clusters_file>`.
+   An important file that will be often referenced throughout this documentation is the **YAML clusters configuration file** (``clusters.yml``). Rather than presenting it in its entirety at the beginning, the relevant bits of information will be introduced in the different sections, but you can have a full overview of that file in its :ref:`specific documentation <abin_clusters_file>`.
 
 Input files
 -----------
@@ -107,7 +107,7 @@ There are three other required arguments for executing ``ABIN LAUNCHER``:
 
 - :guilabel:`-cl / \\--cluster_name`, the **name of the cluster** you are running on.
 
-   This value must be the same as the one given in the :ref:`clusters configuration file <clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. *(This is case-sensitive!)*
+   This value must be the same as the one given in the :ref:`clusters configuration file <abin_clusters_file>`, so that ``ABIN LAUNCHER`` knows what you are referring to. *(This is case-sensitive!)*
 
 .. Tip::
 
@@ -115,11 +115,11 @@ There are three other required arguments for executing ``ABIN LAUNCHER``:
 
 - :guilabel:`-p / \\--profile`, the **name of the profile** you want to run jobs with.
 
-   The profile is a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. It specifies what type of scaling and rendering will be performed, which defines which program will be run and how. As will be shown throughout this documentation, the profiles are defined in the :ref:`clusters configuration file <clusters_file>` and the name given in the command line must match one of the names given in the file. *(This is case-sensitive!)*.
+   The profile is a label used by ``ABIN LAUNCHER`` to know which information to get from its different files. It specifies what type of scaling and rendering will be performed, which defines which program will be run and how. As will be shown throughout this documentation, the profiles are defined in the :ref:`clusters configuration file <abin_clusters_file>` and the name given in the command line must match one of the names given in the file. *(This is case-sensitive!)*.
 
 - :guilabel:`-o / \\--out_dir`, the **output directory** 
 
-   This is the jobs root directory, where each job subdirectory will be created. Those subdirectories are the ones where the files will be created and from which the jobs will be submitted to the job scheduler.
+   This is the jobs root directory, where each job subdirectory will be created. Those subdirectories are the ones where the files will be created and from where the jobs will be submitted to the job scheduler.
 
 There are also a number of optional arguments that can be used to adapt to each specific situation. Their description in the :ref:`command line arguments <abin_arguments>` subsection should be self-explanatory.
 
@@ -160,7 +160,7 @@ Now that everything has been prepared for the job, ``ABIN LAUNCHER`` submits it 
 
 where
 
-- ``<submit_command>`` is the command which submits jobs to your job scheduler. In SLURM's case, it is the ``sbatch`` command. This must be indicated in the :ref:`clusters configuration file <clusters_file>`: 
+- ``<submit_command>`` is the command which submits jobs to your job scheduler. In SLURM's case, it is the ``sbatch`` command. This must be indicated in the :ref:`clusters configuration file <abin_clusters_file>`: 
 
    .. code-block:: yaml
 
@@ -180,7 +180,7 @@ For example, if we want to run an ORCA calculation on a SLURM cluster, but delay
 
 Once the job has been submitted, ``ABIN LAUNCHER`` will proceed to the next configuration file with the same geometry. Once all the configuration files have been treated, it will proceed to the next geometry and treat again all the configuration files for that geometry. At the end of the execution, barring any problems, a job will have been launched for each geometry-configuration combination.
 
-.. _out_dir_struct:
+.. _abin_out_dir_struct:
 
 Output directory structure
 --------------------------

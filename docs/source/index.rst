@@ -33,8 +33,11 @@
    :maxdepth: 1
    :caption: CONTROL LAUNCHER
 
-   Overview <control_launcher.overview>
+   control_launcher.overview
    control_launcher.parsing
+   control_launcher.job_scale
+   control_launcher.rendering
+   control_launcher.other
 
 .. toctree::
    :hidden:
@@ -51,7 +54,7 @@
    :caption: LINKING THE SCRIPTS
 
    Integration of ABIN LAUNCHER <chains.abin_integration>
-   Tests <tests.rst>
+   Integration of CONTROL LAUNCHER <chains.control_integration>
 
 ********************************
 Welcome to CHAINS' documentation

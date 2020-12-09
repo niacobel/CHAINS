@@ -2,7 +2,7 @@
 Other important files
 *********************
 
-.. _clusters_file:
+.. _abin_clusters_file:
 
 Clusters configuration file
 ===========================

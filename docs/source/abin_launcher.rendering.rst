@@ -115,7 +115,7 @@ Now, we need to replace every variable part of this input by a Jinja variable:
 
 Note that since the partition value is optional, we need to check if it has been specified before putting it in the instructions. Otherwise, we might end up with a ``partition=None`` which won't be recognized by the cluster.
 
-We are almost done, but there is one more thing we need to take into consideration here: ``ABIN LAUNCHER`` puts a copy of the geometry file inside the job subdirectory (see :ref:`out_dir_struct`). If we don't want that file to be overwritten by the new optimized geometry, we need to rename it before ORCA starts running:
+We are almost done, but there is one more thing we need to take into consideration here: ``ABIN LAUNCHER`` puts a copy of the geometry file inside the job subdirectory (see :ref:`abin_out_dir_struct`). If we don't want that file to be overwritten by the new optimized geometry, we need to rename it before ORCA starts running:
 
 .. code-block:: jinja
 
@@ -189,7 +189,7 @@ We can then define the configuration file content as:
 .. literalinclude:: sample_files/svp.yml
    :language: yaml
 
-For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are dependent on the cluster, it makes more sense to define them in the :ref:`clusters configuration file <clusters_file>`:
+For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are dependent on the cluster, it makes more sense to define them in the :ref:`clusters configuration file <abin_clusters_file>`:
 
 .. code-block:: yaml
 
@@ -237,13 +237,13 @@ The six arguments
 As said in the previous subsection, the rendering functions take six dictionaries as arguments. Since those functions might want various information depending on each specific case, we tried to include as many pertinent details as you might want to refer to during your rendering process. Thus, the six dictionaries are defined as follows:
 
 - ``mendeleev`` is the content of the ``mendeleev.yml`` file.
-- ``clusters_cfg`` is the content of the :ref:`clusters configuration file <clusters_file>`.
+- ``clusters_cfg`` is the content of the :ref:`clusters configuration file <abin_clusters_file>`.
 - ``config`` is the content of the YAML configuration file.
 - ``file_data`` is the variable built by the :doc:`scanning function <abin_launcher.scan>`.
 
 - ``job_specs`` contains the information about the resources requirements, defined by the :doc:`job scaling <abin_launcher.job_scale>` process, as well as other details about the job:
 
-   - ``profile``, the name of the profile as it appears in the :ref:`clusters configuration file <clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`.
+   - ``profile``, the name of the profile as it appears in the :ref:`clusters configuration file <abin_clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`.
    - ``scaling_fct``, the name of the chosen :ref:`scaling function <scaling_fcts>`.
    - ``scale_index``, the computed value of the scale_index.
    - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`.
@@ -320,7 +320,7 @@ A basic example of a rendering function is presented at the end of this section.
 Calling your rendering function
 -------------------------------
 
-The rendering function that will be called by ``ABIN LAUNCHER`` is the one associated with the ``rendering_function`` YAML key defined in the :ref:`clusters configuration file <clusters_file>`:
+The rendering function that will be called by ``ABIN LAUNCHER`` is the one associated with the ``rendering_function`` YAML key defined in the :ref:`clusters configuration file <abin_clusters_file>`:
 
 .. code-block:: yaml
 

@@ -68,7 +68,7 @@ If a problem arises when computing the scale index, an ``AbinError`` exception i
 Choosing a scaling function
 ---------------------------
 
-The scaling function that will be called by ``ABIN LAUNCHER`` is the one associated with the ``scaling_function`` YAML key defined in the :ref:`clusters configuration file <clusters_file>`:
+The scaling function that will be called by ``ABIN LAUNCHER`` is the one associated with the ``scaling_function`` YAML key defined in the :ref:`clusters configuration file <abin_clusters_file>`:
 
 .. code-block:: yaml
 
@@ -117,7 +117,7 @@ This function simply sums up all the values of the keys in the ``chemical_formul
 Job scales
 ==========
 
-The job scales must be defined as follows in the ``job_scales`` key in the :ref:`clusters configuration file <clusters_file>`:
+The job scales must be defined as follows in the ``job_scales`` key in the :ref:`clusters configuration file <abin_clusters_file>`:
 
 .. code-block:: yaml
 

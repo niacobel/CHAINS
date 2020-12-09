@@ -71,8 +71,8 @@ If you already have them installed, be sure to check their version and upgrade t
 
 .. code-block:: console
 
-   $ python -m pip install -U --user pyyaml
-   $ python -m pip install -U --user jinja2
+   $ python -m pip install --upgrade --user pyyaml
+   $ python -m pip install --upgrade --user jinja2
 
 The second main script of CHAINS, ``CONTROL LAUNCHER``, makes use of the NumPy_ package (**version 1.14+**). If your Python distribution does not include it, you can install it using
 
