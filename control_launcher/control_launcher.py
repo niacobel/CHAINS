@@ -296,6 +296,14 @@ def main():
       config_inp_file = os.path.basename(config_inp)
       config_inp_list = [config_inp_file]
 
+    # Check dry run option
+    # ====================
+
+    if dry_run:
+      print("\nThe dry run option has been enabled: the job files and directories will be created but the jobs will not be submitted to the job scheduler.")
+    else:
+      job_count = 0   # Launched jobs counter, this number will be shown on the console screen at the end of the execution
+
   # ========================================================= #
   # Exception handling for the preparation step               #
   # ========================================================= #
@@ -706,9 +714,6 @@ def main():
   #           RENDERING THE TEMPLATES AND SUBMITTING THE JOBS           #
   # =================================================================== #
   # =================================================================== #
-
-  if not dry_run:
-    job_count = 0   # Launched jobs counter, this number will be showed on the console screen at the end of the execution
 
   # For each transition-configuration combination, render the parameters file and run the corresponding job
 
