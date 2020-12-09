@@ -1,8 +1,6 @@
 # CECI Clusters relevant information, see http://www.ceci-hpc.be/clusters.html for more details 
 # This is a YAML file, see https://yaml.org/ for more information
 
-#! Keep in mind the definition of your scaling function when assigning values to the scale_limit keys
-
 # ========================================================= #
 #                        Shared Keys                        #
 # ========================================================= #
@@ -45,5 +43,21 @@ lemaitre3:
       set_env:
         - module --force purge
         - module load releases/2019b
+        - module load OpenBLAS/0.3.7-GCC-8.3.0
+      command: gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64
+
+# ========================================================= #
+#                      ULiège Clusters                      #
+# ========================================================= #
+
+nic4:
+# address nic4.segi.ulg.ac.be
+  submit_command: sbatch
+  profiles:
+    qoctra:
+      <<: *qoctra
+      set_env:
+        - module --force purge
+        - module load EasyBuild
         - module load OpenBLAS/0.3.7-GCC-8.3.0
       command: gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64

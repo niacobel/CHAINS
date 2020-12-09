@@ -37,6 +37,10 @@ elif [ "${CLUSTER_NAME}" = "hercules" ]; then
     module load releases/2016b
     module load Python/3.5.2-foss-2016b
 
+elif [ "${CLUSTER_NAME}" = "nic4" ]; then
+    module load EasyBuild
+    module load Python/3.7.4-GCCcore-8.3.0
+
 else
     echo "ERROR: Unknown cluster. Corresponding modules can't be loaded. Please add the cluster module information to load_modules.sh."
 
