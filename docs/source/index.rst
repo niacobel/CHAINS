@@ -45,18 +45,12 @@
    :hidden:
    :numbered:
    :maxdepth: 1
-   :caption: RESULTS TREATMENT
+   :caption: CHAINS
 
-   Overview <results_treatment.overview>
-
-.. toctree::
-   :hidden:
-   :numbered:
-   :maxdepth: 1
-   :caption: LINKING THE SCRIPTS
-
-   Integration of ABIN LAUNCHER <chains.abin_integration>
-   Integration of CONTROL LAUNCHER <chains.control_integration>
+   Abin Launcher profiles <chains.abin_profile>
+   Control Launcher profile <chains.control_profile>
+   Results Treatment <chains.results_treatment>
+   Linking the scripts <chains.linking>
 
 ********************************
 Welcome to CHAINS' documentation

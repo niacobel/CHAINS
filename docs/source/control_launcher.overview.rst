@@ -7,7 +7,7 @@ What is CONTROL LAUNCHER?
 
 The **QOCT-RA Input Builder and Job Launcher**, named ``CONTROL LAUNCHER``, is a script that creates input files for the QOCT-RA_ scripts, and then submits (or "launches") the corresponding calculations on a job scheduler. For a given source file (that describes the needed molecular properties), it can operate with one or more set of QOCT-RA parameters (the configuration files). ``CONTROL LAUNCHER`` is the second main script of CHAINS and is used to execute the second phase of CHAINS' methodology, which consists in evaluating the efficiency of the control procedure and the controllability of the electrons in the molecule.  
 
-However, ``CONTROL LAUNCHER`` can be used in an autonomous way and does not depend on CHAINS. It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent QOCT-RA calculations, and can be adapted to deal with other similar problematics. As such, this specific part of the documentation only explains how ``CONTROL LAUNCHER`` works in and of itself, and its integration into CHAINS is explained :doc:`elsewhere <chains.control_integration>`.
+However, ``CONTROL LAUNCHER`` can be used in an autonomous way and does not depend on CHAINS. It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent QOCT-RA calculations, and can be adapted to deal with other similar problematics. As such, this specific part of the documentation only explains how ``CONTROL LAUNCHER`` works in and of itself, and its integration into CHAINS is explained :doc:`elsewhere <chains.control_profile>`.
 
 .. _control_directory:
 

@@ -34,7 +34,7 @@ Evaluation Phase (Steps 8-9)
 Results Phase (Step 11)
 =======================
 
-*This phase is covered by the third main script of CHAINS, named* ``RESULTS TREATMENT``. *Consult its* :doc:`specific documentation <results_treatment.overview>` *for details*.
+*This phase is covered by the third main script of CHAINS, named* ``RESULTS TREATMENT``. *Consult its* :doc:`specific documentation <chains.results_treatment>` *for details*.
 
 There is no calculation involved in this phase. As its name implies, ``RESULTS TREATMENT`` is designed to treat the results from the previous steps and compile them into graphs and tables, for ease of interpretation and comparison.
 
