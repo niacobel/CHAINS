@@ -35,9 +35,11 @@
 
    control_launcher.overview
    control_launcher.parsing
+   control_launcher.transitions
    control_launcher.job_scale
    control_launcher.rendering
    control_launcher.other
+   control_launcher.example
 
 .. toctree::
    :hidden:
