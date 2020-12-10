@@ -64,7 +64,7 @@ Command line arguments
 How does it work?
 =================
 
-The executable part of ``CONTROL LAUNCHER`` is the main script, ``control_launcher.py``. This is the one that must be called in the command line. The overall procedure follows two big steps: **system modelling** and **jobs launching**. Those steps will be more thoroughly explained in the other sections of this documentation. As such, this subsection will only focus on the global procedure.
+The executable part of ``CONTROL LAUNCHER`` is the main script, ``control_launcher.py``. This is the one that must be called in the command line. The overall procedure follows three main steps: **system modelling**, **determining the transitions** and **jobs launching**. Those steps will be more thoroughly explained in the other sections of this documentation. As such, this subsection will only focus on the global procedure.
 
 .. Important::
 
@@ -111,25 +111,29 @@ There are also some optional arguments that can be used to adapt to some specifi
 First step: System modelling
 ----------------------------
 
-``CONTROL LAUNCHER`` begins by generating the data files, that will be used by QOCT-RA to model the system that needs to be controlled. This step can be divided into two smaller steps:
+``CONTROL LAUNCHER`` begins by generating some data files that will be used by QOCT-RA to model the system that needs to be controlled. This step involves parsing the source file to extract all the needed values from it, then manipulating those values to build an effective Hamiltonian describing the molecule. 
 
-- **Parsing the source file** to extract all the needed values from the source file, they will be used to create an effective Hamiltonian describing the molecule.
-- **Determining the transitions** that need to be covered.
+For more details on how this modelling process is performed, consult the :doc:`control_launcher.modelling` specific documentation.
 
-For more details on how those steps are performed, consult their respective specific documentation.
+.. _determining_transitions:
 
-Second step: Jobs launching
----------------------------
+Second step: Determining the transitions
+----------------------------------------
+
+Once the system has been modelled, it is time to determinate the transitions that will be covered by the control procedure. For this, some data files still need to be created: the transition files, i.e. the initial states and the target states. 
+
+For more details on how this process is performed, consult the :doc:`control_launcher.transitions` specific documentation.
+
+Third step: Jobs launching
+--------------------------
 
 After having created all the data files needed to model the system, ``CONTROL LAUNCHER`` creates the job directories and files, then launches the actual jobs themselves. This step can be divided into three smaller steps:
 
-- **Job scaling**: Using the number of states as a reference, the job scale for that molecule is evaluated, which will specify the calculation requirements accordingly (walltime, memory, etc.).
-- **Rendering the templates**: based on user-defined Jinja templates, ``CONTROL LAUNCHER`` creates the input files and the job script associated with our calculation. The content of those files is based on the information from the configuration files.
+- **Job scaling**: Using the number of states as a reference, the job scale for that molecule is evaluated, which will specify the calculation requirements accordingly (walltime, memory, etc.). For more details, consult the :doc:`control_launcher.job_scale` specific documentation.
+- **Rendering the templates**: based on user-defined Jinja templates, ``CONTROL LAUNCHER`` creates the input files and the job script associated with our calculation. The content of those files is based on the information from the configuration files. For more details, consult the :doc:`control_launcher.rendering` specific documentation.
 - **Submitting the job**: Now that everything has been prepared for the job, ``CONTROL LAUNCHER`` submits it to the job scheduler.
 
-For more details on how the first two steps are performed, consult their respective specific documentation.
-
-As for submitting the job, the exact command that will be executed is:
+The exact command that will be executed for submitting the job is:
 
 .. code-block:: console
 
@@ -196,13 +200,13 @@ If we have for example 2 transitions and 2 configuration files, once the executi
 where 
 
 - ``source`` is the directory created by ``CONTROL LAUNCHER`` and named after the source file (minus a possible extension)
-- ``data`` is the directory containing all the data files created during the :ref:`system modelling <system_modelling>` step.
+- ``data`` is the directory containing all the data files created during the :ref:`system modelling <system_modelling>` and :ref:`determining the transitions <determining_transitions>` steps.
 - ``source_file`` is a copy of the source file.
-- ``source.log`` is an output file containing the details of the treatment of this source file by ``CONTROL LAUNCHER`` (the extracted molecular properties, the considered transitions, etc.)
+- ``source.log`` is an output file containing the details of the treatment of this source file by ``CONTROL LAUNCHER`` (the extracted molecular properties, the considered transitions, etc.).
 - ``transitionX_configX`` is the job subdirectory from which the job will be submitted to the job scheduler.
 - ``configX.yml`` is a copy of the configuration file.
 - ``job_script.sh`` and ``param.nml`` are the files created by the :doc:`rendering process <control_launcher.rendering>`.
-- ``transitionX_configX.log`` is an output file containing the details of the treatment of this transition-configuration combination by ``CONTROL LAUNCHER`` (the used job scale, the files created, etc.)
+- ``transitionX_configX.log`` is an output file containing the details of the treatment of this transition-configuration combination by ``CONTROL LAUNCHER`` (the used job scale, the files created, etc.).
 
 .. Hyperlink targets
 

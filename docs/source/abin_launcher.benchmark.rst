@@ -192,7 +192,7 @@ Let's end this section with a sample run of the benchmarking tool. We will use o
 
 .. Tip::
 
-   Every file presented in this subsection can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/benchmark_sample_files>`_.
+   Every file presented in this subsection can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/abin_sample/benchmark_sample_files>`_.
 
 Preparation
 -----------
@@ -261,7 +261,7 @@ and in the ``sample_orca_render`` function of ``renderer.py``, we add
 
       If you are not sure of where exactly you need to add this portion of code, you can click on the arrow below to see the complete source code of ``renderer.py``.
 
-   .. literalinclude:: benchmark_sample_files/renderer.py
+   .. literalinclude:: abin_sample/benchmark_sample_files/renderer.py
       :caption: renderer.py
       :emphasize-lines: 126-138
 
@@ -278,7 +278,7 @@ Now we execute the ``crontab -e`` command in our terminal to edit our cron tasks
 
 Finally, we edit the beginning of our ``cron_benchmark.sh`` file to load our Python distribution:
 
-.. literalinclude:: benchmark_sample_files/cron_benchmark.sh
+.. literalinclude:: abin_sample/benchmark_sample_files/cron_benchmark.sh
    :caption: cron_benchmark.sh, lines 7-15
    :lines: 7-15
 
@@ -303,13 +303,13 @@ We obtain the same results than before, with the six launched jobs.
 
 As soon as each job finishes, the temporary CSV file will either be created or updated with a new line. After the six jobs have finished, this is what the raw file looks like:
 
-.. literalinclude:: benchmark_sample_files/sample_orca_tmp.csv
+.. literalinclude:: abin_sample/benchmark_sample_files/sample_orca_tmp.csv
    :caption: sample_orca_tmp.csv
 
 and in a more human-readable fashion:
 
 .. csv-table::
-   :file: benchmark_sample_files/sample_orca_tmp.csv
+   :file: abin_sample/benchmark_sample_files/sample_orca_tmp.csv
    :delim: ;
    :name: sample_orca_tmp.csv
 
@@ -344,7 +344,7 @@ After at most 15 minutes, the crontab task executes the crontab script, which ar
 where our final CSV file, ``sample_orca_final.csv``, contains:
 
 .. csv-table::
-   :file: benchmark_sample_files/sample_orca_final.csv
+   :file: abin_sample/benchmark_sample_files/sample_orca_final.csv
    :delim: ;
    :name: sample_orca_final.csv
 
@@ -371,7 +371,7 @@ As you can see in the directory structure above, the benchmarking tool creates t
 
 - The log file from the crontab script, which contains a line for each time a temporary CSV file has been processed. At this point, its content is simply:
 
-   .. literalinclude:: benchmark_sample_files/sample_orca_crontab.log
+   .. literalinclude:: abin_sample/benchmark_sample_files/sample_orca_crontab.log
       :language: text
       :caption: sample_orca_crontab.log
 
@@ -382,7 +382,7 @@ As you can see in the directory structure above, the benchmarking tool creates t
 
          The log file from the Python script, ``sample_orca_20201109_171504.log``, placed inside the ``bench_logs`` directory. Click on the arrow below to see its content.
 
-      .. literalinclude:: benchmark_sample_files/sample_orca_20201109_171504.log
+      .. literalinclude:: abin_sample/benchmark_sample_files/sample_orca_20201109_171504.log
          :language: text
          :caption: sample_orca_20201109_171504.log
 

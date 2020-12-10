@@ -66,7 +66,7 @@ With that, you know everything you need to know about Jinja2 in order to use CHA
 About Regular Expressions
 =========================
 
-`Regular Expressions`_ (or regexes) are a powerful tool that can define search patterns to look for specific information in text. You don't need to know how they work to simply use ``ABIN LAUNCHER`` or ``CONTROL LAUNCHER``, but they are used in the results treatment part of CHAINS. If you want to customize the treatment of your results, or if you want to define new :doc:`scanning functions <abin_launcher.scan>` for geometry files (in ``ABIN LAUNCHER``) or new :doc:`parsing functions <control_launcher.parsing>` for source files (in ``CONTROL LAUNCHER``), it is probably a good idea to take a look at how they work.
+`Regular Expressions`_ (or regexes) are a powerful tool that can define search patterns to look for specific information in text. You don't need to know how they work to simply use ``ABIN LAUNCHER`` or ``CONTROL LAUNCHER``, but they are used in the results treatment part of CHAINS. If you want to customize the treatment of your results, or if you want to define new :doc:`scanning functions <abin_launcher.scan>` for geometry files (in ``ABIN LAUNCHER``) or new :ref:`parsing functions <parsing_fcts>` for source files (in ``CONTROL LAUNCHER``), it is probably a good idea to take a look at how they work.
 
 Regular Expressions can present themselves as incredibly unintuitive but their versatility certainly makes up for that. Here is a YouTube tutorial made by Corey Schafer that will cover how regexes work and how they can be used in Python:
 

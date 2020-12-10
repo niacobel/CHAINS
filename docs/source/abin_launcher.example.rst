@@ -6,7 +6,7 @@ This section will cover a sample run of ``ABIN LAUNCHER``, to get a concrete exa
 
 .. Tip::
 
-   Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/sample_files>`_. The other files can be fetched directly from ``ABIN LAUNCHER``'s :ref:`directory <abin_directory>`. Note that for this example, the ``renderer.py`` and ``clusters.yml`` file from the ``sample_files`` directory replaces the ones present in ``ABIN LAUNCHER``'s directory (which are more complex ones, used by CHAINS).
+   Every file presented in this section can be downloaded `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/abin_sample/sample_files>`_. The other files can be fetched directly from ``ABIN LAUNCHER``'s :ref:`directory <abin_directory>`. Note that for this example, the ``renderer.py`` and ``clusters.yml`` file from the ``abin_sample/sample_files`` directory replaces the ones present in ``ABIN LAUNCHER``'s directory (which are more complex ones, used by CHAINS).
 
 Preparation
 ===========
@@ -18,13 +18,13 @@ We will simply use the Jinja templates defined in the :doc:`rendering section <a
 
 - The Jinja template for the ORCA input file:
 
-.. literalinclude:: sample_files/sample_orca.inp.jinja
+.. literalinclude:: abin_sample/sample_files/sample_orca.inp.jinja
    :language: jinja
    :caption: sample_orca.inp.jinja
 
 - The Jinja template for the job script:
 
-.. literalinclude:: sample_files/sample_orca_job.sh.jinja
+.. literalinclude:: abin_sample/sample_files/sample_orca_job.sh.jinja
    :language: jinja
    :caption: sample_orca_job.sh.jinja
 
@@ -33,7 +33,7 @@ Rendering function
 
 We will also use the rendering function we defined in the :ref:`rendering section <rendering_fct>`, this function is placed in the ``renderer.py`` file. For our sample case, this file contains:
 
-.. literalinclude:: sample_files/renderer.py
+.. literalinclude:: abin_sample/sample_files/renderer.py
    :language: python
    :caption: renderer.py
 
@@ -44,7 +44,7 @@ For this run, we will be running on the ``lemaitre3`` cluster from the CECI_, th
 
 The clusters configuration file looks like:
 
-.. literalinclude:: sample_files/clusters.yml
+.. literalinclude:: abin_sample/sample_files/clusters.yml
    :language: yaml
    :caption: clusters.yml
 
@@ -60,22 +60,22 @@ Our three molecules are simply |CH4|, |C2H6| and |C3H8|. They are each represent
 .. |C2H6| replace:: C\ :sub:`2`\ H\ :sub:`6`\ 
 .. |C3H8| replace:: C\ :sub:`3`\ H\ :sub:`8`\ 
 
-.. literalinclude:: sample_files/ch4.xyz
+.. literalinclude:: abin_sample/sample_files/ch4.xyz
    :caption: ch4.xyz
 
-.. literalinclude:: sample_files/c2h6.xyz
+.. literalinclude:: abin_sample/sample_files/c2h6.xyz
    :caption: c2h6.xyz
 
-.. literalinclude:: sample_files/c3h8.xyz
+.. literalinclude:: abin_sample/sample_files/c3h8.xyz
    :caption: c3h8.xyz
 
 For our two configuration files, we want to perform a geometry optimization using the DFT method with the B3LYP functional, and the two considered basis sets are def2-SVP and def2-TZVP. Thus, our two files are:
 
-.. literalinclude:: sample_files/svp.yml
+.. literalinclude:: abin_sample/sample_files/svp.yml
    :language: yaml
    :caption: svp.yml
 
-.. literalinclude:: sample_files/tzvp.yml
+.. literalinclude:: abin_sample/sample_files/tzvp.yml
    :language: yaml
    :caption: tzvp.yml
 
@@ -122,7 +122,7 @@ We can now execute ``abin_launcher.py`` by running the command (from ``abin_docs
 
 This is what appears on the console screen (here captured in a file for ease of reading):
 
-.. literalinclude:: sample_files/sample_run.log
+.. literalinclude:: abin_sample/sample_files/sample_run.log
    :language: text
    :caption: sample_run.log
 
@@ -206,7 +206,7 @@ The log file
 
 As an example, here is what the ``c3h8_tzvp.log`` file looks like:
 
-.. literalinclude:: sample_files/c3h8_tzvp.log
+.. literalinclude:: abin_sample/sample_files/c3h8_tzvp.log
    :language: text
    :caption: c3h8_tzvp.log
 

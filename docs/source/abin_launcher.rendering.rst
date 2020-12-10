@@ -51,7 +51,7 @@ First, we will create an input file template for ORCA_. Consider the geometry op
 
 To make a Jinja template for such an input file, we need to replace every variable part of this input by a Jinja variable:
 
-.. literalinclude:: sample_files/sample_orca.inp.jinja
+.. literalinclude:: abin_sample/sample_files/sample_orca.inp.jinja
    :language: jinja
 
 We can intuitively tell that:
@@ -147,7 +147,7 @@ Once again, that's it! Now we have a basic functioning job script template for O
 
 However, we can also take this template one step further:
 
-.. literalinclude:: sample_files/sample_orca_job.sh.jinja
+.. literalinclude:: abin_sample/sample_files/sample_orca_job.sh.jinja
    :language: jinja
 
 where the module to load has been replaced by ``{{ set_env }}`` and the command to execute the program has been replaced by ``{{ command }}``. With this, it becomes possible to load and run the same program on another SLURM cluster, where the module and/or the command might be different.
@@ -186,7 +186,7 @@ Job script:
 
 We can then define the configuration file content as:
 
-.. literalinclude:: sample_files/svp.yml
+.. literalinclude:: abin_sample/sample_files/svp.yml
    :language: yaml
 
 For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are dependent on the cluster, it makes more sense to define them in the :ref:`clusters configuration file <abin_clusters_file>`:
@@ -345,25 +345,25 @@ Before defining the function, we need to review our different files:
 
 First, we have the input file template:
 
-.. literalinclude:: sample_files/sample_orca.inp.jinja
+.. literalinclude:: abin_sample/sample_files/sample_orca.inp.jinja
    :language: jinja
    :caption: sample_orca.inp.jinja
 
 Then, the job script template:
 
-.. literalinclude:: sample_files/sample_orca_job.sh.jinja
+.. literalinclude:: abin_sample/sample_files/sample_orca_job.sh.jinja
    :language: jinja
    :caption: sample_orca_job.sh.jinja
 
 Third, the configuration file:
 
-.. literalinclude:: sample_files/svp.yml
+.. literalinclude:: abin_sample/sample_files/svp.yml
    :language: yaml
    :caption: svp.yml
 
 Finally, let's consider that we have the following clusters configuration file:
 
-.. literalinclude:: sample_files/clusters.yml
+.. literalinclude:: abin_sample/sample_files/clusters.yml
    :language: yaml
    :caption: clusters.yml
 
@@ -445,7 +445,7 @@ Finally, we just need to return ``rendered_content`` and ``rendered_script`` to 
 
 Our function is now ready. This is what it ends up looking like with proper comments and documentation:
 
-.. literalinclude:: sample_files/renderer.py
+.. literalinclude:: abin_sample/sample_files/renderer.py
    :language: python
    :lines: 46-132
 

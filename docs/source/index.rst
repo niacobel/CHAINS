@@ -34,7 +34,7 @@
    :caption: CONTROL LAUNCHER
 
    control_launcher.overview
-   control_launcher.parsing
+   control_launcher.modelling
    control_launcher.transitions
    control_launcher.job_scale
    control_launcher.rendering
