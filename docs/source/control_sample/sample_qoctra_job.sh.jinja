@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#SBATCH --output=slurm_output.log
+#SBATCH --job-name={{ source_name }}_{{ transition }}_{{ config_name }}
+#SBATCH --mail-user={{ user_email }}
+#SBATCH --mail-type={{ mail_type }}
+#SBATCH --time={{ job_walltime }}
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu={{ job_memory }}
+{% if partition != None %}
+#SBATCH --partition={{ partition }}
+{% endif %}
+
+QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
+
+echo -e ">>> Start of QOCT-RA compilation"
+
+{{ set_env }}
+gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
+rm mymod.mod  
+
+echo -e ">>> End of QOCT-RA compilation"
+
+echo -e "\n================= QOCT-RA execution begins now =================="
+
+./Controle.out {{ rendered_param }} $QOCT_RA_DIR
+
+echo -e "\n================= QOCT-RA execution ends now =================="
