@@ -390,7 +390,7 @@ def main():
 
     # ========================================================= #
     # ========================================================= #
-    #                Geometry file treatment                    #
+    #                GEOMETRY FILE TREATMENT                    #
     # ========================================================= #
     # ========================================================= #
 
@@ -419,7 +419,9 @@ def main():
       print ("{:<50} {:<100}".format('\nProfile:',profile))
 
       # ========================================================= #
-      # Scanning the geometry file                                #
+      # ========================================================= #
+      #                 SCANNING THE GEOMETRY FILE                #
+      # ========================================================= #
       # ========================================================= #
 
       section_title = "1. Scanning the geometry file"
@@ -453,7 +455,9 @@ def main():
           raise abin_errors.AbinError ("ERROR: Element %s is not defined in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % atom)
       
       # ========================================================= #
-      # Determining the job scale                                 #
+      # ========================================================= #
+      #                        JOB SCALING                        #
+      # ========================================================= #
       # ========================================================= #
       
       section_title = "2. Job scaling"
@@ -475,6 +479,8 @@ def main():
         print ("{:<15} {:<20} {:<20} {:<20} {:<10} {:<20} {:<40}".format(scale_limit, scale['label'], scale.get('partition_name', "not specified"), scale['time'], scale['cores'], scale['mem_per_cpu'], scale.get('delay_command', "not specified")))
       print(''.center(146, '-'))
 
+      #######################################################################
+
       subsection_title = "A. Scaling function"
 
       print("")
@@ -487,7 +493,9 @@ def main():
       scale_index = eval("scaling_fcts." + scaling_fct)(mendeleev, file_data)
 
       print("{:<50} {:<100}".format("\nScale index:", scale_index))
-      
+
+      #######################################################################
+
       subsection_title = "B. Calculation requirements"
 
       print("")
@@ -556,7 +564,7 @@ def main():
 
     # ========================================================= #
     # ========================================================= #
-    #               Configuration file treatment                #
+    #               CONFIGURATION FILE TREATMENT                #
     # ========================================================= #
     # ========================================================= #
 
@@ -594,7 +602,9 @@ def main():
           raise abin_errors.AbinError ("ERROR: A directory for the %s geometry with the '%s' configuration already exists in %s !" % (mol_name, config_name, out_dir))
 
         # ========================================================= #
-        # Rendering the templates                                   #
+        # ========================================================= #
+        #                  RENDERING THE TEMPLATES                  #
+        # ========================================================= #
         # ========================================================= #
 
         section_title = "3. Rendering the templates"
@@ -613,6 +623,8 @@ def main():
         with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
           config = yaml.load(f_config, Loader=yaml.FullLoader)
         print("[ DONE ]")
+
+        #######################################################################
 
         subsection_title = "A. Rendering function"
 
@@ -660,9 +672,7 @@ def main():
 
         print("\nAll the templates have been succesfully rendered.")
 
-        # ========================================================= #
-        # Creating the job directory and its content                #
-        # ========================================================= #
+        #######################################################################
 
         subsection_title = "B. Creating the files"
 
@@ -670,6 +680,10 @@ def main():
         print("")
         print(subsection_title)
         print(''.center(len(subsection_title), '='))
+
+        # ========================================================= #
+        # Creating the job directory and its content                #
+        # ========================================================= #
 
         job_dir = os.path.join(out_dir,mol_name + "_" + config_name)
 
@@ -698,7 +712,9 @@ def main():
         print("    └── The geometry file (%s) and the configuration file (%s) have been successfully copied into the directory." % (mol_filename, config_filename))
 
         # ========================================================= #
-        # Submitting the job                                        #
+        # ========================================================= #
+        #                     SUBMITTING THE JOB                    #
+        # ========================================================= #
         # ========================================================= #
 
         section_title = "4. Submitting the job"
