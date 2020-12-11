@@ -20,7 +20,7 @@ from collections import OrderedDict
 from inspect import getsourcefile
 
 import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
-import numpy as np
+import numpy
 import yaml
 
 # Subscripts (files that end with .py and must be placed in the same directory as this script)
@@ -45,12 +45,14 @@ required.add_argument("-s","--source", type=str, help="Path to the source file c
 required.add_argument('-cf', '--config', type=str, help="Path to either a YAML configuration file or a directory containing multiple YAML configuration files, extension must be .yml or .yaml.", required=True)
 required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the YAML clusters configuration file.", required=True)
 required.add_argument("-p","--profile", type=str, help="Name of the profile you wish to run jobs with, as defined in the YAML clusters configuration file.", required=True)
-required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job.", required=True)
+required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the directory for your source file containing the subdirectories for each job.", required=True)
 
 optional = parser.add_argument_group('Optional arguments')
 optional.add_argument('-h','--help',action='help',default=argparse.SUPPRESS,help='Show this help message and exit')
 optional.add_argument("-ow","--overwrite",action="store_true",help="If a data directory for the same source file or a job directory for the same transition-configuration combination already exists, remove it before creating a new one.")
 optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files and directories.")
+optional.add_argument("-as","--arch_src",action="store_true",help="Archive the source file after it has been processed.")
+optional.add_argument("-ac","--arch_cf",action="store_true",help="Archive the configuration files after they have been processed.")
 
 # =================================================================== #
 # =================================================================== #
@@ -105,6 +107,9 @@ def main():
 
     overwrite = args.overwrite               # Flag for removing job subdirectories before creating a new one, if they have the same name
     dry_run = args.dry_run                   # Flag to not launch the jobs and just create the files
+
+    arch_src = args.arch_src                 # Flag for archiving the source file after it has been processed
+    arch_cf = args.arch_cf                   # Flag for archiving the configuration files after they have been processed
 
     # ========================================================= #
     # Define codes directory                                    #
@@ -315,20 +320,20 @@ def main():
 
   # =================================================================== #
   # =================================================================== #
-  #                        DATA FILES GENERATION                        #
+  #                        SOURCE FILE TREATMENT                        #
   # =================================================================== #
   # =================================================================== #
 
   # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
   try:
 
-    console_message = "Start of the data files generation procedure for the " + source_name + " file"
+    console_message = "Start of the source file treatment"
     print("")
     print(''.center(len(console_message)+11, '*'))
     print(console_message.center(len(console_message)+10))
     print(''.center(len(console_message)+11, '*'))
 
-    # Create an output log file containing all the information about the data files generation
+    # Create an output log file that will contain all the information about the source file treatment (system modelling and determining transitions)
 
     data_log_name = source_name + ".log"
     data_log = open(os.path.join(out_dir,data_log_name), 'w', encoding='utf-8')
@@ -342,16 +347,25 @@ def main():
 
     # =================================================================== #
     # =================================================================== #
-    #                       Parsing the source file                       #
+    #                           SYSTEM MODELLING                          #
     # =================================================================== #
     # =================================================================== #
 
-    section_title = "1. Parsing the source file"
+    section_title = "1. System modelling"
 
     print("")
     print(''.center(len(section_title)+10, '*'))
     print(section_title.center(len(section_title)+10))
     print(''.center(len(section_title)+10, '*'))
+
+    #######################################################################
+
+    subsection_title = "A. Parsing the source file"
+
+    print("")
+    print("")
+    print(subsection_title)
+    print(''.center(len(subsection_title), '='))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
 
@@ -377,13 +391,6 @@ def main():
     # Call the parsing function                                 #
     # ========================================================= #
 
-    subsection_title = "A. Parsing function"
-
-    print("")
-    print("")
-    print(subsection_title)
-    print(''.center(len(subsection_title), '='))
-
     print ("{:<50} {:<100}".format('\nParsing function:',parsing_fct))
 
     # Call the parsing function (defined in source_parser.py, see the documentation for more information)
@@ -392,9 +399,13 @@ def main():
 
     print("\nThe source file has been succesfully parsed.")
 
-    # ========================================================= #
-    # MIME diagonalization                                      #
-    # ========================================================= #
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+    
+    sys.stdout = original_stdout                                 
+    print('%12s' % "[ DONE ]")
+    sys.stdout = data_log    
+
+    #######################################################################
 
     subsection_title = "B. Eigenstates basis set"
 
@@ -403,9 +414,19 @@ def main():
     print(subsection_title)
     print(''.center(len(subsection_title), '='))
 
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+
+    sys.stdout = original_stdout                                 
+    print ("{:<80}".format('\nBuilding the eigenstates basis set ...'), end="")
+    sys.stdout = data_log    
+
+    # ========================================================= #
+    # MIME diagonalization                                      #
+    # ========================================================= #
+
     print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
     # Using NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)   
-    system['eigenvalues'], system['eigenvectors'] = np.linalg.eig(system['mime'])
+    system['eigenvalues'], system['eigenvectors'] = numpy.linalg.eig(system['mime'])
     print("[ DONE ]")
 
     # Sort the eigenvalues and associated eigenvectors (see https://stackoverflow.com/questions/8092920/sort-eigenvalues-and-associated-eigenvectors-after-using-numpy-linalg-eig-in-pyt for reference)
@@ -431,7 +452,7 @@ def main():
     print('')
     for vector in system['eigenvectors']:
       for val in vector:
-        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
 
     # ========================================================= #
@@ -439,13 +460,13 @@ def main():
     # ========================================================= #
 
     # Using NumPy to transpose the eigenvectors matrix (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference)
-    system['transpose'] = np.transpose(system['eigenvectors'])
+    system['transpose'] = numpy.transpose(system['eigenvectors'])
 
     print("\nEigenvectors transpose matrix")
     print('')
     for vector in system['transpose']:
       for val in vector:
-        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
 
     # ========================================================= #
@@ -453,13 +474,13 @@ def main():
     # ========================================================= #
 
     # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
-    system['mime_diag'] = np.matmul(np.matmul(system['transpose'],system['mime']),system['eigenvectors'])
+    system['mime_diag'] = numpy.matmul(numpy.matmul(system['transpose'],system['mime']),system['eigenvectors'])
         
     print("\nMIME in the eigenstates basis set (Ha)")
     print('')
     for row in system['mime_diag']:
       for val in row:
-        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
 
     # ========================================================= #
@@ -467,13 +488,13 @@ def main():
     # ========================================================= #
 
     # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
-    system['momdip_es_mtx'] = np.matmul(np.matmul(system['transpose'],system['momdip_mtx']),system['eigenvectors'])
+    system['momdip_es_mtx'] = numpy.matmul(numpy.matmul(system['transpose'],system['momdip_mtx']),system['eigenvectors'])
         
     print("\nDipole moments matrix in the eigenstates basis set (atomic units)")
     print('')
     for row in system['momdip_es_mtx']:
       for val in row:
-        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
   
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
@@ -482,24 +503,20 @@ def main():
     print('%12s' % "[ DONE ]")
     sys.stdout = data_log    
 
-    # =================================================================== #
-    # =================================================================== #
-    #                            Data Directory                           #
-    # =================================================================== #
-    # =================================================================== #
+    #######################################################################
 
-    section_title = "2. Creating the data directory"
+    subsection_title = "C. Creating the files"
 
     print("")
-    print(''.center(len(section_title)+10, '*'))
-    print(section_title.center(len(section_title)+10))
-    print(''.center(len(section_title)+10, '*'))
+    print("")
+    print(subsection_title)
+    print(''.center(len(subsection_title), '='))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
 
     sys.stdout = original_stdout                                 
-    print ("{:<80}".format('\nCreating the data directory ...'), end="")
-    sys.stdout = data_log  
+    print ("{:<80}".format('\nCreating the data files ...'), end="")
+    sys.stdout = data_log    
 
     # ========================================================= #
     # Creating the molecule directory                           #
@@ -530,15 +547,76 @@ def main():
     print ("{:<20} {:<100}".format('\nData directory:',data_dir))
 
     # ========================================================= #
-    # Transition function                                       #
+    # Creating the data files                                   #
     # ========================================================= #
 
-    subsection_title = "A. Transition function"
+    # MIME
+
+    mime_file = "mime"
+    numpy.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
+    print("    ├── The %s file has been created into the directory" % mime_file)
+
+    # Dipole moments matrix
+
+    momdip_mtx_file = "momdip_mtx"
+    numpy.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'],fmt='% 18.10e')
+    print("    ├── The %s file has been created into the directory" % momdip_mtx_file)
+
+    # Eigenvalues
+
+    eigenvalues_file = "eigenvalues"
+    numpy.savetxt(os.path.join(data_dir,eigenvalues_file),system['eigenvalues'],fmt='%1.10e')
+    print("    ├── The %s file has been created into the directory" % eigenvalues_file)
+
+    # Eigenvectors matrix and eigenvectors transpose matrix
+
+    eigenvectors_file = "eigenvectors"
+    numpy.savetxt(os.path.join(data_dir,eigenvectors_file),system['eigenvectors'],fmt='% 18.10e')
+    print("    ├── The %s file has been created into the directory" % eigenvectors_file)
+
+    transpose_file = "transpose"
+    numpy.savetxt(os.path.join(data_dir,transpose_file),system['transpose'],fmt='% 18.10e')
+    print("    ├── The %s file has been created into the directory" % transpose_file)
+
+    # Dipole moments matrix in the eigenstates basis set
+
+    momdip_es_mtx_file = "momdip_es_mtx"
+    numpy.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'],fmt='% 18.10e')	
+    print("    ├── The %s file has been created into the directory" % momdip_es_mtx_file)
+
+    # Copying the source file into the data subdirectory
+    
+    shutil.copy(os.path.join(source_path,source_filename), data_dir)
+    print("    └── The source file (%s) has been successfully copied into the directory." % source_filename)
+
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+    
+    sys.stdout = original_stdout                                 
+    print('%12s' % "[ DONE ]")
+    sys.stdout = data_log    
+
+    # =================================================================== #
+    # =================================================================== #
+    #                             TRANSITIONS                             #
+    # =================================================================== #
+    # =================================================================== #
+
+    section_title = "2. Determining the transitions"
 
     print("")
-    print("")
-    print(subsection_title)
-    print(''.center(len(subsection_title), '='))
+    print(''.center(len(section_title)+10, '*'))
+    print(section_title.center(len(section_title)+10))
+    print(''.center(len(section_title)+10, '*'))
+
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+
+    sys.stdout = original_stdout                                 
+    print ("{:<80}".format('\nDetermining the transitions ...'), end="")
+    sys.stdout = data_log  
+
+    # ========================================================= #
+    # Transition function                                       #
+    # ========================================================= #
 
     print ("{:<50} {:<100}".format('\nTransition function:',transition_fct))
 
@@ -547,56 +625,6 @@ def main():
     transitions_list = eval("transition_fcts." + transition_fct)(system,data_dir)
 
     print("\nAll the transition files have been succesfully created.")
-
-    # ========================================================= #
-    # Other files                                               #
-    # ========================================================= #
-
-    subsection_title = "B. Other files"
-
-    print("")
-    print("")
-    print(subsection_title)
-    print(''.center(len(subsection_title), '='))
-
-    print ("{:<20} {:<100}".format('\nData directory:',data_dir))
-
-    # MIME
-
-    mime_file = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mime_file']
-    np.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
-    print("    ├── The %s file has been created into the directory" % mime_file)
-
-    # Energies
-
-    energies_file = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['energies_file']
-    np.savetxt(os.path.join(data_dir,energies_file),system['eigenvalues'],fmt='%1.10e')
-    print("    ├── The %s file has been created into the directory" % energies_file)
-
-    # Eigenvectors matrix and eigenvectors transpose matrix
-
-    mat_et0 = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mat_et0']
-    np.savetxt(os.path.join(data_dir,mat_et0),system['eigenvectors'],fmt='% 18.10e')
-    print("    ├── The %s file has been created into the directory" % mat_et0)
-
-    mat_0te = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['mat_0te']
-    np.savetxt(os.path.join(data_dir,mat_0te),system['transpose'],fmt='% 18.10e')
-    print("    ├── The %s file has been created into the directory" % mat_0te)
-
-    # Dipole moments matrix
-
-    momdip_0 = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['momdip_zero']
-    np.savetxt(os.path.join(data_dir,momdip_0),system['momdip_mtx'],fmt='% 18.10e')
-    print("    ├── The %s file has been created into the directory" % momdip_0)
-
-    momdip_e = clusters_cfg[cluster_name]["profiles"][profile]['data_dir']['momdip_eigen']
-    np.savetxt(os.path.join(data_dir,momdip_e),system['momdip_es_mtx'],fmt='% 18.10e')	
-    print("    ├── The %s file has been created into the directory" % momdip_e)
-
-    # Copying the source file into the data subdirectory
-    
-    shutil.copy(os.path.join(source_path,source_filename), data_dir)
-    print("    └── The source file (%s) has been successfully copied into the directory." % source_filename)
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
@@ -693,7 +721,7 @@ def main():
     data_log.close()
     shutil.move(os.path.join(out_dir,data_log_name), data_dir)    # Archive the log file in the data directory
 
-    console_message = "End of the data files generation procedure for the " + source_name + " file"
+    console_message = "End of the source file treatment"
     print("")
     print(''.center(len(console_message)+11, '*'))
     print(console_message.center(len(console_message)+10))
@@ -714,6 +742,8 @@ def main():
   #           RENDERING THE TEMPLATES AND SUBMITTING THE JOBS           #
   # =================================================================== #
   # =================================================================== #
+
+  problem_cf = [] # Empty list that will contain the names of the configuration files for which a problem has occurred (those configuration files will not be archived even if arch_cf was set)
 
   # For each transition-configuration combination, render the parameters file and run the corresponding job
 
@@ -788,11 +818,11 @@ def main():
         data = {
           "path" : data_dir,
           "mime_file" : mime_file,
-          "energies_file" : energies_file,
-          "momdip_0" : momdip_0,
-          "momdip_e" : momdip_e,
-          "mat_et0" : mat_et0,
-          "mat_0te" : mat_0te,
+          "momdip_mtx_file" : momdip_mtx_file,
+          "eigenvalues_file" : eigenvalues_file,
+          "eigenvectors_file" : eigenvectors_file,
+          "transpose_file" : transpose_file,
+          "momdip_es_mtx_file" : momdip_es_mtx_file,
           "transition" : transition
         }
 
@@ -923,13 +953,15 @@ def main():
       # Exception handling for the rendering and submitting steps #
       # ========================================================= #
 
-      # In case of an error specific to the configuration file, skip it
+      # In case of an error specific to the configuration file, skip it and do not archive the source file even if arch_src was set.
 
       except control_errors.ControlError as error:
         sys.stdout = original_stdout                            # Reset the standard output to its original value
         print(error)
         print("Skipping configuration '%s'" % config_name)
         os.remove(os.path.join(mol_dir,log_name))               # Remove the log file since there was a problem
+        problem_cf.append(config_filename)                      # Add the name of this configuration file to the list as to enforce not archiving it
+        arch_src = False                                        # Flag to notify that a problem has occurred with this configuration file and to enforce not archiving the source file
         continue        
 
     console_message = "End of procedure for the transition " + transition["label"]
@@ -937,6 +969,28 @@ def main():
     print(''.center(len(console_message)+10, '*'))
     print(console_message.center(len(console_message)+10))
     print(''.center(len(console_message)+10, '*'))
+
+  # After all the transition-configuration combinations have been treated, archive the source file if arch_src has been set and there was no problem.
+
+  if arch_src:
+    launched_dir = os.path.join(source_path,"launched")      # Directory where the source file will be put after having been treated by this script, it will be created inside the directory where it was.
+    os.makedirs(launched_dir, exist_ok=True)
+    if os.path.exists(os.path.join(launched_dir,source_filename)):
+      os.remove(os.path.join(launched_dir,source_filename))
+    shutil.move(os.path.join(source_path,source_filename), launched_dir)
+    print("\nSource file archived to %s" % launched_dir)
+
+  # After all the transition-configuration combinations have been treated, archive the configuration files if arch_cf has been set and there was no problem.
+
+  if arch_cf:
+    for config_filename in config_inp_list:
+      if config_filename not in problem_cf:
+        launched_dir = os.path.join(config_inp_path,"launched") # Directory where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
+        os.makedirs(launched_dir, exist_ok=True)
+        if os.path.exists(os.path.join(launched_dir,config_filename)):
+          os.remove(os.path.join(launched_dir,config_filename))
+        shutil.move(os.path.join(config_inp_path,config_filename), launched_dir)
+        print("\nThe '%s' config file has been archived to %s" % (config_filename,launched_dir))
 
   if not dry_run:
     print("")

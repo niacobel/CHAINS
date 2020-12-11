@@ -12,13 +12,6 @@ shared:
     qoctra: &qoctra
       parsing_function: qchem_tddft
       transition_function: proj_ground_to_triplet
-      data_dir:
-        mime_file: mime
-        energies_file: energies
-        mat_et0: mat_et0                      # corresponds to the eigenvectors matrix of the MIME diagonalization
-        mat_0te: mat_0te                      # corresponds to the eigenvectors transpose matrix of the MIME diagonalization
-        momdip_zero: momdip_0
-        momdip_eigen: momdip_e
       rendering_function: qoctra_render
       jinja_templates:
         parameters_file: param.nml.jinja             # The rendered file will be named param_<target>.nml, where <target> is the state label corresponding to the projector that will be used

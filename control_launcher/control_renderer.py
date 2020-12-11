@@ -120,8 +120,8 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
 
     param_render_vars = {
       "source_name" : misc['source_name'],
-      "energies_file_path" : os.path.join(data['path'],data['energies_file']),
-      "momdip_e_path" : os.path.join(data['path'],data['momdip_e']),
+      "energies_file_path" : os.path.join(data['path'],data['eigenvalues_file']),
+      "momdip_e_path" : os.path.join(data['path'],data['momdip_es_mtx_file']),
       "init_file_path" : os.path.join(data['path'],data['transition']['init_file']),
       "final_file_path" : os.path.join(data['path'],"final"),
       "proj_file_path" : os.path.join(data['path'],data['transition']['target_file']),
@@ -135,7 +135,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
       "alpha0" : config[job_specs['profile']]['control']['alpha0'],
       "ndump" : config[job_specs['profile']]['control']['ndump'],
       "ndump2" : config[job_specs['profile']]['post_control']['ndump2'],
-      "mat_et0_path" : os.path.join(data['path'],data['mat_et0']),
+      "mat_et0_path" : os.path.join(data['path'],data['eigenvectors_file']),
       "numericincrements" : config[job_specs['profile']]['guess_pulse']['numericincrements'],
       "numberofpixels" : config[job_specs['profile']]['guess_pulse']['numberofpixels'],
       "inputenergy" : config[job_specs['profile']]['guess_pulse']['inputenergy'],

@@ -9,6 +9,10 @@ The **QOCT-RA Input Builder and Job Launcher**, named ``CONTROL LAUNCHER``, is a
 
 However, ``CONTROL LAUNCHER`` can be used in an autonomous way and does not depend on CHAINS. It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent QOCT-RA calculations, and can be adapted to deal with other similar problematics. As such, this specific part of the documentation only explains how ``CONTROL LAUNCHER`` works in and of itself, and its integration into CHAINS is explained :doc:`elsewhere <chains.control_profile>`.
 
+.. Caution::
+
+   Keep in mind that QOCT-RA is in constant development at SQUARES_ and might evolve independently of ``CONTROL LAUNCHER``. Even if most of the script will probably remain unchanged, it is possible that some little portions of the code will need to be reworked to match the latest developments.
+
 .. _control_directory:
 
 Directory structure
@@ -83,6 +87,8 @@ There are two main input files for ``CONTROL LAUNCHER``:
 
    The YAML files containing the parameters specific to your QOCT-RA calculation (number of time steps, number of iterations, etc.). Those files must have the .yml or .yaml extension. You can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple configuration files, ``CONTROL LAUNCHER`` will process each transition-configuration combination. For example, if you have 4 possible transitions and 3 configuration files, you will end up with 12 launched jobs on your cluster.
 
+By default, every input file will remain where it is after the execution of ``CONTROL LAUNCHER``. If you wish to **archive** those files, you can use the :guilabel:`-as / \\--arch_src` and/or :guilabel:`-ac / \\--arch_cf` optional arguments. The files will then be placed inside a ``launched`` directory created in the same directory as the input files. Note that if a problem occurs when processing a particular configuration, both the source file and the configuration file will be kept in place.
+
 Other arguments
 ---------------
 
@@ -120,7 +126,7 @@ For more details on how this modelling process is performed, consult the :doc:`c
 Second step: Determining the transitions
 ----------------------------------------
 
-Once the system has been modelled, it is time to determinate the transitions that will be covered by the control procedure. For this, some data files still need to be created: the transition files, i.e. the initial states and the target states. 
+Once the system has been modelled, it is time to determine the transitions that will be covered by the control procedure. For this, some data files still need to be created: the transition files, i.e. the initial states and the target states. 
 
 For more details on how this process is performed, consult the :doc:`control_launcher.transitions` specific documentation.
 
@@ -200,7 +206,7 @@ If we have for example 2 transitions and 2 configuration files, once the executi
 where 
 
 - ``source`` is the directory created by ``CONTROL LAUNCHER`` and named after the source file (minus a possible extension)
-- ``data`` is the directory containing all the data files created during the :ref:`system modelling <system_modelling>` and :ref:`determining the transitions <determining_transitions>` steps.
+- ``data`` is the directory containing all the data files created during the :doc:`system modelling <control_launcher.modelling>` and :doc:`determining the transitions <control_launcher.transitions>` steps.
 - ``source_file`` is a copy of the source file.
 - ``source.log`` is an output file containing the details of the treatment of this source file by ``CONTROL LAUNCHER`` (the extracted molecular properties, the considered transitions, etc.).
 - ``transitionX_configX`` is the job subdirectory from which the job will be submitted to the job scheduler.
@@ -210,4 +216,5 @@ where
 
 .. Hyperlink targets
 
+.. _SQUARES: https://www2.ulb.ac.be/cpm/index.html
 .. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA

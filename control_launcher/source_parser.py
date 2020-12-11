@@ -7,7 +7,7 @@
 
 import re
 
-import numpy as np
+import numpy
 
 import control_errors
 
@@ -94,7 +94,7 @@ def qchem_tddft(source_content:list):
     Raises
     ------
     ControlError
-        If one of the values that need to be extracted presents some kind of problem.
+        If some of the needed values are missing or unknown.
 
     """
 
@@ -105,6 +105,58 @@ def qchem_tddft(source_content:list):
     # Define an array for correct English spelling during printing
 
     special_numbers = {1:"st", 2:"nd", 3:"rd"}
+
+    # ========================================================= #
+    #                      Number of roots                      #
+    # ========================================================= #
+
+    # Define the expression patterns for the lines containing information about the number of roots, that number will be used to check if all the needed values have been collected.
+
+    nb_roots_rx = {
+
+      # Look for the "CIS_N_ROOTS          4" type of line
+      'normal': re.compile(
+          r'^\s*CIS_N_ROOTS\s*(?P<n_roots>\d+)\s*$'),
+
+      # Look for the "NRoots was altered as:  4 --> 12" type of line
+      'altered': re.compile(
+          r'^\s*NRoots was altered as:\s*\d+\s*-->\s*(?P<new_n_roots>\d+)\s*$'),
+
+      # No need to go further than the "TDDFT/TDA Excitation Energies" line
+        'end': re.compile(
+          r'TDDFT/TDA Excitation Energies')
+    }
+
+    # Parse the source file to get the information
+
+    for line in source_content:
+        
+        # Compare each line to all the nb_roots_rx expressions
+
+        for key, rx in nb_roots_rx.items():
+
+          matching_line = rx.match(line)
+
+          # If the line matches the rx pattern
+
+          if matching_line is not None:
+
+            # Get the info corresponding to the pattern
+
+            if key == 'normal':
+              nb_roots = int(matching_line.group('n_roots'))
+
+            elif key == 'altered':
+              nb_roots = int(matching_line.group('new_n_roots'))
+              break          
+
+            elif key == 'end':
+              break         
+
+    # Raise an exception if the number of roots has not been found
+
+    if not nb_roots:
+      raise control_errors.ControlError ("ERROR: Unable to find the number of roots in the source file")
 
     # ========================================================= #
     #                        States List                        #
@@ -139,7 +191,7 @@ def qchem_tddft(source_content:list):
 
       # Pattern for finding lines looking like 'Excited state   1: excitation energy (eV) =    4.6445'
       'state_energy': re.compile(
-          r'^Excited state\s+(?P<state>\d+): excitation energy \(eV\) =\s+(?P<energy>[-+]?\d*\.\d+|\d+)$'),
+          r'^\s*Excited state\s+(?P<state>\d+): excitation energy \(eV\) =\s+(?P<energy>[+]?\d*\.\d+|\d+)$'),
 
       # Pattern for finding lines looking like '    Multiplicity: Triplet'
       'state_mp': re.compile(
@@ -175,13 +227,7 @@ def qchem_tddft(source_content:list):
           if matching_line is not None:
 
             exc_state = int(matching_line.group("state"))
-            if exc_state <= 0:
-              raise control_errors.ControlError ("ERROR: The number of one of the found excited states (%s) is not a non zero positive integer." % exc_state)
-
             exc_energy = float(matching_line.group("energy"))
-            if exc_energy < 0:
-              raise control_errors.ControlError ("ERROR: The excitation energy of the %s%s excited state is negative (%s)" % (exc_state, ("th" if not exc_state in special_numbers else special_numbers[exc_state]),exc_energy))
-
             search_energy = False
 
             continue
@@ -221,6 +267,17 @@ def qchem_tddft(source_content:list):
 
             continue
 
+    # Raise an exception if the section has not been found
+
+    if not section_found:
+      raise control_errors.ControlError ("ERROR: Unable to find the 'TDDFT/TDA Excitation Energies' section in the source file")
+
+    # Raise an exception if not all the values have been found
+
+    nb_states = (2 * nb_roots) + 1  # Ground state (1) + Triplet states (nb_roots) + Singlet states (nb_roots)
+    if len(system['states_list']) < nb_states:
+      raise control_errors.ControlError ("ERROR: Unable to find all the excited states in the source file (only %s of the %s states have been found)" % (len(system['states_list']),nb_states))
+
     print("[ DONE ]")
 
     # Print the states list
@@ -245,7 +302,6 @@ def qchem_tddft(source_content:list):
 
     section_found = False
     soc_list = []
-    tpl = None   # Tuple that will look like "(state_1, state_2, value)"
     
     # Define the START and END expression patterns of the "SPIN-ORBIT COUPLING" section of the output file
 
@@ -262,15 +318,15 @@ def qchem_tddft(source_content:list):
 
       # Pattern for finding lines looking like 'Total SOC between the singlet ground state and excited triplet states:'
       'ground_to_triplets': re.compile(
-        r'^Total SOC between the singlet ground state and excited triplet states:$'),
+        r'^\s*Total SOC between the singlet ground state and excited triplet states:$'),
 
       # Pattern for finding lines looking like 'Total SOC between the S1 state and excited triplet states:'
       'between_excited_states': re.compile(
-        r'^Total SOC between the (?P<s_key>[A-Z]\d) state and excited triplet states:$'),
+        r'^\s*Total SOC between the (?P<s_key>[A-Z]\d) state and excited triplet states:$'),
 
       # Pattern for finding lines looking like 'T2      76.018382    cm-1'
       'soc_value': re.compile(
-        r'^(?P<soc_key>T\d)\s+(?P<soc_value>\d+\.?\d*)\s+cm-1$')
+        r'^\s*(?P<soc_key>T\d+)\s+(?P<soc_value>\d+\.?\d*)\s+cm-1$')
     }
 
     # Parse the source file to get the information and build the SOC list
@@ -334,17 +390,22 @@ def qchem_tddft(source_content:list):
                 raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % state_2)
 
               value = float(matching_line.group('soc_value'))
-              if value < 0:
-                raise control_errors.ControlError ("ERROR: The SOC value between the %s and %s states is negative (%s)" % ([state['label'] for state in system['states_list'] if state['number'] == state_1],[state['label'] for state in system['states_list'] if state['number'] == state_2],value))
 
-              tpl = (state_1, state_2, value)
-       
-        # When all the relevant information has been found, append a new line to the soc_list
+              soc_line = (state_1, state_2, value)
+        
+              # Add the new line to the soc_list
+              soc_list.append(soc_line)
 
-        if tpl is not None:
-          soc_list.append(tpl)
-          tpl = None
-          continue
+    # Raise an exception if the section has not been found
+
+    if not section_found:
+      raise control_errors.ControlError ("ERROR: Unable to find the 'SPIN-ORBIT COUPLING' section in the source file")
+
+    # Raise an exception if not all the values have been found
+
+    nb_soc = nb_roots/2 + (3/2 * (nb_roots**2)) # Ground to Triplet (nb_roots) + Triplet to Triplet (nb_roots*(nb_roots-1)/2) + Singlet to Triplet (nb_roots**2)
+    if len(soc_list) < nb_soc:
+      raise control_errors.ControlError ("ERROR: Unable to find all the spin-orbit couplings in the source file (only %s of the %s values have been found)" % (len(soc_list),nb_soc))
 
     print("[ DONE ]")
 
@@ -356,7 +417,7 @@ def qchem_tddft(source_content:list):
 
     # Initialize the MIME as a zero-filled matrix
 
-    system['mime'] = np.zeros((len(system['states_list']), len(system['states_list'])))
+    system['mime'] = numpy.zeros((len(system['states_list']), len(system['states_list'])))
 
     # Creation of the MIME - Non-diagonal values (SOC)
 
@@ -378,7 +439,7 @@ def qchem_tddft(source_content:list):
     print('')
     for row in system['mime']:
       for val in row:
-        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
 
     # Convert the MIME to Hartree units
@@ -389,7 +450,7 @@ def qchem_tddft(source_content:list):
     print('')
     for row in system['mime']:
       for val in row:
-        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')    
 
     # ========================================================= #
@@ -417,7 +478,7 @@ def qchem_tddft(source_content:list):
     moment_rx = {
         # Pattern for finding lines looking like '    1    2   0.001414  -0.001456   0.004860   1.240659E-10'
         'moment': re.compile(
-            r'^(?P<mom_key1>\d+)\s+(?P<mom_key2>\d+)(\s+-?\d\.\d+){3}\s+(?P<strength>(\d|\d\.\d+|\d\.\d+E[-+]\d{2}))$')
+            r'^\s*(?P<mom_key1>\d+)\s+(?P<mom_key2>\d+)(?:\s+-?\d\.\d+){3}\s+(?P<strength>(\d|\d\.\d+|\d\.\d+E[-+]\d+))$')
     }
 
     # Parse the source file to get the information and build the dipole moments list
@@ -447,10 +508,21 @@ def qchem_tddft(source_content:list):
           state_1 = matching_line.group('mom_key1')
           state_2 = matching_line.group('mom_key2')
           value = float(matching_line.group('strength'))
-          line = (state_1, state_2, value)
+          mom_line = (state_1, state_2, value)
         
           # Add the new line to the momdip_list
-          momdip_list.append(line)
+          momdip_list.append(mom_line)
+
+    # Raise an exception if the section has not been found
+
+    if not section_found:
+      raise control_errors.ControlError ("ERROR: Unable to find the 'STATE-TO-STATE TRANSITION MOMENTS' section in the source file")
+
+    # Raise an exception if not all the values have been found
+
+    nb_momdip = nb_roots * (nb_roots+1) # Ground to Singlet (nb_roots) + Ground to Triplet (nb_roots) + Singlet to Singlet (nb_roots*(nb_roots-1)/2) + Triplet to Triplet (nb_roots*(nb_roots-1)/2)
+    if len(momdip_list) < nb_momdip:
+      raise control_errors.ControlError ("ERROR: Unable to find all the state-to-state transition moments in the source file (only %s of the %s values have been found)" % (len(momdip_list),nb_momdip))
 
     print("[ DONE ]")
 
@@ -460,7 +532,7 @@ def qchem_tddft(source_content:list):
 
     # Initialize the matrix as a zero-filled matrix
 
-    system['momdip_mtx'] = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+    system['momdip_mtx'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
 
     # Filling the matrix
 
@@ -475,7 +547,7 @@ def qchem_tddft(source_content:list):
     print('')
     for row in system['momdip_mtx']:
       for val in row:
-        print(np.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
       print('')
 
     # End of the function, return the needed variables

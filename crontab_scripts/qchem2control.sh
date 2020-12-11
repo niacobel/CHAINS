@@ -77,14 +77,7 @@ else
     filename="$(basename -- "${filepath}")"
     MOL_NAME=${filename%.*}
     mkdir -p "${out_dir}"
-    python "${control_dir}/control_launcher.py" -s "${filepath}" -cf "${results_path}/${MOL_NAME}/config.yml" -o "${out_dir}" -cl "${cluster_name}" -p "qoctra" -ow -d > "${control_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log"
-    status=$?
-
-    if [ ${status} -eq 0 ]; then
-      # If successful, archive the source file
-      mkdir -p ${WATCH_DIR}/launched
-      mv ${filepath} ${WATCH_DIR}/launched/
-    fi
+    python "${control_dir}/control_launcher.py" -s "${filepath}" -cf "${results_path}/${MOL_NAME}/config.yml" -o "${out_dir}" -cl "${cluster_name}" -p "qoctra" -ow -as > "${control_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log"
   done
 
   echo -e "$(date +"%Y-%m-%d %T")\tINFO - Successfully processed:\n${file_list}"
