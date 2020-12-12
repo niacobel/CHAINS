@@ -18,9 +18,9 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
         Information extracted by the parsing function and derived from it.
         This dictionary needs an additionnal ``states_list`` key which is a list of dictionaries containing at least three keys each: ``number``, ``multiplicity`` and ``label`` where
 
-          - ``number`` is the number of the state, starting at 0 (which is the ground state)
-          - ``multiplicity`` is the multiplicity of the state (ex: singlet, triplet)
-          - ``label`` is the label of the state, which will be used for the name of the projectors
+          - ``number`` is the number of the state, starting at 0 (which is the ground state).
+          - ``multiplicity`` is the multiplicity of the state (ex: Singlet, Triplet).
+          - ``label`` is the label of the state, which will be used for the name of the projectors.
 
     data_dir : str
         Path towards the data directory.
@@ -30,9 +30,9 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
     transitions_list : list
         List of dictionaries containing three keys each: ``label``, ``init_file`` and ``target_file`` where
 
-          - ``label`` is the label of the transition, which will be used for the name of the job directories
-          - ``init_file`` is the name of the initial state file
-          - ``target_file`` is the name of the target state file
+          - ``label`` is the label of the transition, which will be used for the name of the job directories.
+          - ``init_file`` is the name of the initial state file, minus the number at the end.
+          - ``target_file`` is the name of the target state file, minus the number at the end.
     """
 
     # ========================================================= #
@@ -41,7 +41,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
     
     # Initial population in the ground state
 
-    init_file = "initial"
+    init_file = "initial_"
 
     print("{:<60}".format("\nCreating the initial population file ..."), end="") 
 
@@ -49,7 +49,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
     
     init_pop[0,0] = 1+0j
 
-    with open(os.path.join(data_dir, init_file + "_1"), "w") as f:
+    with open(os.path.join(data_dir, init_file + "1"), "w") as f:
       for line in init_pop:
         for val in line:
           print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
@@ -63,13 +63,13 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
 
     # Dummy file but still needed by QOCT-RA
 
-    final_file = "final"
+    final_file = "final_"
 
     print("{:<60}".format("\nCreating the dummy final population file ..."), end="") 
 
     final_pop = np.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
 
-    with open(os.path.join(data_dir, final_file + "_1"), "w") as f:
+    with open(os.path.join(data_dir, final_file + "1"), "w") as f:
       for line in final_pop:
         for val in line:
           print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
@@ -89,7 +89,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
 
       if state['multiplicity'].lower() == "triplet":
 
-        proj_file = "projector" + state['label']
+        proj_file = "projector" + state['label'] + "_"
         transitions_list.append({"label" : state['label'], "init_file" : init_file, "target_file" : proj_file})
 
         print("{:<60}".format("\nCreating the %s file ..." % proj_file), end="")
@@ -98,7 +98,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
         
         proj[state['number'],state['number']] = 1+0j
         
-        with open(os.path.join(data_dir, proj_file + "_1"), "w") as f:
+        with open(os.path.join(data_dir, proj_file + "1"), "w") as f:
           for line in proj:
             for val in line:
               print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
