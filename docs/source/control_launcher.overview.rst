@@ -130,6 +130,8 @@ Once the system has been modelled, it is time to determine the transitions that 
 
 For more details on how this process is performed, consult the :doc:`control_launcher.transitions` specific documentation.
 
+.. _jobs_launching:
+
 Third step: Jobs launching
 --------------------------
 

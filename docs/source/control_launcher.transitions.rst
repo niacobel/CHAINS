@@ -2,7 +2,7 @@
 Determining the transitions
 ***************************
 
-To determine the transitions that will be covered by the control procedure, ``CONTROL LAUNCHER`` calls a function named the **transition function** and defined in the ``transition_fcts.py`` file. This function creates the initial and target states file (also sometimes called "population files") and defines the different combinations of initial and target states (a.k.a the transitions). The only arguments this function needs are the ``system`` dictionary and the path towards the ``data`` directory, where the states file will be created. If you do not know what are those two variables, please refer to the :doc:`control_launcher.modelling` specific documentation.
+To determine the transitions that will be covered by the control procedure, ``CONTROL LAUNCHER`` calls a function named the **transition function** and defined in the ``transition_fcts.py`` file. This function creates the initial and target states file (also sometimes called "population files") and defines the different combinations of initial and target states (a.k.a the transitions). The only arguments this function needs are the ``system`` dictionary and the path towards the ``data`` directory, where the states file will be created. If you do not know what those two variables are, please refer to the :doc:`control_launcher.modelling` specific documentation.
 
 General definition of the transition functions
 ==============================================
