@@ -41,7 +41,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
     
     # Initial population in the ground state
 
-    init_file = "initial_"
+    init_file = "ground_"
 
     print("{:<60}".format("\nCreating the initial population file ..."), end="") 
 

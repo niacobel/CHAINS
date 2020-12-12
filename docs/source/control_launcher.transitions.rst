@@ -73,7 +73,7 @@ At the end of this process, the output directory structure is then
       └── source/
             └── data/
                   ├── all the data files created during the system modelling step
-                  ├── initial_1
+                  ├── ground_1
                   ├── projectorT1_1
                   ├── projectorT2_1
                   ├── projectorT3_1
@@ -85,16 +85,16 @@ The content of ``transitions_list`` in this case is
 .. code-block:: python
 
    transitions_list = [
-      {"label" : T1, "init_file" : initial_, "target_file" : projectorT1_},
-      {"label" : T2, "init_file" : initial_, "target_file" : projectorT2_},
-      {"label" : T3, "init_file" : initial_, "target_file" : projectorT3_},
-      {"label" : T4, "init_file" : initial_, "target_file" : projectorT4_}
+      {"label" : T1, "init_file" : ground_, "target_file" : projectorT1_},
+      {"label" : T2, "init_file" : ground_, "target_file" : projectorT2_},
+      {"label" : T3, "init_file" : ground_, "target_file" : projectorT3_},
+      {"label" : T4, "init_file" : ground_, "target_file" : projectorT4_}
       ]
 
 And here is the content of the created files:
 
 .. code-block:: text
-   :caption: initial_1
+   :caption: ground_1
 
    ( 1.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
    ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
