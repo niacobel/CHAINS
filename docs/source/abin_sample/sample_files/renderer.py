@@ -13,7 +13,7 @@ import abin_errors
 
 
 def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
-    """Renders a file based on its jinja template.
+    """Renders a file based on its Jinja template.
 
     Parameters
     ----------

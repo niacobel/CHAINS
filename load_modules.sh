@@ -29,8 +29,8 @@ elif [ "${CLUSTER_NAME}" = "vega" ]; then
     module load PyYAML/5.1.2-GCCcore-8.3.0
 
 elif [ "${CLUSTER_NAME}" = "lemaitre3" ]; then
-	module load releases/2018b
-	module load Python/3.6.6-foss-2018b
+    module load releases/2018b
+    module load Python/3.6.6-foss-2018b
     module load gnuplot/5.2.5-foss-2018b
 
 elif [ "${CLUSTER_NAME}" = "hercules" ]; then
@@ -40,6 +40,7 @@ elif [ "${CLUSTER_NAME}" = "hercules" ]; then
 elif [ "${CLUSTER_NAME}" = "nic4" ]; then
     module load EasyBuild
     module load Python/3.7.4-GCCcore-8.3.0
+    module load slurm
 
 else
     echo "ERROR: Unknown cluster. Corresponding modules can't be loaded. Please add the cluster module information to load_modules.sh."

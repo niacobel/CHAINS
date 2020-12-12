@@ -275,8 +275,8 @@ def qchem_tddft(source_content:list):
     # Raise an exception if not all the values have been found
 
     nb_states = (2 * nb_roots) + 1  # Ground state (1) + Triplet states (nb_roots) + Singlet states (nb_roots)
-    if len(system['states_list']) < nb_states:
-      raise control_errors.ControlError ("ERROR: Unable to find all the excited states in the source file (only %s of the %s states have been found)" % (len(system['states_list']),nb_states))
+    if len(system['states_list']) != nb_states:
+      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of excited states in the source file (%s of the %s expected states have been found)" % (len(system['states_list']),nb_states))
 
     print("[ DONE ]")
 
@@ -404,8 +404,8 @@ def qchem_tddft(source_content:list):
     # Raise an exception if not all the values have been found
 
     nb_soc = nb_roots/2 + (3/2 * (nb_roots**2)) # Ground to Triplet (nb_roots) + Triplet to Triplet (nb_roots*(nb_roots-1)/2) + Singlet to Triplet (nb_roots**2)
-    if len(soc_list) < nb_soc:
-      raise control_errors.ControlError ("ERROR: Unable to find all the spin-orbit couplings in the source file (only %s of the %s values have been found)" % (len(soc_list),nb_soc))
+    if len(soc_list) != nb_soc:
+      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of spin-orbit couplings in the source file (%s of the %s expected values have been found)" % (len(soc_list),nb_soc))
 
     print("[ DONE ]")
 
@@ -521,8 +521,8 @@ def qchem_tddft(source_content:list):
     # Raise an exception if not all the values have been found
 
     nb_momdip = nb_roots * (nb_roots+1) # Ground to Singlet (nb_roots) + Ground to Triplet (nb_roots) + Singlet to Singlet (nb_roots*(nb_roots-1)/2) + Triplet to Triplet (nb_roots*(nb_roots-1)/2)
-    if len(momdip_list) < nb_momdip:
-      raise control_errors.ControlError ("ERROR: Unable to find all the state-to-state transition moments in the source file (only %s of the %s values have been found)" % (len(momdip_list),nb_momdip))
+    if len(momdip_list) != nb_momdip:
+      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of state-to-state transition moments in the source file (%s of the %s expected values have been found)" % (len(momdip_list),nb_momdip))
 
     print("[ DONE ]")
 
