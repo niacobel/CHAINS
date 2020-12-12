@@ -37,7 +37,7 @@ proj_ground_to_triplet transition function
 
 The transitions defined by this function are the ones that transfer the whole population from the ground state to each of the triplet states, individually. To identify all the triplet states of the molecule, this function uses the information contained in the additional ``states_list`` key defined in ``system`` by the parsing function.
 
-This function thus creates one initial state file, named ``intial_1``, where the whole population lies in the ground state, and a number of target state files equal to the number of triplets in the molecule, where the whole population lies in one of the triplets. Those target states files are defined as projectors (used by the ``OPM`` operating mode of QOCT-RA) and are named ``projector<triplet_label>_1``, where *<triplet_label>* is the value of the ``label`` key of the triplet state in the ``states_list`` dictionary.  All the files are created as density matrices.
+This function thus creates one initial state file, named ``ground_1``, where the whole population lies in the ground state, and a number of target state files equal to the number of triplets in the molecule, where the whole population lies in one of the triplets. Those target states files are defined as projectors (used by the ``OPM`` operating mode of QOCT-RA) and are named ``projector<triplet_label>_1``, where *<triplet_label>* is the value of the ``label`` key of the triplet state in the ``states_list`` dictionary.  All the files are created as density matrices.
 
 .. note::
 
@@ -155,5 +155,18 @@ And here is the content of the created files:
    ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
    ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
    ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 1.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+
+.. code-block:: text
+   :caption: final_1
+
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
+   ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
    ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
    ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 ) ( 0.00 , 0.00 )
