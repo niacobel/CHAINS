@@ -397,6 +397,21 @@ def main():
 
     system = eval("source_parser." + parsing_fct)(source_content)
 
+    # Defined the required keys in system dictionary
+
+    required_keys = frozenset({"mime", "momdip_mtx"})
+
+    # Check the system dictionary
+
+    if not isinstance(system, dict):
+      raise control_errors.ControlError ('ERROR: The "system" returned by the %s parsing function is not a dictionary.' % parsing_fct) 
+
+    for key in required_keys:
+      if key not in system:
+        raise control_errors.ControlError ('ERROR: There is no defined "%s" key in the system dictionary returned by the %s parsing function.' % (key, parsing_fct))  
+      elif not isinstance(system[key], (list, numpy.ndarray)):
+        raise control_errors.ControlError ('ERROR: The "%s" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (key, parsing_fct))         
+
     print("\nThe source file has been succesfully parsed.")
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
@@ -624,6 +639,23 @@ def main():
 
     transitions_list = eval("transition_fcts." + transition_fct)(system,data_dir)
 
+    # Defined the required keys in the transitions_list dictionaries
+
+    required_keys = frozenset({"label"})
+
+    # Check the transitions list
+
+    if not isinstance(transitions_list, list):
+      raise control_errors.ControlError ('ERROR: The transitions_list returned by the %s transition function is not a list.' % transition_fct) 
+
+    for key in required_keys:
+      for transition in transitions_list:
+        transition_number = transitions_list.index(transition) + 1 
+        if not isinstance(transition, dict):
+          raise control_errors.ControlError ('ERROR: The %s%s transition in the transitions list returned by the %s transition function is not a dictionary.' % (transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number]), transition_fct))  
+        if key not in transition:  
+          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s transition in the transitions list returned by the %s transition function.' % (key, transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number]), transition_fct))  
+ 
     print("\nAll the transition files have been succesfully created.")
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
@@ -859,6 +891,11 @@ def main():
           rendered_content, rendered_script = eval("control_renderer." + render_fct)(clusters_cfg, config, system, data, job_specs, misc)
         except KeyError as error:
           raise control_errors.ControlError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the '%s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
+
+        # Check the rendered_content dictionary
+
+        if not isinstance(rendered_content, dict):
+          raise control_errors.ControlError ('ERROR: The "rendered_content" returned by the %s rendering function is not a dictionary.' % render_fct) 
 
         print("\nAll the templates have been succesfully rendered.")
 

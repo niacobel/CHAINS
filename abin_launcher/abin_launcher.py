@@ -443,17 +443,30 @@ def main():
 
       file_data = eval("geom_scan." + scan_fct)(mol_content)
 
-      # ========================================================= #
-      # Check if all atom types do exist in Mendeleev's table     #
-      # ========================================================= #
+      # Check if file_data is a dictionary
+
+      if not isinstance(file_data, dict):
+        raise abin_errors.AbinError ('ERROR: The "file_data" returned by the %s scanning function is not a dictionary.' % scan_fct) 
+
+      # Check the chemical formula
+
+      if "chemical_formula" not in file_data:
+        raise abin_errors.AbinError ('ERROR: There is no defined "chemical_formula" key in the file_data dictionary returned by the %s scanning function.' % scan_fct)  
+      elif not isinstance(file_data["chemical_formula"], dict):
+        raise abin_errors.AbinError ('ERROR: The "chemical_formula" value in the file_data dictionary returned by the %s scanning function is not a list.' % scan_fct)  
 
       for atom in file_data['chemical_formula'].keys():
-
         # Scan mendeleev looking for the atom symbol. If there is no match, return None thus raise an exception (see https://stackoverflow.com/questions/8653516/python-list-of-dictionaries-search for more details)
-
         if not next((element for element in mendeleev if element["symbol"] == atom), None):
           raise abin_errors.AbinError ("ERROR: Element %s is not defined in AlexGustafsson's Mendeleev Table YAML file (mendeleev.yml)" % atom)
-      
+
+      # Check the atomic coordinates
+
+      if "atomic_coordinates" not in file_data:
+        raise abin_errors.AbinError ('ERROR: There is no defined "atomic_coordinates" key in the file_data dictionary returned by the %s scanning function.' % scan_fct)  
+      elif not isinstance(file_data["atomic_coordinates"], list):
+        raise abin_errors.AbinError ('ERROR: The "atomic_coordinates" value in the file_data dictionary returned by the %s scanning function is not a list.' % scan_fct) 
+
       # ========================================================= #
       # ========================================================= #
       #                        JOB SCALING                        #
@@ -491,6 +504,11 @@ def main():
       # Call the scaling function (defined in scaling_fcts.py, see the documentation for more information)
 
       scale_index = eval("scaling_fcts." + scaling_fct)(mendeleev, file_data)
+
+      # Check the scale index
+
+      if not isinstance(scale_index, (float, int)):
+        raise abin_errors.AbinError ('ERROR: The scale index returned by the %s scaling function is neither an integer nor a float.' % scaling_fct) 
 
       print("{:<50} {:<100}".format("\nScale index:", scale_index))
 
@@ -669,6 +687,11 @@ def main():
           rendered_content, rendered_script = eval("renderer." + render_fct)(mendeleev, clusters_cfg, config, file_data, job_specs, misc)
         except KeyError as error:
           raise abin_errors.AbinError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the '%s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
+
+        # Check the rendered_content dictionary
+
+        if not isinstance(rendered_content, dict):
+          raise abin_errors.AbinError ('ERROR: The "rendered_content" returned by the %s rendering function is not a dictionary.' % render_fct) 
 
         print("\nAll the templates have been succesfully rendered.")
 
