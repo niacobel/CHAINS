@@ -10,7 +10,12 @@ General definition of the transition functions
 All the transition functions are defined in the ``transition_fcts.py`` file and obey some restrictions, in order to be callable by ``CONTROL LAUNCHER``:
 
 - They must only take two arguments: the ``system`` dictionary and the path towards the ``data`` directory.
-- They must return a list of dictionaries (``transitions_list``) containing one mandatory key, ``label``, which is the name of the considered transitions, used for naming the job directories. You are of course likely to have additional keys, such as the name of the created files that may be needed by your :ref:`rendering function <control_rendering_fct>`, but this is the only one explicitly needed by the main script itself.
+
+- They must return a list (``transitions_list``), where each element is a dictionary containing three mandatory keys: ``label``, ``init_file`` and ``target_file`` (you can have additional keys if you want):
+
+   - ``label`` is the label of the transition, used for naming the job directories.
+   - ``init_file`` is the name of the initial state file for this transition, minus the number at the end.
+   - ``target_file`` is the name of the target state for this transition, minus the number at the end.
 
 If a problem arises when determining the transitions, a ``ControlError`` exception should be raised with a proper error message (see :ref:`how to handle errors <control_errors>` for more details).
 
@@ -28,7 +33,7 @@ The transition function that will be called by ``CONTROL LAUNCHER`` is the one a
          myprofile2:
             transition_function: name-of-transition-function
 
-where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <control_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (such as ``chains_qoctra``). This way, a different transition function can be assigned to each profile.
+where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <control_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run. This way, a different transition function can be assigned to each profile.
 
 proj_ground_to_triplet transition function
 ==========================================
