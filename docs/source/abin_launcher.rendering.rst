@@ -243,9 +243,9 @@ As said in the previous subsection, the rendering functions take six dictionarie
 
 - ``job_specs`` contains the information about the resources requirements, defined by the :doc:`job scaling <abin_launcher.job_scale>` process, as well as other details about the job:
 
-   - ``profile``, the name of the profile as it appears in the :ref:`clusters configuration file <abin_clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`.
-   - ``scaling_fct``, the name of the chosen :ref:`scaling function <scaling_fcts>`.
-   - ``scale_index``, the computed value of the scale_index.
+   - ``profile`` is the name of the profile as it appears in the :ref:`clusters configuration file <abin_clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`.
+   - ``scaling_fct`` is the name of the chosen :ref:`scaling function <scaling_fcts>`.
+   - ``scale_index`` is the computed value of the scale_index.
    - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`.
    - ``scale_label``, ``scale_limit``, ``partition``, ``walltime``, ``cores`` and ``mem_per_cpu`` are all the information associated to the chosen :ref:`job scale <job_scales>`.
 
@@ -273,7 +273,7 @@ In essence, the rendering functions have a pretty simple structure: their task i
 
 .. code-block:: python
 
-   def profile_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
+   def my_rendering_function(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
 
       # Define the names of the templates
 

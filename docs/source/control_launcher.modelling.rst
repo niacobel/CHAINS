@@ -298,7 +298,7 @@ The last step of this system modelling process is to create the actual data file
 - ``transpose`` contains the eigenvectors transpose matrix, stored in the ``transpose`` key of the ``system`` dictionary.
 - ``momdip_es_mtx`` contains the transition dipole moments matrix in atomic units, converted to the eigenstates basis set, stored in the ``momdip_es_mtx`` key of the ``system`` dictionary.
 
-Those files are all created inside a new directory named ``data``, inside another new directory bearing the name of the source file (minus a possible extension). At the end of the system modelling process, the output directory structure is then
+Those files are all created inside a new directory named ``data``, inside another new molecule directory bearing the name of the source file (minus a possible extension). At the end of the system modelling process, the output directory structure is then
 
 .. code-block:: text
 

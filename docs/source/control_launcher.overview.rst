@@ -207,7 +207,7 @@ If we have for example 2 transitions and 2 configuration files, once the executi
 
 where 
 
-- ``source`` is the directory created by ``CONTROL LAUNCHER`` and named after the source file (minus a possible extension)
+- ``source`` is the molecule directory created by ``CONTROL LAUNCHER`` and named after the source file (minus a possible extension)
 - ``data`` is the directory containing all the data files created during the :doc:`system modelling <control_launcher.modelling>` and :doc:`determining the transitions <control_launcher.transitions>` steps.
 - ``source_file`` is a copy of the source file.
 - ``source.log`` is an output file containing the details of the treatment of this source file by ``CONTROL LAUNCHER`` (the extracted molecular properties, the considered transitions, etc.).

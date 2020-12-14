@@ -1,7 +1,7 @@
 lemaitre3:
   submit_command: sbatch
   profiles:
-    qoctra:
+    qchem_gt_opm:
       parsing_function: qchem_tddft
       transition_function: proj_ground_to_triplet
       rendering_function: sample_qoctra_render

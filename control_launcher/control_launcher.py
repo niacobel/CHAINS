@@ -848,14 +848,15 @@ def main():
         # Build a dictionary that will contain all information related to the data directory
 
         data = {
-          "path" : data_dir,
-          "mime_file" : mime_file,
-          "momdip_mtx_file" : momdip_mtx_file,
-          "eigenvalues_file" : eigenvalues_file,
-          "eigenvectors_file" : eigenvectors_file,
-          "transpose_file" : transpose_file,
-          "momdip_es_mtx_file" : momdip_es_mtx_file,
-          "transition" : transition
+          "main_path" : data_dir,
+          "mime_path" : os.path.join(data_dir,mime_file),
+          "momdip_mtx_path" : os.path.join(data_dir,momdip_mtx_file),
+          "eigenvalues_path" : os.path.join(data_dir,eigenvalues_file),
+          "eigenvectors_path" : os.path.join(data_dir,eigenvectors_file),
+          "transpose_path" : os.path.join(data_dir,transpose_file),
+          "momdip_es_mtx_path" : os.path.join(data_dir,momdip_es_mtx_file),
+          "init_path" : os.path.join(data_dir,transition['init_file']),
+          "target_path" : os.path.join(data_dir,transition['target_file'])
         }
 
         # Build a dictionary that will contain all information related to the job
@@ -878,12 +879,12 @@ def main():
             "code_dir" : code_dir,
             "templates_dir" : templates_dir,
             "source_name" : source_name,
-            "config_name" : config_name,
-            "parsing_fct" : parsing_fct,
+            "source_content" : source_content,
             "mol_dir" : mol_dir,
-            "job_dirname" : job_dirname,
-            "nb_transitions" : len(transitions_list)
-            }
+            "config_name" : config_name,
+            "transition_label" : transition['label'],
+            "transitions_list" : transitions_list
+        }
 
         # Call the rendering function (defined in control_renderer.py, see the documentation for more information)
 
