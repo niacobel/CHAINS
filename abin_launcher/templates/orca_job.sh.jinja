@@ -1,6 +1,6 @@
 #!/bin/bash
 
-{# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
+{#- Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
 #SBATCH --output=slurm_output.log
 #SBATCH --job-name={{ mol_name }}_orca
 #SBATCH --mail-user={{ user_email }}
@@ -8,6 +8,9 @@
 #SBATCH --time={{ job_walltime }}
 #SBATCH --ntasks={{ job_cores }}
 #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
+{% if cluster_name == "dragon1" or cluster_name == "dragon2" -%}
+#SBATCH --ntasks-per-node={{ job_cores }}
+{%- endif %}
 {% if partition != None -%}
 #SBATCH --partition={{ partition }}
 {%- endif %}
@@ -30,8 +33,8 @@ mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
 SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
 
 echo -e "\nCreating temporary directory $SCRATCH for handling temporary files."
-srun mkdir -p $SCRATCH || exit $?
-srun -n $SLURM_NNODES --ntasks-per-node=1 cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.inp $SCRATCH/ || exit $?
+mkdir -p $SCRATCH || exit $?
+cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.inp $SCRATCH/ || exit $?
 
 cd $SCRATCH
 
@@ -40,7 +43,7 @@ echo -e "\n================= ORCA execution begins now =================="
 {% for set_env_line in set_env -%}
 {{ set_env_line }}
 {% endfor -%}
-{{ command }} {{ mol_name }}.inp > $SLURM_SUBMIT_DIR/{{ mol_name }}.out  || (srun rm -rf $SCRATCH ; exit $?)
+{{ command }} {{ mol_name }}.inp > $SLURM_SUBMIT_DIR/{{ mol_name }}.out  || (rm -rf $SCRATCH ; exit $?)
 
 echo -e "\n=================  ORCA execution ends now  =================="
 
@@ -48,7 +51,7 @@ echo -e "\nCopying ORCA output files to the submit directory."
 cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
 
 echo -e "\nRemoving $SCRATCH directory."
-srun -n $SLURM_NNODES --ntasks-per-node=1 rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
+rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
 
 echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
@@ -74,7 +77,7 @@ echo -e "\nCopying output files to $res_dir."
 mkdir -p $res_dir
 cp {{ mol_name }}.inp {{ mol_name }}.out {{ mol_name }}.xyz {{ mol_name }}_ori.xyz {{ job_script }} slurm_output.log {{ mol_name }}_{{ config_file }}.log $res_dir
 
-{# Job instructions for compiling data about the job for benchmarking. #}
+{# Job instructions for compiling data about the job for benchmarking. -#}
 {% include "benchmark.jinja" %}
 
 echo -e "\n******************************************************************************"

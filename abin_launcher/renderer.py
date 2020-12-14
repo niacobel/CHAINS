@@ -269,6 +269,7 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
     # Defining the Jinja variables
 
     input_render_vars = {
+        "mem_total" : job_specs['cores'] * job_specs['mem_per_cpu'],
         "job_type" : config[job_specs['profile']]['job_type'],
         "exchange" : config[job_specs['profile']]['exchange'],
         "basis_set" : config[job_specs['profile']]['basis_set'],
