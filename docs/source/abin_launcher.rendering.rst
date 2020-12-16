@@ -84,8 +84,10 @@ The input file is not the only file that needs to be created. We also need to cr
 
    echo -e "\n================= ORCA execution begins now =================="
 
+   module --force purge
+   module load releases/2018b
    module load ORCA/4.1.0-OpenMPI-3.1.3
-   /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca c2h6.inp > c2h6.out 
+   orca c2h6.inp > c2h6.out 
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
@@ -102,14 +104,16 @@ Now, we need to replace every variable part of this input by a Jinja variable:
    #SBATCH --time={{ job_walltime }}
    #SBATCH --ntasks={{ job_cores }}
    #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
-   {% if partition != None %}
+   {% if partition != None -%}
    #SBATCH --partition={{ partition }}
    {% endif %}
 
    echo -e "\n================= ORCA execution begins now =================="
 
+   module --force purge
+   module load releases/2018b
    module load ORCA/4.1.0-OpenMPI-3.1.3
-   /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca {{ mol_name }}.inp > {{ mol_name }}.out 
+   orca {{ mol_name }}.inp > {{ mol_name }}.out 
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
@@ -128,7 +132,7 @@ We are almost done, but there is one more thing we need to take into considerati
    #SBATCH --time={{ job_walltime }}
    #SBATCH --ntasks={{ job_cores }}
    #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
-   {% if partition != None %}
+   {% if partition != None -%}
    #SBATCH --partition={{ partition }}
    {% endif %}
 
@@ -138,8 +142,10 @@ We are almost done, but there is one more thing we need to take into considerati
 
    echo -e "\n================= ORCA execution begins now =================="
 
+   module --force purge
+   module load releases/2018b
    module load ORCA/4.1.0-OpenMPI-3.1.3
-   /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca {{ mol_name }}.inp > {{ mol_name }}.out 
+   orca {{ mol_name }}.inp > {{ mol_name }}.out 
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
@@ -150,7 +156,7 @@ However, we can also take this template one step further:
 .. literalinclude:: abin_sample/sample_files/sample_orca_job.sh.jinja
    :language: jinja
 
-where the module to load has been replaced by ``{{ set_env }}`` and the command to execute the program has been replaced by ``{{ command }}``. With this, it becomes possible to load and run the same program on another SLURM cluster, where the module and/or the command might be different.
+where the modules to load have been replaced by ``{{ set_env }}`` and the command to execute the program has been replaced by ``{{ command }}``. With this, it becomes possible to load and run the same program on another SLURM cluster, where the module and/or the command might be different.
 
 As long as we know what the job script must look like, we can define a template for pretty much any job on any cluster with any job scheduler.
 
@@ -196,7 +202,10 @@ For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are depend
    myclusterA:
      profiles:
        sample_orca:
-         set_env: module load ORCA/4.1.0-OpenMPI-3.1.3
+         set_env: 
+           - module --force purge
+           - module load releases/2018b
+           - module load ORCA/4.1.0-OpenMPI-3.1.3
          command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
    
    myclusterB:
