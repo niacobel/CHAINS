@@ -206,12 +206,12 @@ For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are depend
            - module --force purge
            - module load releases/2018b
            - module load ORCA/4.1.0-OpenMPI-3.1.3
-         command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
+         command: orca
    
    myclusterB:
      profiles:
        sample_orca:
-         set_env: another-module
+         set_env: other-modules
          command: another-command
 
 Note that for intuitiveness purposes, the name of the YAML keys is identical to the name of the Jinja variables (``method`` for ``{{ method }}``, ``basis_set`` for ``{{ basis_set }}``, etc.), but nothing prevents you from doing things differently.
