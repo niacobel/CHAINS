@@ -69,7 +69,7 @@ This parsing function uses a Q-CHEM_ TD-DFT calculation output as the source fil
 Structure of the Q-CHEM output file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As an example, let's consider here a TD-DFT calculation of the |H2O| molecule, focused on four excited triplet states and four excited singlet states. The output file is quite lengthy so we will only focus on the relevant parts in this subsection but know that the whole file can be consulted `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/control_sample/h2o.out>`_.
+As an example, let's consider here a TD-DFT calculation of the |H2O| molecule, focused on four excited triplet states and four excited singlet states. The output file is quite lengthy so we will only focus on the relevant parts in this subsection, where the lines containing the needed information are emphasized. The whole file can however be consulted `here <https://github.com/niacobel/CHAINS/tree/master/docs/source/control_sample/h2o.out>`_.
 
 .. |H2O| replace:: H\ :sub:`2`\ O
 
@@ -83,6 +83,7 @@ As an example, let's consider here a TD-DFT calculation of the |H2O| molecule, f
       :language: text
       :caption: h2o.out - TDDFT/TDA Excitation Energies
       :lines: 225-292
+      :emphasize-lines: 5,7,12,14,19,21,26,28,33,35,40,42,48,50,56,58
 
 |
 
@@ -96,6 +97,7 @@ As an example, let's consider here a TD-DFT calculation of the |H2O| molecule, f
       :language: text
       :caption: h2o.out - Spin-orbit Couplings
       :lines: 296-506
+      :emphasize-lines: 23-27,60-63,85-87,103-104,131-135,154-158,177-181,200-204
 
 |
 
@@ -109,6 +111,7 @@ As an example, let's consider here a TD-DFT calculation of the |H2O| molecule, f
       :language: text
       :caption: h2o.out - Transition dipole moments
       :lines: 511-591
+      :emphasize-lines: 27-30,37-42,61-64,71-76
 
 |
 
@@ -117,7 +120,7 @@ Function definition
 
 .. autofunction:: source_parser.qchem_tddft
 
-The first noticeable thing is that the ``system`` dictionary returned by this function contains an additional key: ``states_list``. While this key is not explicitly needed by ``CONTROL LAUNCHER``, it contains useful information that can be used, for example, by a transition function.
+The first noticeable thing is that the ``system`` dictionary returned by this function contains an additional key: ``states_list``. While this key is not explicitly needed by ``CONTROL LAUNCHER``, it contains useful information that can be used, for example, by a :ref:`transition function <pgt_transition>`.
 
 The way this function works is by making heavy use of :ref:`regular expressions <regex>`. It detects the beginning and the end of each of the three portions presented above and process their content, picking the relevant values and converting them to atomic units if needed.
 
