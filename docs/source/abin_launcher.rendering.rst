@@ -255,7 +255,7 @@ As said in the previous subsection, the rendering functions take six dictionarie
    - ``profile`` is the name of the profile as it appears in the :ref:`clusters configuration file <abin_clusters_file>` and as it was given :ref:`in the command line <abin_arguments>`.
    - ``scaling_fct`` is the name of the chosen :ref:`scaling function <scaling_fcts>`.
    - ``scale_index`` is the computed value of the scale_index.
-   - ``cluster_name``, the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`.
+   - ``cluster_name`` is the name of the cluster on which ``ABIN LAUNCHER`` is running, as it was given :ref:`in the command line <abin_arguments>`.
    - ``scale_label``, ``scale_limit``, ``partition``, ``walltime``, ``cores`` and ``mem_per_cpu`` are all the information associated to the chosen :ref:`job scale <job_scales>`.
 
 - ``misc`` contains all other pertinent details:
@@ -350,7 +350,7 @@ Let's end this section by making the rendering function associated with our geom
 Review of the template and configuration files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Before defining the function, we need to review our different files:
+Before defining the function, we need to review our different files.
 
 First, we have the input file template:
 
@@ -407,7 +407,7 @@ Next comes the initialization of the ``rendered_content`` dictionary, where each
 
     rendered_content = {}
 
-Now, let's define the content of our input file. This content is stored in the ``input_render_vars`` dictionary, where each key corresponds to one of our Jinja variables. This dictionary is the key part of the rendering function as it defines the link between the Jinja template and the various information needed to fill it.
+Now, let's define the content of our input file. This content is stored in the ``input_render_vars`` dictionary, where each key corresponds to one of our Jinja variables. This dictionary is the key part of the rendering function as it defines what and where is the information needed to fill the Jinja template.
 
 .. code-block:: python
 
