@@ -41,7 +41,47 @@ Here is a small YouTube tutorial made by Mike Dane that will cover the basics of
 .. .. youtube:: cdLNKUoMc6c
 
 |
-| With that, you know everything you need to know about YAML in order to use CHAINS! As you may have seen in the video, the way those files are structured makes them very easy to use and to understand.
+| When reading the YAML files, PyYAML_ transforms them into Python dictionaries. For example, let's consider the following YAML file:
+
+.. code-block:: yaml
+   :caption: example.yml
+
+   Name: Bobby Smith
+   Age: 32
+   Hobbies:
+     - Basketball
+     - Driving
+     - Watching movies
+   Family:
+     Wife: Johanna
+     Son: John
+
+and the Python script that will read it:
+
+.. code-block:: python
+   :caption: read.py
+
+   import yaml
+
+   with open('example.yml') as f:
+      data = yaml.load(f, Loader=yaml.FullLoader)
+   
+   print(data)
+
+When executing the python script, we can see that the ``data`` variable is a Python dictionary:
+
+.. code-block:: shell
+
+   $ python read.py
+   {'Name': 'Bobby Smith', 'Age': 32, 'Hobbies': ['Basketball', 'Driving', 'Watching movies'], 'Family': {'Wife': 'Johanna', 'Son': 'John'}}
+
+As you can see, the ``Hobbies`` values have become a Python list and the nested values in ``Family`` have become a Python dictionary. If we wanted to access the name of Bobby's wife, we could use:
+
+.. code-block:: python
+
+   wife_name = data['Family']['Wife']
+
+With that, you know everything you need to know about YAML in order to use CHAINS! As you may have seen in the video, the way those files are structured makes them very easy to use and to understand.
 
 About Jinja2
 ============
@@ -101,6 +141,7 @@ You don't really need to know anything about them prior to reading this document
 .. _Molpro: https://www.molpro.net/
 .. _ORCA: https://www.faccts.de/orca/
 .. _Python: https://www.python.org/
+.. _PyYAML: https://pyyaml.org/
 .. _Q-CHEM: https://www.q-chem.com/
 .. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA
 .. _`Regular Expressions`: https://www.regular-expressions.info/
