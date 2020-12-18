@@ -65,11 +65,11 @@ The clusters configuration file, named ``clusters.yml``, is a YAML file where al
 where
 
 - ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`).
-- ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (also given as a :ref:`command line argument <abin_arguments>`).
+- ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to use (also given as a :ref:`command line argument <abin_arguments>`).
 
 If you want a more concrete example, let's consider the following situation:
 
-- A cluster who use SLURM as the job scheduler, named ``lemaitre3``
+- A cluster who uses SLURM as the job scheduler, named ``lemaitre3``
 - The ``qchem_gt_opm`` profile with ``qchem_tddft``, ``proj_ground_to_triplet`` and ``opm_render`` as the parsing, transition and rendering functions, respectively.
 
 This is what the file might look like in this situation:

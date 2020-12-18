@@ -79,7 +79,7 @@ The scaling function that will be called by ``ABIN LAUNCHER`` is the one associa
          myprofile2:
             scaling_function: name-of-scaling-function
 
-where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <abin_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (such as ``orca`` or ``qchem``). This way, a different scaling function can be assigned to each profile.
+where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <abin_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to use (such as ``orca`` or ``qchem``). This way, a different scaling function can be assigned to each profile.
 
 Total number of electrons
 -------------------------
@@ -207,7 +207,7 @@ The job scales must be defined as follows in the ``job_scales`` key in the :ref:
 where
 
 - ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each cluster.
-- ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (such as ``orca`` or ``qchem``, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each profile.
+- ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to use (such as ``orca`` or ``qchem``, given as a :ref:`command line argument <abin_arguments>`). This way, different job scales can be assigned to each profile.
 - ``label``, ``scale_limit``, ``time``, ``cores`` and ``mem_per_cpu`` are all **mandatory keys**, specifying the resources requirements of the jobs.
 - ``partition_name`` is an optional key containing the name of the cluster partition on which the job will be running.
 - ``delay_command`` is an optional key that lets you delay the submission of the jobs. For example, by delaying the bigger jobs, you can prioritize the launch of small calculations first. On SLURM, this is handled by the ``--begin`` argument of the ``sbatch`` command, see here_.

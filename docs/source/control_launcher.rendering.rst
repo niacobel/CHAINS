@@ -175,7 +175,7 @@ The rendering function that will be called by ``CONTROL LAUNCHER`` is the one as
          myprofile2:
             rendering_function: name-of-rendering-function
 
-where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <control_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run. This way, a different rendering function can be assigned to each profile.
+where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <control_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to use. This way, a different rendering function can be assigned to each profile.
 
 Example of a rendering function
 -------------------------------

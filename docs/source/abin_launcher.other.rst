@@ -69,7 +69,7 @@ The clusters configuration file, named ``clusters.yml``, is a YAML file where al
 where
 
 - ``myclusterA`` and ``myclusterB`` are the names of your clusters (given as a :ref:`command line argument <abin_arguments>`).
-- ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (also given as a :ref:`command line argument <abin_arguments>`).
+- ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to use (also given as a :ref:`command line argument <abin_arguments>`).
 
 If you want a more concrete example, let's consider the following situation:
 

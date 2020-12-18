@@ -175,7 +175,7 @@ If some lines of the temporary CSV files were to cause any kind of problem, they
 Dealing with multiple profiles
 ------------------------------
 
-Unfortunately, this tool only works with one profile at a time. If you have multiple profiles you want to run with ``ABIN LAUNCHER`` (or even similar profiles on multiple clusters), you will have to configure the benchmarking tool for each of those profiles.
+Unfortunately, this tool only works with one profile at a time. If you have multiple profiles you want to use with ``ABIN LAUNCHER`` (or even similar profiles on multiple clusters), you will have to configure the benchmarking tool for each of those profiles.
 
 This implies that you need to:
 

@@ -87,7 +87,7 @@ The input file is not the only file that needs to be created. We also need to cr
    module --force purge
    module load releases/2018b
    module load ORCA/4.1.0-OpenMPI-3.1.3
-   orca c2h6.inp > c2h6.out 
+   /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca c2h6.inp > c2h6.out 
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
@@ -113,7 +113,7 @@ Now, we need to replace every variable part of this input by a Jinja variable:
    module --force purge
    module load releases/2018b
    module load ORCA/4.1.0-OpenMPI-3.1.3
-   orca {{ mol_name }}.inp > {{ mol_name }}.out 
+   /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca {{ mol_name }}.inp > {{ mol_name }}.out 
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
@@ -145,7 +145,7 @@ We are almost done, but there is one more thing we need to take into considerati
    module --force purge
    module load releases/2018b
    module load ORCA/4.1.0-OpenMPI-3.1.3
-   orca {{ mol_name }}.inp > {{ mol_name }}.out 
+   /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca {{ mol_name }}.inp > {{ mol_name }}.out 
 
    echo -e "\n=================  ORCA execution ends now  =================="
 
@@ -206,7 +206,7 @@ For the ``{{ set_env }}`` and ``{{ command }}`` variables, since they are depend
            - module --force purge
            - module load releases/2018b
            - module load ORCA/4.1.0-OpenMPI-3.1.3
-         command: orca
+         command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
    
    myclusterB:
      profiles:
@@ -340,7 +340,7 @@ The rendering function that will be called by ``ABIN LAUNCHER`` is the one assoc
          myprofile2:
             rendering_function: name-of-rendering-function
 
-where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <abin_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (such as ``orca`` or ``qchem``). This way, a different rendering function can be assigned to each profile.
+where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <abin_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to use (such as ``orca`` or ``qchem``). This way, a different rendering function can be assigned to each profile.
 
 Example of a rendering function
 -------------------------------

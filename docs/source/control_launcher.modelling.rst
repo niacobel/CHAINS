@@ -40,7 +40,7 @@ The parsing function that will be called by ``CONTROL LAUNCHER`` is the one asso
          myprofile2:
             parsing_function: name-of-parsing-function
 
-where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <control_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to run (such as ``chains_qoctra``). This way, a different parsing function can be assigned to each profile.
+where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`command line argument <control_arguments>`) while ``myprofile1`` and ``myprofile2`` are the names of the profiles you want to use (such as ``chains_qoctra``). This way, a different parsing function can be assigned to each profile.
 
 Convert energy units
 --------------------
