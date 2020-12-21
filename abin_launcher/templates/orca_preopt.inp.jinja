@@ -1,0 +1,20 @@
+! PBEh-3c Opt xyzfile
+%base "pre_opt" 
+%maxcore {{ orca_mem_per_cpu }} {# It is recommended to set this value to 75% of the physical memory available (see https://sites.google.com/site/orcainputlibrary/orca-common-problems) #}
+%pal 
+nprocs {{ job_cores }}
+end
+* xyz {{ charge }} {{ multiplicity }}
+{% for coordinate_line in coordinates -%}
+{{ coordinate_line }}
+{% endfor -%}
+*
+
+$new_job
+! {{ method }} {{ basis_set }} {{ aux_basis_set }} {{ other }} Opt xyzfile 
+%base "{{ mol_name }}"
+%maxcore {{ orca_mem_per_cpu }} {# It is recommended to set this value to 75% of the physical memory available (see https://sites.google.com/site/orcainputlibrary/orca-common-problems) #}
+%pal 
+nprocs {{ job_cores }}
+end
+* xyzfile {{ charge }} {{ multiplicity }} pre_opt.xyz

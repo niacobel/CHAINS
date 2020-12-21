@@ -19,11 +19,11 @@ general:
 # They will be used "as-is" in the keyword line of the ORCA input file, be sure that ORCA knows them! (see ORCA's manual for more information)
 
 orca:
-  job_type: Opt
   method: B3LYP
   basis_set: def2-TZVP
   aux_basis_set: def2/J
-  other: RIJCOSX                              # You can put multiple keywords on this line (separated by a space)
+  other: RIJCOSX Freq                              # You can put multiple keywords on this line (separated by a space)
+  pre_opt: False                                   # True if you want to perform a pre-optimization using Grimme's PBEh-3c method (Note that 'pre_opt' is not an ORCA keyword)
 
 # ========================================================= #
 #                     Q-CHEM Information                    #

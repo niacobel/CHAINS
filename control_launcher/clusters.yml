@@ -18,10 +18,15 @@ shared:
         job_script: qoctra_job.sh.jinja                    
       job_scales:
         - 
-          label: unique
-          scale_limit: 50
+          label: small
+          scale_limit: 20
           time: 1-00:00:00
           memory: 2000 # in MB
+        - 
+          label: medium
+          scale_limit: 50
+          time: 2-00:00:00
+          memory: 2500 # in MB
 
 # ========================================================= #
 #                        UCL Clusters                       #

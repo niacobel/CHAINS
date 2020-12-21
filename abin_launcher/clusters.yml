@@ -12,11 +12,8 @@
 shared: 
   profiles:
     orca:
-      rendering_function: &orca_rdr orca_render
-      jinja_templates: &orca_jinja
-        input: orca.inp.jinja                          # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the geometry file
-        job_script: orca_job.sh.jinja                                           
-      scaling_function: &scl_fct total_nb_elec         # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
+      rendering_function: &orca_rdr chains_orca_render                                      
+      scaling_function: &scl_orca total_nb_elec         # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
       job_scales: &tiny_orca
         label: tiny
         scale_limit: 20
@@ -34,17 +31,16 @@ dragon1:
   profiles:
     orca:
       rendering_function: *orca_rdr
-      jinja_templates: *orca_jinja
       set_env:
         - module --force purge
-        - module load orca/4.0.1.2 
-      command: /usr/local/orca/orca_4_0_1_2_linux_x86-64_openmpi202/orca
-      scaling_function: *scl_fct
+        - module load ORCA/4.2.1-gompi-2019b
+      command: /usr/local/Software/.local/easybuild/software/ORCA/4.2.1-gompi-2019b/orca
+      scaling_function: *scl_orca
       job_scales: 
         - 
           <<: *tiny_orca     
         - 
-          label: very small
+          label: small
           scale_limit: 500
           time: 2-00:00:00
           cores: 8
@@ -79,44 +75,45 @@ dragon2:
   profiles:
     orca:
       rendering_function: *orca_rdr
-      jinja_templates: *orca_jinja
       set_env:
         - module --force purge
         - module load releases/2019b
         - module load ORCA/4.2.1-gompi-2019b 
       command: /opt/cecisw/arch/easybuild/2019b/software/ORCA/4.2.1-gompi-2019b/orca
-      scaling_function: *scl_fct
+      scaling_function: *scl_orca
       job_scales:
         - 
           <<: *tiny_orca
           partition_name: debug  
         - 
-          label: very small
-          scale_limit: 500
-          time: 1-00:00:00
-          cores: 4
-          mem_per_cpu: 500 # in MB
-        - 
           label: small
-          scale_limit: 1000
+          scale_limit: 500
           time: 2-00:00:00
           cores: 8
-          mem_per_cpu: 1000 # in MB
+          mem_per_cpu: 750 # in MB
         - 
           label: medium
           scale_limit: 1500
           time: 5-00:00:00
           cores: 8
-          mem_per_cpu: 2000 # in MB
+          mem_per_cpu: 3000 # in MB
           delay_command: --begin=now+60
         - 
           label: big
           scale_limit: 2000
           partition_name: long
-          time: 15-00:00:00
-          cores: 8  
+          time: 8-00:00:00
+          cores: 16  
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
+        - 
+          label: very big
+          scale_limit: 2500
+          partition_name: Long
+          time: 21-00:00:00
+          cores: 20
+          mem_per_cpu: 6000 # in MB  
+          delay_command: --begin=now+180
           
 # ========================================================= #
 #                        UCL Clusters                       #
@@ -128,13 +125,12 @@ lemaitre3:
   profiles:
     orca:
       rendering_function: *orca_rdr
-      jinja_templates: *orca_jinja
       set_env: 
         - module --force purge
         - module load releases/2018b
         - module load ORCA/4.1.0-OpenMPI-3.1.3
-      command: orca
-      scaling_function: *scl_fct
+      command: /opt/cecisw/arch/easybuild/2018b/software/ORCA/4.1.0-OpenMPI-3.1.3/orca
+      scaling_function: *scl_orca
       job_scales:
         - 
           <<: *tiny_orca  
@@ -157,13 +153,13 @@ lemaitre3:
           cores: 16
           mem_per_cpu: 2000 # in MB
           delay_command: --begin=now+60
-        - 
-          label: big
-          scale_limit: 1500
-          time: 2-00:00:00
-          cores: 20
-          mem_per_cpu: 3000 # in MB
-          delay_command: --begin=now+120
+        # - 
+        #   label: big
+        #   scale_limit: 1500
+        #   time: 2-00:00:00
+        #   cores: 20
+        #   mem_per_cpu: 3000 # in MB
+        #   delay_command: --begin=now+120
 
 # ========================================================= #
 #                      UNamur Clusters                      #
@@ -174,23 +170,20 @@ hercules:
   submit_command: sbatch
   profiles:
     qchem:
-      rendering_function: qchem_render
-      jinja_templates:
-        input: qchem.in.jinja                        # The rendered file will be named <mol_name>.in, where <mol_name> is the name of the geometry file
-        job_script: qchem_job.sh.jinja              
+      rendering_function: chains_qchem_render           
       set_env: 
         - module --force purge
         - module load tis/2017.01
         - module load Q-Chem/5.3.0-SHMEM
         - export QCSCRATCH=${TMPDIR}
-      command: srun qchem -nt ${SLURM_CPUS_PER_TASK}
-      scaling_function: *scl_fct
+      command: qchem -nt ${SLURM_CPUS_PER_TASK}
+      scaling_function: total_nb_elec
       job_scales:
         - 
           label: debug
           scale_limit: 20
           time: 0-00:05:00
-          cores: 1 
+          cores: 2 
           mem_per_cpu: 500 # in MB
         - 
           label: tiny
@@ -221,80 +214,13 @@ hercules:
           label: big
           scale_limit: 2000
           time: 15-00:00:00
-          cores: 16
+          cores: 20
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
-
-# ========================================================= #
-#                        ULB Clusters                       #
-# ========================================================= #
-
-# Legacy, old decommissioned clusters
-
-vega:
-# address vega.ulb.ac.be
-  submit_command: sbatch
-  profiles:
-    orca:
-      rendering_function: *orca_rdr
-      jinja: *orca_jinja
-      set_env: 
-        - module purge
-        - module load ORCA/4.0.0.2-OpenMPI-2.0.2
-      command: /apps/brussel/interlagos/software/ORCA/4.0.0.2-OpenMPI-2.0.2/orca
-      scaling_function: *scl_fct
-      job_scales:
-        - <<: *tiny_orca  
-        - label: small
-          scale_limit: 1000
-          time: 5-00:00:00
-          cores: 8
-          mem_per_cpu: 1000 # in MB
-          delay_command: --begin=now+60
-        - label: medium
-          scale_limit: 1500
-          time: 10-00:00:00
-          cores: 8
-          mem_per_cpu: 2000 # in MB
-          delay_command: --begin=now+120
-    qchem:
-      rendering_function: qchem_render
-      jinja_templates:
-        input: qchem.in.jinja                        # The rendered file will be named <mol_name>.inp, where <mol_name> is the name of the molecule file
-        job_script: qchem_job.sh.jinja               
-      set_env: 
-        - module purge
-        - module use /apps/brussel/commercial/q-chem/modules
-        - module load Q-Chem-5.2.1-intel-2019b-mpich3
-        - export QCSCRATCH=${TMPDIR}
-      command: srun qchem -nt ${SLURM_CPUS_PER_TASK}
-      scaling_function: *scl_fct
-      job_scales:
         - 
-          label: tiny
-          scale_limit: 50
-          time: 0-00:10:00
-          cores: 2 
-          mem_per_cpu: 300 # in MB
-        - 
-          label: small
-          scale_limit: 1000
-          time: 2-00:00:00
-          cores: 8
-          mem_per_cpu: 4000 # in MB
-          delay_command:
-        - 
-          label: medium
-          scale_limit: 1500
-          time: 5-00:00:00
-          cores: 16
-          mem_per_cpu: 4000 # in MB
-          delay_command: --begin=now+60
-        - 
-          label: big
-          scale_limit: 2000
-          time: 10-00:00:00
-          cores: 16
-          mem_per_cpu: 8000 # in MB
-          delay_command: --begin=now+120
-  
+          label: very big
+          scale_limit: 2500
+          time: 15-00:00:00
+          cores: 24
+          mem_per_cpu: 6000 # in MB
+          delay_command: --begin=now+180

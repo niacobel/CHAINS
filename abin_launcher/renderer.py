@@ -44,8 +44,8 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 # =================================================================== #
 # =================================================================== #
 
-def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the input file associated with the ORCA program.
+def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
+    """Renders the job script and the input file associated with the ORCA program in CHAINS.
 
     Parameters
     ----------
@@ -89,15 +89,23 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
       chains_config = yaml.load(chains, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
-    # Check if all the files specified in the clusters YAML file exists in the "templates" directory of ABIN LAUNCHER.
+    # Check if we need to also perform a pre-optimization with ORCA (recommended for large molecules)
+
+    pre_opt = config['orca'].get('pre_opt',False)
+
+    # Define the names of the templates.
+
+    if pre_opt:
+        template_input = "orca_preopt.inp.jinja"
+    else:
+        template_input = "orca.inp.jinja"
+
+    template_script = "orca_job.sh.jinja"
+
+    # Check if the specified templates exist in the "templates" directory of ABIN LAUNCHER.
     
-    for filename in clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates'].values():    
-        abin_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
-
-    # Define the names of the templates, given in the YAML clusters configuration file.
-
-    template_input = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['input']
-    template_script = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['job_script']
+    abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_input),"Jinja template for the orca input file","file")
+    abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the orca job script","file")
 
     # Define the names of the rendered files.
 
@@ -121,17 +129,22 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
     # Defining the Jinja variables
 
     input_render_vars = {
-        "method" : config[job_specs['profile']]['method'],
-        "basis_set" : config[job_specs['profile']]['basis_set'],
-        "aux_basis_set" : config[job_specs['profile']]['aux_basis_set'],
-        "job_type" : config[job_specs['profile']]['job_type'],
-        "other" : config[job_specs['profile']]['other'],
-        "job_cores" : job_specs['cores'],
         "orca_mem_per_cpu" : orca_mem_per_cpu,
+        "job_cores" : job_specs['cores'],
         "charge" : config['general']['charge'],
         "multiplicity" : config['general']['multiplicity'],
-        "coordinates" : file_data['atomic_coordinates']
+        "coordinates" : file_data['atomic_coordinates'],
+        "method" : config['orca']['method'],
+        "basis_set" : config['orca']['basis_set'],
+        "aux_basis_set" : config['orca']['aux_basis_set'],
+        "other" : config['orca']['other']
     }
+
+    if pre_opt:
+
+        input_render_vars.update({
+            "mol_name" : misc['mol_name']
+        })
 
     # Rendering the file
      
@@ -196,8 +209,8 @@ def orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, 
 ######################################################################################################################################
 
 
-def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the input file associated with the Q-CHEM program.
+def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
+    """Renders the job script and the input file associated with the Q-CHEM program in CHAINS.
 
     Parameters
     ----------
@@ -241,15 +254,15 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
       chains_config = yaml.load(chains, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
-    # Check if all the files specified in the clusters YAML file exists in the "templates" directory of ABIN LAUNCHER.
+    # Define the names of the templates.
+
+    template_input = "qchem.in.jinja"
+    template_script = "qchem_job.sh.jinja"
+
+    # Check if the specified templates exist in the "templates" directory of ABIN LAUNCHER.
     
-    for filename in clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates'].values():    
-        abin_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
-
-    # Define the names of the templates, given in the YAML clusters configuration file.
-
-    template_input = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['input']
-    template_script = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['job_script']
+    abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_input),"Jinja template for the qchem input file","file")
+    abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the qchem job script","file")
 
     # Define the names of the rendered files.
 
@@ -270,10 +283,10 @@ def qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict,
 
     input_render_vars = {
         "mem_total" : job_specs['cores'] * job_specs['mem_per_cpu'],
-        "job_type" : config[job_specs['profile']]['job_type'],
-        "exchange" : config[job_specs['profile']]['exchange'],
-        "basis_set" : config[job_specs['profile']]['basis_set'],
-        "cis_n_roots" : config[job_specs['profile']]['cis_n_roots'],
+        "job_type" : config['qchem']['job_type'],
+        "exchange" : config['qchem']['exchange'],
+        "basis_set" : config['qchem']['basis_set'],
+        "cis_n_roots" : config['qchem']['cis_n_roots'],
         "charge" : config['general']['charge'],
         "multiplicity" : config['general']['multiplicity'],
         "coordinates" : file_data['atomic_coordinates']
