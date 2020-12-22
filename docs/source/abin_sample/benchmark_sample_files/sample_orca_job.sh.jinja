@@ -7,7 +7,7 @@
 #SBATCH --time={{ job_walltime }}
 #SBATCH --ntasks={{ job_cores }}
 #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
-{% if partition != None %}
+{% if partition != None -%}
 #SBATCH --partition={{ partition }}
 {% endif %}
 
@@ -17,7 +17,9 @@ mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
 
 echo -e "\n================= ORCA execution begins now =================="
 
-{{ set_env }}
+{% for set_env_line in set_env -%}
+{{ set_env_line }}
+{% endfor -%}
 {{ command }} {{ mol_name }}.inp > {{ mol_name }}.out 
 
 echo -e "\n=================  ORCA execution ends now  =================="
