@@ -54,19 +54,22 @@ cd $SLURM_SUBMIT_DIR
 source {{ chains_dir }}/load_modules.sh
 python {{ check_dir }}/qchem_check.py {{ mol_name }}.out  || exit $?
 
-# Copying important files
+{% if copy_files is sameas true -%}
+# Copy the various output files to their respective results directory
 
 echo -e "\nCopying Q-CHEM output file to {{ output_dir }}."
 mkdir -p {{ output_dir }}
 cp {{ mol_name }}.out {{ output_dir }}/
 
-res_dir="{{ results_dir }}/{{ mol_name }}/{{ results_subdir }}"
+res_dir="{{ results_dir }}/{{ mol_name }}/QCHEM"
 echo -e "\nCopying output files to $res_dir."
 mkdir -p $res_dir
 cp {{ mol_name }}.in {{ mol_name }}.out {{ job_script }} slurm_output.log {{ mol_name }}_{{ config_file }}.log $res_dir
+{%- endif %}
 
-{# Job instructions for compiling data about the job for benchmarking. #}
+{% if benchmark is sameas true -%}
 {% include "benchmark.jinja" %}
+{%- endif %}
 
 echo -e "\n******************************************************************************"
 echo -e "*****************************   End of the job   *****************************"

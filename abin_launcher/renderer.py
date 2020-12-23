@@ -79,26 +79,45 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
     #                      Preparation step                     #
     # ========================================================= #
 
-    # Load the CHAINS configuration file to get the additional information
+    # Check config file
+    # =================
 
-    chains_path = os.path.dirname(misc['code_dir'])
-    chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+    # Check if a "general" block has been defined in the config file
 
-    print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
-    with open(chains_config_file, 'r') as chains:
-      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
-    print('%12s' % "[ DONE ]")
+    if not config.get('general'):
+      raise abin_errors.AbinError ('ERROR: There is no "general" key defined in the "%s" configuration file.' % misc['config_name'])     
 
-    # Check if we need to also perform a pre-optimization with ORCA (recommended for large molecules)
+    # Check if an "orca" block has been defined in the config file
+
+    if not config.get('orca'):
+      raise abin_errors.AbinError ('ERROR: There is no "orca" key defined in the "%s" configuration file.' % misc['config_name'])      
+
+    # Check the options defined in the config file
 
     pre_opt = config['orca'].get('pre_opt',False)
+
+    if not isinstance(pre_opt, bool):
+      raise abin_errors.AbinError ('ERROR: The "pre_opt" value given in the "orca" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    copy_files = config['orca'].get('copy_files',True)
+
+    if not isinstance(copy_files, bool):
+      raise abin_errors.AbinError ('ERROR: The "copy_files" value given in the "orca" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    benchmark = config['orca'].get('benchmark',False)
+
+    if not isinstance(benchmark, bool):
+      raise abin_errors.AbinError ('ERROR: The "benchmark" value given in the "orca" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    # Define the templates
+    # ====================
 
     # Define the names of the templates.
 
     if pre_opt:
-        template_input = "orca_preopt.inp.jinja"
+      template_input = "orca_preopt.inp.jinja"
     else:
-        template_input = "orca.inp.jinja"
+      template_input = "orca.inp.jinja"
 
     template_script = "orca_job.sh.jinja"
 
@@ -106,6 +125,9 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
     
     abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_input),"Jinja template for the orca input file","file")
     abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the orca job script","file")
+
+    # Define rendered files
+    # =====================
 
     # Define the names of the rendered files.
 
@@ -122,31 +144,60 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
   
     print("{:<80}".format("\nRendering the jinja template for the orca input file ...  "), end="")
 
+    # Defining the Jinja variables
+    # ============================
+
     # It is recommended to set the memory per CPU to 75% of the physical memory available (see https://sites.google.com/site/orcainputlibrary/orca-common-problems)
 
     orca_mem_per_cpu = int(0.75 * job_specs['mem_per_cpu']) # in MB
-    
-    # Defining the Jinja variables
+
+    # Variables not associated with the config file
 
     input_render_vars = {
-        "orca_mem_per_cpu" : orca_mem_per_cpu,
-        "job_cores" : job_specs['cores'],
-        "charge" : config['general']['charge'],
-        "multiplicity" : config['general']['multiplicity'],
-        "coordinates" : file_data['atomic_coordinates'],
-        "method" : config['orca']['method'],
-        "basis_set" : config['orca']['basis_set'],
-        "aux_basis_set" : config['orca']['aux_basis_set'],
-        "other" : config['orca']['other']
+      "orca_mem_per_cpu" : orca_mem_per_cpu,
+      "job_cores" : job_specs['cores'],
+      "coordinates" : file_data['atomic_coordinates']
     }
+
+    # Variables associated with the "general" block of the config file
+
+    try:
+      input_render_vars.update({
+        "charge" : config['general']['charge'],
+        "multiplicity" : config['general']['multiplicity']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Check if a "keywords" block has been defined in the "orca" block of the config file
+
+    if not config['orca'].get('keywords'):
+      raise abin_errors.AbinError ('ERROR: There is no "keywords" key in the "orca" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "keywords" block of the "orca" block in the config file
+
+    try:
+      input_render_vars.update({
+        "method" : config['orca']['keywords']['method'],
+        "basis_set" : config['orca']['keywords']['basis_set'],
+        "aux_basis_set" : config['orca']['keywords']['aux_basis_set'],
+        "other" : config['orca']['keywords']['other']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "keywords" block of the "orca" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Variables specific to the pre_opt template
 
     if pre_opt:
 
-        input_render_vars.update({
-            "mol_name" : misc['mol_name']
-        })
+      input_render_vars.update({
+        "mol_name" : misc['mol_name']
+      })
 
     # Rendering the file
+    # ==================
      
     rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, input_render_vars)
 
@@ -156,36 +207,80 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
     #                  Rendering the job script                 #
     # ========================================================= #
 
-    print("{:<80}".format("\nRendering the jinja template for the orca job script ..."), end="")
-
     # Get the path to the "check_scripts" directory because the job script needs to execute check_orca.py
-    
+
+    chains_path = os.path.dirname(misc['code_dir'])  
     check_script_path = os.path.join(chains_path,"check_scripts")
 
-    # Defining the Jinja variables
+    # If we need to copy the output files to their respective results directory, load the CHAINS configuration file to get the necessary information
+
+    if copy_files:
+
+      chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
   
+      print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+      with open(chains_config_file, 'r') as chains:
+        chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+      print('%12s' % "[ DONE ]")
+
+    print("{:<80}".format("\nRendering the jinja template for the orca job script ..."), end="")
+
+    # Defining the Jinja variables
+    # ============================
+
+    # Variables not associated with the config file
+
     script_render_vars = {  
-        "mol_name" : misc['mol_name'],
-        "user_email" : config['general']['user_email'],
-        "mail_type" : config['general']['mail_type'],
-        "job_walltime" : job_specs['walltime'],
-        "job_cores" : job_specs['cores'],
-        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
-        "partition" : job_specs['partition'],     
-        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
-        "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command'],
-        "output_dir" : chains_config['output_dir'][job_specs['profile']],
-        "results_dir" : chains_config['results_dir'],
-        "chains_dir" : chains_path,
-        "check_dir" : check_script_path,
-        "results_subdir" : job_specs['profile'].upper(),
-        "job_script" : rendered_script,
-        "config_file" : misc['config_name']
+      "mol_name" : misc['mol_name'],
+      "job_walltime" : job_specs['walltime'],
+      "job_cores" : job_specs['cores'],
+      "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+      "cluster_name" : job_specs['cluster_name'],
+      "partition" : job_specs['partition'],     
+      "chains_dir" : chains_path,
+      "check_dir" : check_script_path,
+      "copy_files" : copy_files,
+      "benchmark" : benchmark
     }
 
-    # Add variables specific to the benchmarking template
+    # Variables associated with the "general" block of the config file
+
+    try:
+      script_render_vars.update({
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Variables associated with the clusters configuration file
+
+    try:
+      script_render_vars.update({
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
+        "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "%s" profile of the clusters configuration file.' % (error,job_specs['profile']))
+
+    # Variables specific to the copy_files portion of the template
+
+    if copy_files:
+
+      script_render_vars.update({
+        "output_dir" : chains_config['output_dir']['orca'],
+        "results_dir" : chains_config['results_dir'],
+        "config_file" : misc['config_name'],
+        "job_script" : rendered_script
+      })
+
+    # Variables specific to the benchmarking template
    
-    script_render_vars.update({
+    if benchmark:
+
+      script_render_vars.update({
         "benchmark_path" : "${CECIHOME}/BENCHMARK",
         "prefix": job_specs['profile'] + "_" + job_specs['cluster_name'],
         "profile" : job_specs['profile'],
@@ -195,9 +290,10 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
         "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
         "scaling_function" : job_specs['scaling_fct'],
         "scale_index" : job_specs['scale_index']
-    })
+      })
     
     # Rendering the file
+    # ==================
 
     rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
 
@@ -244,15 +340,33 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
     #                      Preparation step                     #
     # ========================================================= #
 
-    # Load the CHAINS configuration file to get the additional information
+    # Check config file
+    # =================
 
-    chains_path = os.path.dirname(misc['code_dir'])
-    chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+    # Check if a "general" block has been defined in the config file
 
-    print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
-    with open(chains_config_file, 'r') as chains:
-      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
-    print('%12s' % "[ DONE ]")
+    if not config.get('general'):
+      raise abin_errors.AbinError ('ERROR: There is no "general" key defined in the "%s" configuration file.' % misc['config_name'])     
+
+    # Check if a "qchem" block has been defined in the config file
+
+    if not config.get('qchem'):
+      raise abin_errors.AbinError ('ERROR: There is no "qchem" key defined in the "%s" configuration file.' % misc['config_name'])      
+
+    # Check the options defined in the config file
+
+    copy_files = config['qchem'].get('copy_files',True)
+
+    if not isinstance(copy_files, bool):
+      raise abin_errors.AbinError ('ERROR: The "copy_files" value given in the "qchem" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    benchmark = config['qchem'].get('benchmark',False)
+
+    if not isinstance(benchmark, bool):
+      raise abin_errors.AbinError ('ERROR: The "benchmark" value given in the "qchem" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    # Define the templates
+    # ====================
 
     # Define the names of the templates.
 
@@ -263,6 +377,9 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
     
     abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_input),"Jinja template for the qchem input file","file")
     abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the qchem job script","file")
+
+    # Define rendered files
+    # =====================
 
     # Define the names of the rendered files.
 
@@ -278,21 +395,48 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
     # ========================================================= #
 
     print("{:<80}".format("\nRendering the jinja template for the qchem input file ...  "), end="")
-    
+
     # Defining the Jinja variables
+    # ============================
+
+    # Variables not associated with the config file
 
     input_render_vars = {
-        "mem_total" : job_specs['cores'] * job_specs['mem_per_cpu'],
-        "job_type" : config['qchem']['job_type'],
-        "exchange" : config['qchem']['exchange'],
-        "basis_set" : config['qchem']['basis_set'],
-        "cis_n_roots" : config['qchem']['cis_n_roots'],
-        "charge" : config['general']['charge'],
-        "multiplicity" : config['general']['multiplicity'],
-        "coordinates" : file_data['atomic_coordinates']
+      "mem_total" : job_specs['cores'] * job_specs['mem_per_cpu'],
+      "coordinates" : file_data['atomic_coordinates']
     }
 
+    # Variables associated with the "general" block of the config file
+
+    try:
+      input_render_vars.update({
+        "charge" : config['general']['charge'],
+        "multiplicity" : config['general']['multiplicity']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Check if a "keywords" block has been defined in the "qchem" block of the config file
+
+    if not config['qchem'].get('keywords'):
+      raise abin_errors.AbinError ('ERROR: There is no "keywords" key in the "qchem" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "keywords" block of the "qchem" block in the config file
+
+    try:
+      input_render_vars.update({
+        "job_type" : config['qchem']['keywords']['job_type'],
+        "exchange" : config['qchem']['keywords']['exchange'],
+        "basis_set" : config['qchem']['keywords']['basis_set'],
+        "cis_n_roots" : config['qchem']['keywords']['cis_n_roots']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "keywords" block of the "qchem" block in the "%s" configuration file.' % (error,misc['config_name']))
+
     # Rendering the file
+    # ==================
 
     rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, input_render_vars)
 
@@ -302,36 +446,79 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
     #                  Rendering the job script                 #
     # ========================================================= #
 
-    print("{:<80}".format("\nRendering the jinja template for the qchem job script ..."), end="")
-
     # Get the path to the "check_scripts" directory because the job script needs to execute check_qchem.py
-    
+
+    chains_path = os.path.dirname(misc['code_dir'])  
     check_script_path = os.path.join(chains_path,"check_scripts")
 
+    # If we need to copy the output files to their respective results directory, load the CHAINS configuration file to get the necessary information
+
+    if copy_files:
+
+      chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+  
+      print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+      with open(chains_config_file, 'r') as chains:
+        chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+      print('%12s' % "[ DONE ]")
+
+    print("{:<80}".format("\nRendering the jinja template for the qchem job script ..."), end="")
+
     # Defining the Jinja variables
-    
-    script_render_vars = {
-        "mol_name" : misc['mol_name'],
-        "user_email" : config['general']['user_email'],
-        "mail_type" : config['general']['mail_type'],
-        "job_walltime" : job_specs['walltime'],
-        "job_cores" : job_specs['cores'],
-        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
-        "partition" : job_specs['partition'],     
-        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
-        "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command'],
-        "output_dir" : chains_config['output_dir'][job_specs['profile']],
-        "results_dir" : chains_config['results_dir'],
-        "chains_dir" : chains_path,
-        "check_dir" : check_script_path,
-        "results_subdir" : job_specs['profile'].upper(),
-        "job_script" : rendered_script,
-        "config_file" : misc['config_name']
+    # ============================
+
+    # Variables not associated with the config file
+
+    script_render_vars = {  
+      "mol_name" : misc['mol_name'],
+      "job_walltime" : job_specs['walltime'],
+      "job_cores" : job_specs['cores'],
+      "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+      "partition" : job_specs['partition'],     
+      "chains_dir" : chains_path,
+      "check_dir" : check_script_path,
+      "copy_files" : copy_files,
+      "benchmark" : benchmark
     }
 
-    # Add variables specific to the benchmarking template
+    # Variables associated with the "general" block of the config file
+
+    try:
+      script_render_vars.update({
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Variables associated with the clusters configuration file
+
+    try:
+      script_render_vars.update({
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
+        "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "%s" profile of the clusters configuration file.' % (error,job_specs['profile']))
+
+    # Variables specific to the copy_files portion of the template
+
+    if copy_files:
+
+      script_render_vars.update({
+        "output_dir" : chains_config['output_dir']['qchem'],
+        "results_dir" : chains_config['results_dir'],
+        "config_file" : misc['config_name'],
+        "job_script" : rendered_script
+      })
+
+    # Variables specific to the benchmarking template
    
-    script_render_vars.update({
+    if benchmark:
+
+      script_render_vars.update({
         "benchmark_path" : "${CECIHOME}/BENCHMARK",
         "prefix": job_specs['profile'] + "_" + job_specs['cluster_name'],
         "profile" : job_specs['profile'],
@@ -341,9 +528,10 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
         "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
         "scaling_function" : job_specs['scaling_fct'],
         "scale_index" : job_specs['scale_index']
-    })
+      })
     
     # Rendering the file
+    # ==================
 
     rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
 
