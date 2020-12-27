@@ -92,7 +92,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
         proj_file = "projector" + state['label'] + "_"
         transitions_list.append({"label" : state['label'], "init_file" : init_file, "target_file" : proj_file})
 
-        print("{:<60}".format("\nCreating the %s file ..." % proj_file), end="")
+        print("{:<60}".format("\nCreating the %s file ..." % (proj_file + "1")), end="")
         
         proj = np.zeros((len(system['states_list']),len(system['states_list'])),dtype=complex)
         

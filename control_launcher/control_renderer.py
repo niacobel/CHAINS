@@ -38,8 +38,8 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
     
     return output_text
 
-def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the two parameters files (OPM & PCP) associated with the QOCT-RA program.
+def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
+    """Renders the job script and the two parameters files (OPM & PCP) associated with the QOCT-RA program in CHAINS.
 
     Parameters
     ----------
@@ -67,10 +67,55 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     -----
     Pay a particular attention to the render_vars dictionaries, they contain all the definitions of the variables appearing in your Jinja templates.
     """
-
     # ========================================================= #
     #                      Preparation step                     #
     # ========================================================= #
+
+    # Check config file
+    # =================
+
+    # Check if a "general" block has been defined in the config file
+
+    if not config.get('general'):
+      raise control_errors.ControlError ('ERROR: There is no "general" key defined in the "%s" configuration file.' % misc['config_name'])     
+
+    # Check if a "qoctra" block has been defined in the config file
+
+    if not config.get('qoctra'):
+      raise control_errors.ControlError ('ERROR: There is no "qoctra" key defined in the "%s" configuration file.' % misc['config_name'])      
+
+    # Check the options defined in the config file
+
+    copy_files = config['qoctra'].get('copy_files',True)
+
+    if not isinstance(copy_files, bool):
+      raise control_errors.ControlError ('ERROR: The "copy_files" value given in the "qoctra" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    # Define the templates
+    # ====================
+
+    # Define the names of the templates.
+
+    template_param = "param.nml.jinja"
+    template_script = "qoctra_job.sh.jinja"
+
+    # Check if the specified templates exist in the "templates" directory of CONTROL LAUNCHER.
+    
+    control_errors.check_abspath(os.path.join(misc['templates_dir'],template_param),"Jinja template for the qoctra parameters files","file")
+    control_errors.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the qoctra job script","file")
+
+    # Define rendered files
+    # =====================
+
+    # Define the names of the rendered files.
+
+    rendered_param_opm = "param_" + misc['transition_label'] + "_OPM.nml"
+    rendered_param_pcp = "param_" + misc['transition_label'] + "_PCP.nml"
+    rendered_script = "qoctra_job.sh"
+
+    # Initialize the dictionary that will be returned by the function
+
+    rendered_content = {}
 
     # Load the CHAINS configuration file to get the additional information
 
@@ -81,26 +126,6 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     with open(chains_config_file, 'r') as chains:
       chains_config = yaml.load(chains, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
-
-    # Check if all the files specified in the clusters YAML file exists in the "templates" directory of CONTROL LAUNCHER.
-
-    for filename in clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates'].values():    
-      control_errors.check_abspath(os.path.join(misc['templates_dir'],filename),"Jinja template","file")
-
-    # Define the names of the templates, given in the YAML clusters configuration file.
-
-    template_param = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['parameters_file']
-    template_script = clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['jinja_templates']['job_script']
-
-    # Define the names of the rendered files.
-
-    rendered_param_opm = "param_" + data['transition']['label'] + "_OPM.nml"
-    rendered_param_pcp = "param_" + data['transition']['label'] + "_PCP.nml"
-    rendered_script = "qoctra_job.sh"
-
-    # Initialize the dictionary that will be returned by the function
-
-    rendered_content = {}
 
     # ========================================================= #
     #             Rendering the OPM parameters file             #
@@ -114,32 +139,32 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
     
     # Define here the number of iterations for QOCT-RA, as it will be used multiple times later on
 
-    niter = config[job_specs['profile']]['control']['niter']
+    niter = config['qoctra']['control']['niter']
 
     # Defining the Jinja variables
 
     param_render_vars = {
       "source_name" : misc['source_name'],
-      "energies_file_path" : os.path.join(data['path'],data['eigenvalues_file']),
-      "momdip_e_path" : os.path.join(data['path'],data['momdip_es_mtx_file']),
-      "init_file_path" : os.path.join(data['path'],data['transition']['init_file']),
-      "final_file_path" : os.path.join(data['path'],"final"),
-      "proj_file_path" : os.path.join(data['path'],data['transition']['target_file']),
-      "transition" : data['transition']['label'],
-      "nstep" : config[job_specs['profile']]['control']['nstep'],
-      "dt" : config[job_specs['profile']]['control']['dt'],
+      "energies_file_path" : data['eigenvalues_path'],
+      "momdip_e_path" : data['momdip_es_mtx_path'],
+      "init_file_path" : data['init_path'],
+      "final_file_path" : os.path.join(data['main_path'],"final_"),
+      "proj_file_path" : data['target_path'],
+      "transition" : misc['transition_label'],
+      "nstep" : config['qoctra']['control']['nstep'],
+      "dt" : config['qoctra']['control']['dt'],
       "processus" : "OPM",
       "source" : " ",
       "niter" : niter,
-      "threshold" : config[job_specs['profile']]['control']['threshold'],
-      "alpha0" : config[job_specs['profile']]['control']['alpha0'],
-      "ndump" : config[job_specs['profile']]['control']['ndump'],
-      "ndump2" : config[job_specs['profile']]['post_control']['ndump2'],
-      "mat_et0_path" : os.path.join(data['path'],data['eigenvectors_file']),
-      "numericincrements" : config[job_specs['profile']]['guess_pulse']['numericincrements'],
-      "numberofpixels" : config[job_specs['profile']]['guess_pulse']['numberofpixels'],
-      "inputenergy" : config[job_specs['profile']]['guess_pulse']['inputenergy'],
-      "widthhalfmax" : config[job_specs['profile']]['guess_pulse']['widthhalfmax'],
+      "threshold" : config['qoctra']['control']['threshold'],
+      "alpha0" : config['qoctra']['control']['alpha0'],
+      "ndump" : config['qoctra']['control']['ndump'],
+      "ndump2" : config['qoctra']['post_control']['ndump2'],
+      "mat_et0_path" : data['eigenvectors_path'],
+      "numericincrements" : config['qoctra']['guess_pulse']['numericincrements'],
+      "numberofpixels" : config['qoctra']['guess_pulse']['numberofpixels'],
+      "inputenergy" : config['qoctra']['guess_pulse']['inputenergy'],
+      "widthhalfmax" : config['qoctra']['guess_pulse']['widthhalfmax'],
       "omegazero" : central_frequency
     }
 
@@ -178,7 +203,7 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
 
     script_render_vars = {
       "source_name" : misc['source_name'],
-      "transition" : data['transition']['label'],
+      "transition" : misc['transition_label'],
       "user_email" : config['general']['user_email'],
       "mail_type" : config['general']['mail_type'],
       "job_walltime" : job_specs['walltime'],
@@ -188,12 +213,12 @@ def qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_sp
       "rendered_param_PCP" : rendered_param_pcp,
       "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],
       "mol_dir" : misc['mol_dir'],
-      "nb_transitions" : misc['nb_transitions'],
-      "output_dir" : chains_config['output_dir'][job_specs['profile']],
+      "nb_transitions" : len(misc['transitions_list']),
+      "output_dir" : chains_config['output_dir']['qoctra'],
       "results_dir" : config['results']['main_dir'],
-      "results_subdir" : config['results'][job_specs['profile']]['dir_name'],
-      "data_dir" : data['path'],
-      "job_dirname" : misc['job_dirname'],
+      "results_subdir" : config['results']['qoctra']['dir_name'],
+      "data_dir" : data['main_path'],
+      "job_dirname" : misc['transition_label'] + "_" + misc['config_name'],
       "job_script" : rendered_script,
       "niter" : niter
     }
