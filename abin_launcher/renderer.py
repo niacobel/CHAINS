@@ -429,7 +429,8 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
         "job_type" : config['qchem']['keywords']['job_type'],
         "exchange" : config['qchem']['keywords']['exchange'],
         "basis_set" : config['qchem']['keywords']['basis_set'],
-        "cis_n_roots" : config['qchem']['keywords']['cis_n_roots']
+        "cis_n_roots" : config['qchem']['keywords']['cis_n_roots'],
+        "scf_algorithm" : config['qchem']['keywords']['scf_algorithm']
       })
 
     except KeyError as error:

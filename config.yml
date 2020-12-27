@@ -37,6 +37,7 @@ qchem:
     exchange: b3lyp
     basis_set: def2-tzvp
     cis_n_roots: 4
+    scf_algorithm: diis_gdm
 
 # ========================================================= #
 #                    QOCT-RA Information                    #
