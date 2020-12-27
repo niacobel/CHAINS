@@ -284,7 +284,7 @@ def main():
       config_inp_list = [config for config in os.listdir(config_inp) if (rule.match(config) or rule2.match(config))]
 
       if config_inp_list == []:
-        raise control_errors.ControlError ("ERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
+        raise control_errors.ControlError ("ERROR: Can't find any .yml or .yaml file in %s" % config_inp_path)
 
       print('%12s' % "[ DONE ]")
 

@@ -299,7 +299,7 @@ def main():
       mol_inp_list = [mol_file for mol_file in os.listdir(mol_inp) if rule.match(mol_file)]
 
       if mol_inp_list == []:
-        raise abin_errors.AbinError ("ERROR: Can't find any geometry of the %s format in %s" % (mol_ext,mol_inp_path))
+        raise abin_errors.AbinError ("ERROR: Can't find any %s file in %s" % (mol_ext,mol_inp_path))
 
       print('%12s' % "[ DONE ]")
 
@@ -339,7 +339,7 @@ def main():
       config_inp_list = [config for config in os.listdir(config_inp) if (rule.match(config) or rule2.match(config))]
 
       if config_inp_list == []:
-        raise abin_errors.AbinError ("ERROR: Can't find any YAML config file with the .yml or .yaml extension in %s" % config_inp_path)
+        raise abin_errors.AbinError ("ERROR: Can't find any .yml or .yaml file in %s" % config_inp_path)
 
       print('%12s' % "[ DONE ]")
 

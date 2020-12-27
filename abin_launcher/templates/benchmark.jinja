@@ -52,11 +52,11 @@ export SLURM_TIME_FORMAT="%Y-%m-%d %H:%M:%S"
 # Get the benchmarking values through the use of the squeue command, see https://slurm.schedmd.com/squeue.html for more information.
 # xargs is used here just to remove leading and trailing whitespaces (see https://linuxhint.com/trim_string_bash/ for reference)
 
-part=$(\squeue --Format=Partition --noheader --job=$SLURM_JOB_ID | xargs)
-cpus=$(\squeue --Format=MaxCPUs --noheader --job=$SLURM_JOB_ID | xargs)
-submit=$(\squeue --Format=SubmitTime --noheader --job=$SLURM_JOB_ID | xargs)
-eligible=$(\squeue --Format=EligibleTime --noheader --job=$SLURM_JOB_ID | xargs)
-start=$(\squeue --Format=StartTime --noheader --job=$SLURM_JOB_ID | xargs)
+part=$(\squeue --Format=Partition --noheader --job=${SLURM_JOB_ID} | xargs)
+cpus=$(\squeue --Format=MaxCPUs --noheader --job=${SLURM_JOB_ID} | xargs)
+submit=$(\squeue --Format=SubmitTime --noheader --job=${SLURM_JOB_ID} | xargs)
+eligible=$(\squeue --Format=EligibleTime --noheader --job=${SLURM_JOB_ID} | xargs)
+start=$(\squeue --Format=StartTime --noheader --job=${SLURM_JOB_ID} | xargs)
 
 # Get the current date (to calculate time used by the job)
 
@@ -64,7 +64,7 @@ end_time=$(date +"%Y-%m-%d %H:%M:%S")
 
 # Store everything into a variable
 
-infos="{{ profile }};{{ cluster_name }};{{ jobscale_label }};${part};${cpus};{{ job_mem_per_cpu }};{{ job_walltime }};$SLURM_JOB_ID;$SLURM_JOB_NAME;{{ scaling_function }};{{ scale_index }};${submit};${eligible};${start};${end_time};$SLURM_NNODES;$SLURM_NODELIST"
+infos="{{ profile }};{{ cluster_name }};{{ jobscale_label }};${part};${cpus};{{ job_mem_per_cpu }};{{ job_walltime }};${SLURM_JOB_ID};${SLURM_JOB_NAME};{{ scaling_function }};{{ scale_index }};${submit};${eligible};${start};${end_time};${SLURM_NNODES};${SLURM_NODELIST}"
 
 echo -e "\nContent:"
 echo -e "${infos}"
