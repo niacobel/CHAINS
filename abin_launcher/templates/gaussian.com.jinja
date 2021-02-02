@@ -1,0 +1,12 @@
+%chk={{ mol_name }}.chk
+%NProcShared={{ job_cores }}
+%mem={{ mem_total }}MB
+# {{ method }}/{{ basis_set }} {{ other }} Opt
+
+Geometry Optimization of {{ mol_name }}
+
+{{ charge }} {{ multiplicity }}
+{% for coordinate_line in coordinates -%}
+{{ coordinate_line }}
+{% endfor -%}
+{{ " " }} {# Make sure the input ends by a blank line #}

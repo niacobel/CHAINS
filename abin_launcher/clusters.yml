@@ -11,6 +11,15 @@
 
 shared: 
   profiles:
+    gaussian:
+      rendering_function: &gauss_rdr chains_gaussian_render                                      
+      scaling_function: &scl_gauss total_nb_elec        # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
+      job_scales: &tiny_gauss
+        label: tiny
+        scale_limit: 20
+        time: 0-00:10:00
+        cores: 2 
+        mem_per_cpu: 500 # in MB
     orca:
       rendering_function: &orca_rdr chains_orca_render                                      
       scaling_function: &scl_orca total_nb_elec         # Name of your scaling function (must be defined in abin_launcher/scaling_fcts.py)
@@ -29,6 +38,45 @@ dragon1:
 # address dragon1.umons.ac.be
   submit_command: sbatch
   profiles:
+    gaussian:
+      rendering_function: *gauss_rdr
+      set_env:
+        - module --force purge
+        - module load gaussian/16_A03
+      command: g16
+      scaling_function: *scl_gauss
+      job_scales:
+        - 
+          <<: *tiny_gauss 
+        - 
+          label: small
+          scale_limit: 500
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 750 # in MB
+        - 
+          label: medium
+          scale_limit: 1400
+          time: 5-00:00:00
+          cores: 12
+          mem_per_cpu: 3000 # in MB
+          delay_command: --begin=now+60
+        - 
+          label: big
+          scale_limit: 2000
+          partition_name: Long
+          time: 10-00:00:00
+          cores: 16
+          mem_per_cpu: 4000 # in MB  
+          delay_command: --begin=now+120
+        - 
+          label: very big
+          scale_limit: 2500
+          partition_name: Long
+          time: 21-00:00:00
+          cores: 16
+          mem_per_cpu: 6000 # in MB  
+          delay_command: --begin=now+180
     orca:
       rendering_function: *orca_rdr
       set_env:
@@ -49,14 +97,14 @@ dragon1:
           label: medium
           scale_limit: 1400
           time: 5-00:00:00
-          cores: 8
+          cores: 12
           mem_per_cpu: 3000 # in MB
           delay_command: --begin=now+60
         - 
           label: big
           scale_limit: 2000
           partition_name: Long
-          time: 8-00:00:00
+          time: 10-00:00:00
           cores: 16
           mem_per_cpu: 4000 # in MB  
           delay_command: --begin=now+120
@@ -73,6 +121,46 @@ dragon2:
 # address dragon2.umons.ac.be
   submit_command: sbatch
   profiles:
+    gaussian:
+      rendering_function: *gauss_rdr
+      set_env:
+        - module --force purge
+        - module load gaussian/16_A03
+      command: g16
+      scaling_function: *scl_gauss
+      job_scales:
+        - 
+          <<: *tiny_gauss
+          partition_name: debug  
+        - 
+          label: small
+          scale_limit: 500
+          time: 2-00:00:00
+          cores: 8
+          mem_per_cpu: 750 # in MB
+        - 
+          label: medium
+          scale_limit: 1400
+          time: 5-00:00:00
+          cores: 12
+          mem_per_cpu: 3000 # in MB
+          delay_command: --begin=now+60
+        - 
+          label: big
+          scale_limit: 2000
+          partition_name: long
+          time: 10-00:00:00
+          cores: 16  
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+120
+        - 
+          label: very big
+          scale_limit: 2500
+          partition_name: long
+          time: 21-00:00:00
+          cores: 20
+          mem_per_cpu: 6000 # in MB  
+          delay_command: --begin=now+180
     orca:
       rendering_function: *orca_rdr
       set_env:
@@ -93,23 +181,23 @@ dragon2:
           mem_per_cpu: 750 # in MB
         - 
           label: medium
-          scale_limit: 1500
+          scale_limit: 1400
           time: 5-00:00:00
-          cores: 8
+          cores: 12
           mem_per_cpu: 3000 # in MB
           delay_command: --begin=now+60
         - 
           label: big
           scale_limit: 2000
           partition_name: long
-          time: 8-00:00:00
+          time: 10-00:00:00
           cores: 16  
           mem_per_cpu: 4000 # in MB
           delay_command: --begin=now+120
         - 
           label: very big
           scale_limit: 2500
-          partition_name: Long
+          partition_name: long
           time: 21-00:00:00
           cores: 20
           mem_per_cpu: 6000 # in MB  
