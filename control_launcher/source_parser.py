@@ -110,6 +110,8 @@ def qchem_tddft(source_content:list):
     #                      Number of roots                      #
     # ========================================================= #
 
+    nb_roots = False
+
     # Define the expression patterns for the lines containing information about the number of roots, that number will be used to check if all the needed values have been collected.
 
     nb_roots_rx = {
