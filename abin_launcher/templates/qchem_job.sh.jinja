@@ -54,6 +54,10 @@ cd $SLURM_SUBMIT_DIR
 source {{ chains_dir }}/load_modules.sh
 python {{ check_dir }}/qchem_check.py {{ mol_name }}.out  || exit $?
 
+# Compress checkpoint file
+echo -e "\nCompressing checkpoint file."
+bzip2 {{ mol_name }}.fchk
+
 {% if copy_files is sameas true -%}
 # Copy the various output files to their respective results directory
 

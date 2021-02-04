@@ -640,10 +640,16 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
     # Defining the Jinja variables
     # ============================
 
+    # Define the memory usage
+
+    mem_total = job_specs['cores'] * job_specs['mem_per_cpu']
+    mem_static = int(0.02*mem_total) if int(0.02*mem_total) > 200 else 200
+
     # Variables not associated with the config file
 
     input_render_vars = {
-      "mem_total" : job_specs['cores'] * job_specs['mem_per_cpu'],
+      "mem_total" : mem_total,
+      "mem_static" : mem_static,
       "coordinates" : file_data['atomic_coordinates']
     }
 

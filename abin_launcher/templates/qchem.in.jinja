@@ -7,17 +7,15 @@ $end
 
 $rem
    MEM_TOTAL            {{ mem_total }}
+   MEM_STATIC           {{ mem_static }}
    JOBTYPE              {{ job_type }}
    EXCHANGE             {{ exchange }}
    BASIS                {{ basis_set }}
    CIS_N_ROOTS          {{ cis_n_roots }}
    SCF_ALGORITHM        {{ scf_algorithm }}
-   CORRELATION          none
-   SYMMETRY             false
-   SYM_IGNORE           true
-   UNRESTRICTED         false
    CIS_SINGLETS         true
    CIS_TRIPLETS         true
    CALC_SOC             true
    STS_MOM              true
+   IQMOL_FCHK           true
 $end
