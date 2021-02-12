@@ -11,11 +11,12 @@ $rem
    JOBTYPE              {{ job_type }}
    EXCHANGE             {{ exchange }}
    BASIS                {{ basis_set }}
-   CIS_N_ROOTS          {{ cis_n_roots }}
    SCF_ALGORITHM        {{ scf_algorithm }}
+   MAX_SCF_CYCLES       {{ max_scf_cycles }}
+   CIS_N_ROOTS          {{ cis_n_roots }}
    CIS_SINGLETS         true
    CIS_TRIPLETS         true
-   CALC_SOC             true
    STS_MOM              true
-   IQMOL_FCHK           true
+   CALC_SOC             true
+   IQMOL_FCHK           {{ iqmol_fchk }}
 $end
