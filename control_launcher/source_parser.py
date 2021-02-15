@@ -480,7 +480,7 @@ def qchem_tddft(source_content:list):
     moment_rx = {
         # Pattern for finding lines looking like '    1    2   0.001414  -0.001456   0.004860   1.240659E-10'
         'moment': re.compile(
-            r'^\s*(?P<mom_key1>\d+)\s+(?P<mom_key2>\d+)(?:\s+-?\d\.\d+){3}\s+(?P<strength>(\d|\d\.\d+|\d\.\d+E[-+]\d+))$')
+            r'^\s*(?P<mom_key1>\d+)\s+(?P<mom_key2>\d+)(?:\s+-?\d+\.\d+){3}\s+(?P<strength>(\d|\d\.\d+|\d\.\d+E[-+]\d+))$')
     }
 
     # Parse the source file to get the information and build the dipole moments list
