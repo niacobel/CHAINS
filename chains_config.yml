@@ -11,13 +11,13 @@
 output_dir:
   orca: /CECI/home/ulb/cqp/niacobel/ORCA_OUT
   gaussian: /CECI/home/ulb/cqp/niacobel/GAUSSIAN_OUT
-  qchem: /CECI/home/ulb/cqp/niacobel/QCHEM_OUT
-  qoctra: /CECI/home/ulb/cqp/niacobel/CONTROL_OUT
+  qchem: /CECI/home/ulb/cqp/niacobel/QCHEM_SVP_OUT
+  qoctra: /CECI/home/ulb/cqp/niacobel/CONTROL_q-SVP_OUT
 
 # Define here the path towards the results directory
 # A subdirectory will be created in it for each geometry file (molecule), containing all major output files from the different programs and scripts.
 
-results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS
+results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP/
 
 # ========================================================= #
 #               Results Treatment Information               #
@@ -25,7 +25,7 @@ results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS
 
 # Name of the files and folders containing the results
 results:
-  main_dir: /CECI/home/ulb/cqp/niacobel/RESULTS                    # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+  main_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP/                # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
   orca:
     folder_name: ORCA                               # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
   gaussian:

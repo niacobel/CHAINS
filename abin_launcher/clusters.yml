@@ -49,6 +49,12 @@ dragon1:
         - 
           <<: *tiny_gauss 
         - 
+          label: very small
+          scale_limit: 200
+          time: 1-00:00:00
+          cores: 4
+          mem_per_cpu: 750 # in MB
+        - 
           label: small
           scale_limit: 500
           time: 2-00:00:00
@@ -56,14 +62,14 @@ dragon1:
           mem_per_cpu: 750 # in MB
         - 
           label: medium
-          scale_limit: 1400
+          scale_limit: 1000
           time: 5-00:00:00
           cores: 12
           mem_per_cpu: 3000 # in MB
           delay_command: --begin=now+60
         - 
           label: big
-          scale_limit: 2000
+          scale_limit: 1500
           partition_name: Long
           time: 10-00:00:00
           cores: 16
@@ -140,14 +146,14 @@ dragon2:
           mem_per_cpu: 750 # in MB
         - 
           label: medium
-          scale_limit: 1400
+          scale_limit: 1000
           time: 5-00:00:00
           cores: 12
           mem_per_cpu: 3000 # in MB
           delay_command: --begin=now+60
         - 
           label: big
-          scale_limit: 2000
+          scale_limit: 1500
           partition_name: long
           time: 10-00:00:00
           cores: 16  
@@ -258,6 +264,61 @@ hercules:
   submit_command: sbatch
   profiles:
     qchem:
+      rendering_function: chains_qchem_render           
+      set_env: 
+        - module --force purge
+        - module load tis/2017.01
+        - module load Q-Chem/5.3.0-SHMEM
+        - export QCSCRATCH=${TMPDIR}
+      command: qchem -nt ${SLURM_CPUS_PER_TASK}
+      scaling_function: total_nb_elec
+      job_scales:
+        - 
+          label: debug
+          scale_limit: 20
+          time: 0-00:05:00
+          cores: 2 
+          mem_per_cpu: 500 # in MB
+        - 
+          label: tiny
+          scale_limit: 200
+          time: 0-01:00:00
+          cores: 4
+          mem_per_cpu: 500 # in MB
+        - 
+          label: very small
+          scale_limit: 750
+          time: 1-00:00:00
+          cores: 8
+          mem_per_cpu: 1000 # in MB
+        - 
+          label: small
+          scale_limit: 1200
+          time: 4-00:00:00
+          cores: 8
+          mem_per_cpu: 1500 # in MB
+        - 
+          label: medium
+          scale_limit: 1500
+          time: 10-00:00:00
+          cores: 16
+          mem_per_cpu: 3000 # in MB
+          delay_command: --begin=now+60
+        - 
+          label: big
+          scale_limit: 2000
+          time: 15-00:00:00
+          cores: 20
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+120
+        - 
+          label: very big
+          scale_limit: 2500
+          time: 15-00:00:00
+          cores: 24
+          mem_per_cpu: 6000 # in MB
+          delay_command: --begin=now+180
+    qchem_tzvp:
       rendering_function: chains_qchem_render           
       set_env: 
         - module --force purge

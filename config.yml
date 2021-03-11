@@ -47,10 +47,10 @@ qchem:
   keywords:                                        # The keywords will be used "as-is" in the Q-CHEM input file, be sure that Q-CHEM knows them! (see Q-CHEM's manual for more information)
     job_type: sp
     exchange: b3lyp
-    basis_set: def2-tzvp
+    basis_set: def2-svp
     scf_algorithm: diis                            # DIIS by default (GDM for restricted open-shell). If DIIS struggles in the initial iterations, use RCA_DIIS. If DIIS struggles to finally converge, use DIIS_GDM. If small HOMO-LUMO gaps and DIIS struggles, use LS_DIIS.
     max_scf_cycles: 100
-    cis_n_roots: 4
+    cis_n_roots: 9
     iqmol_fchk: true
 
 # ========================================================= #
