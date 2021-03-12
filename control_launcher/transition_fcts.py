@@ -275,6 +275,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     triplet_label = system['states_list'][triplet_number]["label"]
 
     transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition.update({ "label": "1B1C_" + singlet_label + "_" + triplet_label }) 
 
     print("\nFirst transition: brightest singlet (%s) to its most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
     print(transition)
@@ -295,6 +296,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     triplet_label = system['states_list'][triplet_number]["label"]
 
     transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition.update({ "label": "1B2C_" + singlet_label + "_" + triplet_label }) 
 
     print("\nSecond transition: brightest singlet (%s) to its second most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
     print(transition)
@@ -315,6 +317,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     triplet_label = system['states_list'][triplet_number]["label"]
 
     transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition.update({ "label": "2B1C_" + singlet_label + "_" + triplet_label }) 
 
     print("\nThird transition: second brightest singlet (%s) to its most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
     print(transition)
@@ -335,6 +338,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     triplet_label = system['states_list'][triplet_number]["label"]
 
     transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition.update({ "label": "2B2C_" + singlet_label + "_" + triplet_label }) 
 
     print("\nFourth transition: second brightest singlet (%s) to its second most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
     print(transition)
@@ -346,9 +350,10 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     # ========================================================= #    
 
     fifth_transition = closest_singlet_to_triplet(system,data_dir)
-
     # fifth_transition is a list containing only one dictionary (see closest_singlet_to_triplet function definition)
-    if fifth_transition[0] not in transitions_list:
+    
+    if not any(transition["transition_energy"] == fifth_transition[0]["transition_energy"] for transition in transitions_list):
+      fifth_transition[0].update({ "label": "LE_" + singlet_label + "_" + triplet_label }) 
       print("\nFifth transition: the singlet and triplet pair %s with the lowest transition energy of %s Ha" % (fifth_transition[0]["label"],fifth_transition[0]["transition_energy"]))
       print(fifth_transition[0])
       transitions_list.append(fifth_transition[0])

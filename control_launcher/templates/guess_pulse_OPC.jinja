@@ -1,0 +1,17 @@
+# Paramètre champ initial
+###########################
+{{ basis }}             # Base
+{{ pulse_type }}		# Type de champ initiale
+{{ nb_subpulses }}		# Nb de sous-impulsions
+{{ subpulse_type }}		# Type de sous-impulsion [sin], [pip] ou [gau]
+#########
+{{ amplitude }}   	    # Amplitude des sous-impulsions (1.9447d-12 = 1 V/m)
+#1000000.d12            # Largeur des sous-impulsions (sigma)
+#500000.d12             # Milieu des sous-impulsions
+{{ phase_change }}	    # Déphasage
+{{ sign }}	    	    # Signe
+#Initial #Final
+{% for transition_line in transitions -%}
+{{ transition_line }}
+{% endfor -%}
+#----------------------------------------------
