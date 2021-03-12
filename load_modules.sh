@@ -34,8 +34,8 @@ elif [ "${CLUSTER_NAME}" = "lemaitre3" ]; then
     module load gnuplot/5.2.5-foss-2018b
 
 elif [ "${CLUSTER_NAME}" = "hercules" ]; then
-    module load releases/2016b
-    module load Python/3.5.2-foss-2016b
+    module load releases/2020b
+    module load Python/3.8.6-GCCcore-10.2.0
 
 elif [ "${CLUSTER_NAME}" = "nic4" ]; then
     module load EasyBuild
