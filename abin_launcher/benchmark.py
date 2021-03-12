@@ -266,7 +266,7 @@ def main():
       # Check Job ID
 
       jobID = str(line['Job ID'])
-      if (jobID is ""):
+      if (jobID == ""):
         print("No JobID found. Skipping line... \n")
         continue
       print("{:>20}: {:<}".format("Job ID",jobID))

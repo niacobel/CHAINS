@@ -442,7 +442,7 @@ def qchem_tddft(source_content:list):
     print('')
     for row in system['mime']:
       for val in row:
-        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_positional(val,precision=3,unique=False,pad_left=8,trim="0",pad_right=3), end = " ")
       print('')
 
     # Convert the MIME to Hartree units
@@ -550,7 +550,7 @@ def qchem_tddft(source_content:list):
     print('')
     for row in system['momdip_mtx']:
       for val in row:
-        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_positional(val,precision=6,unique=False,pad_left=2,trim="0",pad_right=6), end = " ")
       print('')
 
     # End of the function, return the needed variables

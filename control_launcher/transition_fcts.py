@@ -46,7 +46,7 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,dat
 
     init_pop = np.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
     
-    eigenvector = system['eigenvectors'][state1]
+    eigenvector = system['transpose'][state1]
 
     for state in len(system['eigenvalues']):
       init_pop[state][state] = eigenvector[state] + 0j
@@ -63,7 +63,7 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,dat
 
     target_pop = np.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
 
-    eigenvector = system['eigenvectors'][state2]
+    eigenvector = system['transpose'][state2]
 
     for state in len(system['eigenvalues']):
       target_pop[state][state] = eigenvector[state] + 0j
@@ -351,7 +351,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
 
     fifth_transition = closest_singlet_to_triplet(system,data_dir)
     # fifth_transition is a list containing only one dictionary (see closest_singlet_to_triplet function definition)
-    
+
     if not any(transition["transition_energy"] == fifth_transition[0]["transition_energy"] for transition in transitions_list):
       fifth_transition[0].update({ "label": "LE_" + singlet_label + "_" + triplet_label }) 
       print("\nFifth transition: the singlet and triplet pair %s with the lowest transition energy of %s Ha" % (fifth_transition[0]["label"],fifth_transition[0]["transition_energy"]))

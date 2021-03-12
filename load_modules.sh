@@ -33,7 +33,7 @@ elif [ "${CLUSTER_NAME}" = "lemaitre3" ]; then
     module load Python/3.6.6-foss-2018b
     module load gnuplot/5.2.5-foss-2018b
 
-elif [ "${CLUSTER_NAME}" = "hercules" ]; then
+elif [ "${CLUSTER_NAME}" = "hercules2" ]; then
     module load releases/2020b
     module load Python/3.8.6-GCCcore-10.2.0
 
