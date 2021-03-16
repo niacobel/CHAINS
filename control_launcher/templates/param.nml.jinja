@@ -1,45 +1,48 @@
 &GENERAL
-  systeme = "{{ source_name }}",
-  processus = "{{ processus }}"                ! Nature du processus : [OPC] Contrôle optimal, [OPM] Contrôle a contraintes multiples ; [PCP] Post-contrôle avec pulse [PCL] Post-contrôle libre
-/
-
-&OPTIONS                         ! [1] oui [0] non
-  op_ch = 2,                     ! Activer l'écriture des champs ([2] à chaque itération)
-  op_ver = 0,                    ! Activer les fichiers de vérification
-  op_mat = 0,                    ! Activer l'impression des matrices (routine sqrtm) ([2] désactiver le calcul de la fidélité de Uhlmann) 
+  system_name = "{{ source_name }}",
+  process = "{{ process }}"                     ! Nature of the process: [OPC] Optimal control, [OPM] Optimal control with multiple constraints; [PCP] Post-control with pulse [PCL] Free post-control
 /
 
 &DATA_FILES
-  cheminE = "{{ energies_file_path }}",                 ! Hartree
-  cheminMD = "{{ momdip_e_path }}",                     ! Unités atomiques
-  eti = "{{ init_file_path }}",
-  etf = "{{ final_file_path }}",
-  projector = "{{ proj_file_path }}",                  ! A la place d'un état final spécifique
+  energies = "{{ energies_file_path }}",        ! Path towards the energies file in Hartree
+  dip_mtx = "{{ momdip_e_path }}",              ! Path towards the transition dipole moments matrix file in atomic units
+  initial = "{{ init_file_path }}",             ! Path towards the initial state file
+  target = "{{ target_file_path }}"             ! Path towards the target state file
 /
 
 &CONTROL
-  niter = {{ niter }},                          ! Nombre d'itérations
-  seuil = {{ threshold }},                      ! Seuil de recouvrement pour le contrôle
-  dt = {{ dt }},                                ! Pas de temps en unités atomiques
-  source = "{{ source }}"                       ! Reprise d'un champ (OPC, PCP) ou lecture d'états init (PCL). Res/$système/$operation/...  (PCP: $nomcalcul/Pulse/$nomfichierpulse -- PCL: [H] Psii_RI$n , [L] chif$n !ne pas mettre le $n)
+  max_iter = {{ max_iter }},                    ! Maximum number of iterations
+  thresh = {{ threshold }},                     ! Convergence threshold for the fidelity
+  time_step = {{ time_step }},                  ! Duration of a time step (a.u. of time)
+  start_pulse = "{{ start_pulse }}"             ! Reuse previous pulse (OPC, PCP) or initial states reading (PCL)
 /
 
+{% if process == "OPC" -%}
 &OPC
-  nstep = {{ nstep }},                          ! Nombre de pas de temps
-  fnelle = "NF",                                  ! Fonctionelle (AF ou NF) pour les cas multicible
-  alpha0 = {{ alpha0 }},                        ! Contrainte sur l'amplitude du champ (alpha0, nulle si =1)
-  ndump = {{ ndump }}                           ! Nombre d'iterations avant ecriture du champ 
+  nb_steps = {{ nb_steps }},                    ! Number of time steps
+  alpha = {{ alpha }},                          ! Constraint on the field amplitude
+  write_freq = {{ write_freq }},                ! Number of iterations between each writing of the field
+  guess_pulse = "{{ guess_pulse }}"             ! Path towards the guess pulse file
 /
+{%- endif %}
 
-&OPM_PULSE
+{% if process == "OPM" -%}
+&OPM
   numberofpixels = {{ numberofpixels }},
   inputenergy = {{ inputenergy }},                     ! in microjoule per cm2
   widthhalfmax = {{ widthhalfmax }},                   ! in spectrum, in cm-1
   omegazero = {{ omegazero }}                          ! in spectrum, in cm-1
 /
+{%- endif %}
 
+{% if process == "PCP" -%}
 &POST_CONTROL
-  ndump2 = {{ ndump2 }},                        ! Nombre de pas avant analyse des populations, phases, positions et energies (suivant nstep*dt)
-  sourc3 = "{{ mat_et0_path }}",                ! Matrice changement de base (es --> zos)
-  tinit = 20661110.d0                           ! PCL temps initial (phase)
+  analy_freq = {{ analy_freq }},                ! Number of steps between each analysis of the populations, phases, positions and energies
+  conv_mtx = "{{ mat_et0_path }}",              ! Conversion matrix, from eigenstates to zero order states
+  init_time = 20661110.d0                       ! PCL temps initial (phase)
+/
+{%- endif %}
+
+&OPTIONS
+  pulses = 2                     ! Enable writing of the pulses ([2] = every iteration)
 /

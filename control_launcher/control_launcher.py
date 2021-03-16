@@ -856,7 +856,8 @@ def main():
           "transpose_path" : os.path.join(data_dir,transpose_file),
           "momdip_es_mtx_path" : os.path.join(data_dir,momdip_es_mtx_file),
           "init_path" : os.path.join(data_dir,transition['init_file']),
-          "target_path" : os.path.join(data_dir,transition['target_file'])
+          "target_path" : os.path.join(data_dir,transition['target_file']),
+          "transition" : transition
         }
 
         # Build a dictionary that will contain all information related to the job
@@ -882,7 +883,7 @@ def main():
             "source_content" : source_content,
             "mol_dir" : mol_dir,
             "config_name" : config_name,
-            "transition_label" : transition['label'],
+            "job_dirname" : job_dirname,
             "transitions_list" : transitions_list
         }
 

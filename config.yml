@@ -61,26 +61,23 @@ qchem:
 # They will be used "as-is" in the QOCT-RA parameters file
 
 qoctra:
+  process: OPC                                    # Nature of the process: [OPC] Optimal control, [OPM] Optimal control with multiple constraints; [PCP] Post-control with pulse [PCL] Free post-control
   control:
-    nstep: 20000                                  # Number of time steps
-    dt: 7.d0                                      # Duration of a time step (a.u. of time)
-    niter: 3000                                   # Number of iterations
+    time_step: 7.d0                               # Duration of a time step (a.u. of time)
+    max_iter: 3000                                # Maximum number of iterations
     threshold: 0.9999d0                           # Convergence threshold for the fidelity
-    alpha0: 250.0d0                               # Constraint on the field amplitude
-    ndump: 30                                     # Number of iterations between each writing of the field
+  opc:
+    nb_steps: 20000                               # Number of time steps
+    alpha: 250.0d0                                # Constraint on the field amplitude
+    write_freq: 30                                # Number of iterations between each writing of the field
   guess_pulse:
     pulse_type: SIM                               # Type de champ initial
     subpulse_type: sin                            # Type de sous-impulsion [sin], [pip] ou [gau]
     amplitude: 1.9447d-5                          # Amplitude des sous-impulsions (1.9447d-12 = 1 V/m)
     phase_change: 0.d0                            # Déphasage
     sign: 1                                       # Signe
-  opc_guess_pulse:
-    numericincrements: 8                          # Type of shape (in terms of bits, there are 2^number of increments for phase and amplitude) If set to 0 then it is not used
-    numberofpixels: 128                           # Number of pixels (pixel width = 2 / total time)
-    inputenergy: 900.0                            # Total energy of the input pulse in the shaper (in micro Joules per cm squared)
-    widthhalfmax: 1000.0                          # Full Width at Half Maximum of the input pulse (in cm-1)
   post_control:
-    ndump2: 1000                                  # Number of steps between each analysis of the populations, phases, positions and energies
+    analy_freq: 1000                              # Number of steps between each analysis of the populations, phases, positions and energies
 
 # ========================================================= #
 #               Results Treatment Information               #

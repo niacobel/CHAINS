@@ -91,10 +91,17 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     if not isinstance(copy_files, bool):
       raise control_errors.ControlError ('ERROR: The "copy_files" value given in the "qoctra" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
 
+    # Check the process keyword
+
+    process = config['qoctra'].get('process')
+
+    if not process:
+      raise control_errors.ControlError ('ERROR: There is no "process" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])
+
     # Define the templates
     # ====================
 
-    # Define the names of the templates.
+    # Define the names of the default templates.
 
     template_param = "param.nml.jinja"
     template_script = "qoctra_job.sh.jinja"
@@ -104,73 +111,101 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     control_errors.check_abspath(os.path.join(misc['templates_dir'],template_param),"Jinja template for the qoctra parameters files","file")
     control_errors.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the qoctra job script","file")
 
+    # Other specific templates
+
+    if process == 'OPC':
+      template_pulse = "guess_pulse_OPC.jinja"
+      control_errors.check_abspath(os.path.join(misc['templates_dir'],template_pulse),"Jinja template for the OPC guess pulse","file")
+    if process == 'OPM':
+      template_pulse = "guess_pulse_OPM.jinja"
+      control_errors.check_abspath(os.path.join(misc['templates_dir'],template_pulse),"Jinja template for the OPM guess pulse","file")
+
     # Define rendered files
     # =====================
 
     # Define the names of the rendered files.
 
-    rendered_param_opm = "param_" + misc['transition_label'] + "_OPM.nml"
-    rendered_param_pcp = "param_" + misc['transition_label'] + "_PCP.nml"
     rendered_script = "qoctra_job.sh"
+    rendered_pulse = "guess_pulse"
+    rendered_param = "param_" + misc['transition_label'] + ".nml"
+    rendered_param_pcp = "param_" + misc['transition_label'] + "_PCP.nml"
 
     # Initialize the dictionary that will be returned by the function
 
     rendered_content = {}
 
-    # Load the CHAINS configuration file to get the additional information
-
-    chains_path = os.path.dirname(misc['code_dir'])
-    chains_config_file = control_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
-
-    print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
-    with open(chains_config_file, 'r') as chains:
-      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
-    print('%12s' % "[ DONE ]")
-
     # ========================================================= #
-    #             Rendering the OPM parameters file             #
+    #           Rendering the control parameters file           #
     # ========================================================= #
 
-    print("{:<80}".format("\nRendering the jinja template for the OPM parameters file ...  "), end="")
+    print("{:<80}".format("\nRendering the jinja template for the control parameters file ...  "), end="")
 
-    # Determine the central frequency of the guess pulse in cm-1 (here defined as the average of the eigenvalues)
+    # Defining the mandatory Jinja variables
+    # ======================================
 
-    central_frequency = sum(system['eigenvalues']) / (len(system['eigenvalues']) - 1) # -1 because the ground state doesn't count
-    
-    # Define here the number of iterations for QOCT-RA, as it will be used multiple times later on
-
-    niter = config['qoctra']['control']['niter']
-
-    # Defining the Jinja variables
+    # Variables not associated with the config file
 
     param_render_vars = {
+      # GENERAL
       "source_name" : misc['source_name'],
+      "process" : process, # Associated with the config file, but it has already been verified
+      # DATA FILES
       "energies_file_path" : data['eigenvalues_path'],
       "momdip_e_path" : data['momdip_es_mtx_path'],
       "init_file_path" : data['init_path'],
-      "final_file_path" : os.path.join(data['main_path'],"final_"),
-      "proj_file_path" : data['target_path'],
-      "transition" : misc['transition_label'],
-      "nstep" : config['qoctra']['control']['nstep'],
-      "dt" : config['qoctra']['control']['dt'],
-      "processus" : "OPM",
-      "source" : " ",
-      "niter" : niter,
-      "threshold" : config['qoctra']['control']['threshold'],
-      "alpha0" : config['qoctra']['control']['alpha0'],
-      "ndump" : config['qoctra']['control']['ndump'],
-      "ndump2" : config['qoctra']['post_control']['ndump2'],
-      "mat_et0_path" : data['eigenvectors_path'],
-      "numericincrements" : config['qoctra']['guess_pulse']['numericincrements'],
-      "numberofpixels" : config['qoctra']['guess_pulse']['numberofpixels'],
-      "inputenergy" : config['qoctra']['guess_pulse']['inputenergy'],
-      "widthhalfmax" : config['qoctra']['guess_pulse']['widthhalfmax'],
-      "omegazero" : central_frequency
+      "target_file_path" : data['target_path']
     }
 
+    # Check if a "control" block has been defined in the "qoctra" block of the config file
+
+    if not config['qoctra'].get('control'):
+      raise control_errors.ControlError ('ERROR: There is no "control" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "control" block of the "qoctra" block in the config file
+
+    try:
+      
+      max_iter = config['qoctra']['control']['max_iter'] # Stored into a variable since it will be reused
+
+      param_render_vars.update({
+        # CONTROL
+        "max_iter" : max_iter,
+        "threshold" : config['qoctra']['control']['threshold'],
+        "time_step" : config['qoctra']['control']['time_step'],
+        "start_pulse" : " "
+      })
+
+    except KeyError as error:
+      raise control_errors.ControlError ('ERROR: The "%s" key is missing in the "control" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Defining the specific Jinja variables
+    # =====================================
+
+    if process == 'OPC':
+
+      # Check if a "opc" block has been defined in the "qoctra" block of the config file
+
+      if not config['qoctra'].get('opc'):
+        raise control_errors.ControlError ('ERROR: There is no "opc" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+      # Variables associated with the "opc" block of the "qoctra" block in the config file
+
+      try:
+        param_render_vars.update({
+          # OPC
+          "nb_steps" : config['qoctra']['opc']['nb_steps'],
+          "alpha" : config['qoctra']['opc']['alpha'],
+          "write_freq" : config['qoctra']['opc']['write_freq'],
+          "guess_pulse" : rendered_pulse
+        })
+
+      except KeyError as error:
+        raise control_errors.ControlError ('ERROR: The "%s" key is missing in the "opc" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
     # Rendering the file
+    # ==================
      
-    rendered_content[rendered_param_opm] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+    rendered_content[rendered_param] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
 
     print('%12s' % "[ DONE ]")
 
@@ -180,16 +215,99 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     print("{:<80}".format("\nRendering the jinja template for the PCP parameters file ...  "), end="")
 
-    # Defining the Jinja variables by updating the dictionary defined for the OPM parameters file
+    # Defining the Jinja variables (via updating the dictionary from the control parameters file)
+    # ============================
+
+    # Variables not associated with the config file
 
     param_render_vars.update({
-      "processus" : "PCP",
-      "source" : "../Pulse/Pulse_iter" + str(niter)
+      # GENERAL
+      "process" : "PCP",
+      # CONTROL
+      "start_pulse" : "../Pulse/Pulse_iter" + str(max_iter),
+      # POST CONTROL
+      "mat_et0_path" : data['eigenvectors_path']
     })
 
+    # Check if a "post_control" block has been defined in the "qoctra" block of the config file
+
+    if not config['qoctra'].get('post_control'):
+      raise control_errors.ControlError ('ERROR: There is no "post_control" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "post_control" block of the "qoctra" block in the config file
+
+    try:
+      param_render_vars.update({
+        # POST CONTROL
+        "analy_freq" : config['qoctra']['post_control']['analy_freq']
+      })
+
+    except KeyError as error:
+      raise control_errors.ControlError ('ERROR: The "%s" key is missing in the "post_control" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
     # Rendering the file
+    # ==================
      
     rendered_content[rendered_param_pcp] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #              Rendering the guess pulse file               #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the guess pulse file ...  "), end="")
+
+    # Defining the Jinja variables for OPC
+    # ====================================
+
+    if process == 'OPC':
+
+      # Determining the number of subpulses (energy differences between the states, excluding the ground state)
+
+      nb_states = len(system['eigenvalues']) - 1 # Excluding the ground state
+      nb_subpulses = nb_states * (nb_states - 1) / 2
+
+      # Determining the subpulses constituting the guess pulse
+
+      subpulses = []
+
+      for i in range(nb_states):
+        for j in range(i, nb_states):
+            if i != j:
+              subpulses.append(str(i+1) + " \t " + str(j+1))
+
+      # Variables not associated with the config file
+
+      pulse_render_vars = {
+        "basis" : data['eigenvalues_path'],
+        "nb_subpulses" : nb_subpulses,
+        "subpulses" : subpulses
+      }
+
+      # Check if a "guess_pulse" block has been defined in the "qoctra" block of the config file
+
+      if not config['qoctra'].get('guess_pulse'):
+        raise control_errors.ControlError ('ERROR: There is no "guess_pulse" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+      # Variables associated with the "guess_pulse" block of the "qoctra" block in the config file
+
+      try:
+        pulse_render_vars.update({
+          "pulse_type" : config['qoctra']['guess_pulse']['pulse_type'],
+          "subpulse_type" : config['qoctra']['guess_pulse']['subpulse_type'],
+          "amplitude" : config['qoctra']['guess_pulse']['amplitude'],
+          "phase_change" : config['qoctra']['guess_pulse']['phase_change'],
+          "sign" : config['qoctra']['guess_pulse']['sign']       
+        })
+
+      except KeyError as error:
+        raise control_errors.ControlError ('ERROR: The "%s" key is missing in the "guess_pulse" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Rendering the file
+    # ==================
+     
+    rendered_content[rendered_pulse] = jinja_render(misc['templates_dir'], template_pulse, pulse_render_vars)
 
     print('%12s' % "[ DONE ]")
 
@@ -197,33 +315,89 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     #                  Rendering the job script                 #
     # ========================================================= #
 
+    # If we need to copy the output files to their respective results directory, load the CHAINS configuration file to get the necessary information
+
+    if copy_files:
+
+      chains_path = os.path.dirname(misc['code_dir']) 
+      chains_config_file = control_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+  
+      print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+      with open(chains_config_file, 'r') as chains:
+        chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+      print('%12s' % "[ DONE ]")
+
     print("{:<80}".format("\nRendering the jinja template for the qoctra job script ..."), end="")
 
-    # Defining the Jinja variables
+    # Defining the mandatory Jinja variables
+    # ======================================
+
+    # Variables not associated with the config file
 
     script_render_vars = {
       "source_name" : misc['source_name'],
       "transition" : misc['transition_label'],
-      "user_email" : config['general']['user_email'],
-      "mail_type" : config['general']['mail_type'],
+      "process" : process,
       "job_walltime" : job_specs['walltime'],
       "job_memory" : job_specs['memory'], # in MB
       "partition" : job_specs['partition'],
-      "rendered_param" : rendered_param_opm,
+      "rendered_param" : rendered_param,
       "rendered_param_PCP" : rendered_param_pcp,
-      "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],
-      "mol_dir" : misc['mol_dir'],
-      "nb_transitions" : len(misc['transitions_list']),
-      "output_dir" : chains_config['output_dir']['qoctra'],
-      "results_dir" : config['results']['main_dir'],
-      "results_subdir" : config['results']['qoctra']['dir_name'],
-      "data_dir" : data['main_path'],
-      "job_dirname" : misc['transition_label'] + "_" + misc['config_name'],
-      "job_script" : rendered_script,
-      "niter" : niter
+      "copy_files" : copy_files # Associated with the config file, but it has already been verified
     }
-    
+
+    # Variables associated with the "general" block of the config file
+
+    try:
+      script_render_vars.update({
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type']
+      })
+
+    except KeyError as error:
+      raise control_errors.ControlError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Variables associated with the clusters configuration file
+
+    try:
+      script_render_vars.update({
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env']     
+      })
+
+    except KeyError as error:
+      raise control_errors.ControlError ('ERROR: The "%s" key is missing in the "%s" profile of the clusters configuration file.' % (error,job_specs['profile']))
+
+    # Defining the specific Jinja variables
+    # =====================================
+
+    # Variables specific to the copy_files portion of the template
+
+    if copy_files:
+
+      # Variables not associated with the config file
+
+      script_render_vars.update({
+        "mol_dir" : misc['mol_dir'],
+        "nb_transitions" : len(misc['transitions_list']),
+        "data_dir" : data['main_path'],
+        "job_dirname" : misc['job_dirname'],
+        "job_script" : rendered_script,
+        "max_iter" : max_iter # Associated with the config file, but it has already been verified
+      })
+
+      # Variables associated with the CHAINS configuration file
+
+      try:
+        script_render_vars.update({
+          "output_dir" : chains_config['output_qoctra'],
+          "results_dir" : chains_config['results_dir']
+        })
+
+      except KeyError as error:
+        raise control_errors.ControlError ('ERROR: The "%s" key is missing in the CHAINS configuration file (chains_config.yml).' % error)
+
     # Rendering the file
+    # ==================
 
     rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
 

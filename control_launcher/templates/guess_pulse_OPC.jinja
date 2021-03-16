@@ -11,7 +11,7 @@
 {{ phase_change }}	    # Déphasage
 {{ sign }}	    	    # Signe
 #Initial #Final
-{% for transition_line in transitions -%}
-{{ transition_line }}
+{% for subpulse_line in subpulses -%}
+{{ subpulse_line }}
 {% endfor -%}
 #----------------------------------------------
