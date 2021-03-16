@@ -6,7 +6,7 @@
 ################################################################################################################################################
 
 import control_errors
-import numpy as np
+import numpy
 import os
 
 def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,data_dir:str):
@@ -44,34 +44,34 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,dat
 
     init_file = label1 + "_"
 
-    init_pop = np.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
+    init_pop = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
     
     eigenvector = system['transpose'][state1]
 
-    for state in len(system['eigenvalues']):
+    for state in range(len(system['eigenvalues'])):
       init_pop[state][state] = eigenvector[state] + 0j
 
     with open(os.path.join(data_dir, init_file + "1"), "w") as f:
       for line in init_pop:
         for val in line:
-          print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
+          print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
         print('', file = f)
 
     # Creating the target population file
     
     target_file = label2 + "_"
 
-    target_pop = np.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
+    target_pop = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
 
     eigenvector = system['transpose'][state2]
 
-    for state in len(system['eigenvalues']):
+    for state in range(len(system['eigenvalues'])):
       target_pop[state][state] = eigenvector[state] + 0j
 
     with open(os.path.join(data_dir, target_file + "1"), "w") as f:
       for line in target_pop:
         for val in line:
-          print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
+          print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
         print('', file = f)
 
     # Calculate the transition energy (in Ha)
@@ -81,7 +81,7 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,dat
     # Building the transition dictionary
 
     transition = {
-      "label" : label1 + "_" + label2,
+      "label" : label1 + "-" + label2,
       "state1" : state1,
       "state2" : state2,
       "transition_energy" : energy,
@@ -155,7 +155,7 @@ def closest_singlet_to_triplet(system:dict,data_dir:str):
 
     for singlet in singlet_list:
       for triplet in triplet_list:
-        energy = abs(system['mime'][singlet][singlet] - system['mime'][triplet][triplet])
+        energy = abs(system['eigenvalues'][singlet] - system['eigenvalues'][triplet]) # Using eigenvalues to better distinguish between degenerated zero order states
         if energy < minimum:
           minimum = energy
           singlet_number = singlet
@@ -245,23 +245,35 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
           Number of the triplet state presenting the highest SOC with the brightest singlet state.
         """
 
+        # Ensure we are working with lists and not numpy arrays
+
+        if isinstance(system['momdip_mtx'], numpy.ndarray):
+          momdip_mtx = system['momdip_mtx'].tolist()
+        if isinstance(system['momdip_mtx'], list):
+          momdip_mtx = system['momdip_mtx']
+
+        if isinstance(system['mime'], numpy.ndarray):
+          mime = system['mime'].tolist()
+        if isinstance(system['mime'], list):
+          mime = system['mime']
+
         # Identifying the brightest singlet
 
         highest_mom = -1
 
-        for moment in system['momdip_mtx'][0]:
-          if (system['momdip_mtx'][0].index(moment) in singlet_list) and (moment > highest_mom):
+        for moment in momdip_mtx[0]:
+          if (momdip_mtx[0].index(moment) in singlet_list) and (moment > highest_mom):
             highest_mom = moment
-            singlet_number = system['momdip_mtx'][0].index(moment)
+            singlet_number = momdip_mtx[0].index(moment)
 
         # Identifying the triplet with the strongest SOC
 
         strongest_soc = -1
 
-        for soc in system['mime'][singlet_number]:
-          if (system['mime'][singlet_number].index(soc) in triplet_list) and (soc > strongest_soc):
+        for soc in mime[singlet_number]:
+          if (mime[singlet_number].index(soc) in triplet_list) and (soc > strongest_soc):
             strongest_soc = soc
-            triplet_number = system['mime'][singlet_number].index(soc)
+            triplet_number = mime[singlet_number].index(soc)
         
         return singlet_number,triplet_number
 
@@ -275,7 +287,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     triplet_label = system['states_list'][triplet_number]["label"]
 
     transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
-    transition.update({ "label": "1B1C_" + singlet_label + "_" + triplet_label }) 
+    transition.update({ "label": "1B1C_" + singlet_label + "-" + triplet_label }) 
 
     print("\nFirst transition: brightest singlet (%s) to its most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
     print(transition)
@@ -296,7 +308,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     triplet_label = system['states_list'][triplet_number]["label"]
 
     transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
-    transition.update({ "label": "1B2C_" + singlet_label + "_" + triplet_label }) 
+    transition.update({ "label": "1B2C_" + singlet_label + "-" + triplet_label }) 
 
     print("\nSecond transition: brightest singlet (%s) to its second most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
     print(transition)
@@ -317,7 +329,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     triplet_label = system['states_list'][triplet_number]["label"]
 
     transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
-    transition.update({ "label": "2B1C_" + singlet_label + "_" + triplet_label }) 
+    transition.update({ "label": "2B1C_" + singlet_label + "-" + triplet_label }) 
 
     print("\nThird transition: second brightest singlet (%s) to its most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
     print(transition)
@@ -338,7 +350,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     triplet_label = system['states_list'][triplet_number]["label"]
 
     transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
-    transition.update({ "label": "2B2C_" + singlet_label + "_" + triplet_label }) 
+    transition.update({ "label": "2B2C_" + singlet_label + "-" + triplet_label }) 
 
     print("\nFourth transition: second brightest singlet (%s) to its second most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
     print(transition)
@@ -353,7 +365,7 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     # fifth_transition is a list containing only one dictionary (see closest_singlet_to_triplet function definition)
 
     if not any(transition["transition_energy"] == fifth_transition[0]["transition_energy"] for transition in transitions_list):
-      fifth_transition[0].update({ "label": "LE_" + singlet_label + "_" + triplet_label }) 
+      fifth_transition[0].update({ "label": "LE_" + fifth_transition[0]["label"] }) 
       print("\nFifth transition: the singlet and triplet pair %s with the lowest transition energy of %s Ha" % (fifth_transition[0]["label"],fifth_transition[0]["transition_energy"]))
       print(fifth_transition[0])
       transitions_list.append(fifth_transition[0])
@@ -410,7 +422,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
 
     print("{:<60}".format("\nCreating the initial population file ..."), end="") 
 
-    init_pop = np.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
+    init_pop = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
     
     init_pop[0,0] = 1+0j
 
@@ -432,7 +444,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
 
     print("{:<60}".format("\nCreating the dummy final population file ..."), end="") 
 
-    final_pop = np.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
+    final_pop = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
 
     with open(os.path.join(data_dir, final_file + "1"), "w") as f:
       for line in final_pop:
@@ -459,7 +471,7 @@ def proj_ground_to_triplet(system:dict,data_dir:str):
 
         print("{:<60}".format("\nCreating the %s file ..." % (proj_file + "1")), end="")
         
-        proj = np.zeros((len(system['states_list']),len(system['states_list'])),dtype=complex)
+        proj = numpy.zeros((len(system['states_list']),len(system['states_list'])),dtype=complex)
         
         proj[state['number'],state['number']] = 1+0j
         

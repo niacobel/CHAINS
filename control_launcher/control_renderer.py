@@ -127,8 +127,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     rendered_script = "qoctra_job.sh"
     rendered_pulse = "guess_pulse"
-    rendered_param = "param_" + misc['transition_label'] + ".nml"
-    rendered_param_pcp = "param_" + misc['transition_label'] + "_PCP.nml"
+    rendered_param = "param_" + data['transition']['label'] + ".nml"
+    rendered_param_pcp = "param_" + data['transition']['label'] + "_PCP.nml"
 
     # Initialize the dictionary that will be returned by the function
 
@@ -266,7 +266,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       # Determining the number of subpulses (energy differences between the states, excluding the ground state)
 
       nb_states = len(system['eigenvalues']) - 1 # Excluding the ground state
-      nb_subpulses = nb_states * (nb_states - 1) / 2
+      nb_subpulses = int(nb_states * (nb_states - 1) / 2)
 
       # Determining the subpulses constituting the guess pulse
 
@@ -336,7 +336,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     script_render_vars = {
       "source_name" : misc['source_name'],
-      "transition" : misc['transition_label'],
+      "transition" : data['transition']['label'],
       "process" : process,
       "job_walltime" : job_specs['walltime'],
       "job_memory" : job_specs['memory'], # in MB

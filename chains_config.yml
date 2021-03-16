@@ -16,7 +16,7 @@ output_qoctra: /CECI/home/ulb/cqp/niacobel/CONTROL_q-SVP_OUT
 # Define here the path towards the results directory
 # A subdirectory will be created in it for each geometry file (molecule), containing all major output files from the different programs and scripts.
 
-results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP/
+results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP
 
 # ========================================================= #
 #               Results Treatment Information               #
@@ -24,7 +24,7 @@ results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP/
 
 # Name of the files and folders containing the results
 results:
-  main_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP/                # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
+  main_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP                # Folder where all the results of this molecule will be sent (a subfolder with the name of the molecule will be created)
   orca:
     folder_name: ORCA                               # Inside the molecule subfolder (e.g. <main_folder>/<mol_name>/<folder_name>)
   gaussian:
