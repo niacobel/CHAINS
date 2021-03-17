@@ -325,11 +325,11 @@ def qchem_tddft(source_content:list):
 
       # Pattern for finding lines looking like 'Total SOC between the S1 state and excited triplet states:'
       'between_excited_states': re.compile(
-        r'^\s*Total SOC between the (?P<s_key>[A-Z]\d) state and excited triplet states:$'),
+        r'^\s*Total SOC between the (?P<s_key>[A-Z]\d+) state and excited triplet states:$'),
 
       # Pattern for finding lines looking like 'T2      76.018382    cm-1'
       'soc_value': re.compile(
-        r'^\s*(?P<soc_key>T\d+)\s+(?P<soc_value>\d+\.?\d*)\s+cm-1$')
+        r'^\s*(?P<soc_key>[A-Z]\d+)\s+(?P<soc_value>\d+\.?\d*)\s+cm-1$')
     }
 
     # Parse the source file to get the information and build the SOC list

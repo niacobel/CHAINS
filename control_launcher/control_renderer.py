@@ -172,7 +172,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
         "max_iter" : max_iter,
         "threshold" : config['qoctra']['control']['threshold'],
         "time_step" : config['qoctra']['control']['time_step'],
-        "start_pulse" : " "
+        "start_pulse" : " ",
+        "guess_pulse" : rendered_pulse
       })
 
     except KeyError as error:
@@ -195,12 +196,18 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
           # OPC
           "nb_steps" : config['qoctra']['opc']['nb_steps'],
           "alpha" : config['qoctra']['opc']['alpha'],
-          "write_freq" : config['qoctra']['opc']['write_freq'],
-          "guess_pulse" : rendered_pulse
+          "write_freq" : config['qoctra']['opc']['write_freq']
         })
 
       except KeyError as error:
         raise control_errors.ControlError ('ERROR: The "%s" key is missing in the "opc" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    #! Temporary
+
+    param_render_vars.update({
+      # POST CONTROL
+      "mat_et0_path" : data['eigenvectors_path']
+    })
 
     # Rendering the file
     # ==================
@@ -343,6 +350,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       "partition" : job_specs['partition'],
       "rendered_param" : rendered_param,
       "rendered_param_PCP" : rendered_param_pcp,
+      "guess_pulse" : rendered_pulse,
       "copy_files" : copy_files # Associated with the config file, but it has already been verified
     }
 

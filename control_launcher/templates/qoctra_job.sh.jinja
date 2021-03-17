@@ -34,9 +34,10 @@ echo -e "Creating temporary directory $SCRATCH for handling temporary files."
 
 mkdir -p $SCRATCH || exit $?
 
-cp $SLURM_SUBMIT_DIR/{{ rendered_param }} $SLURM_SUBMIT_DIR/{{ rendered_param_PCP }} $SCRATCH/ || exit $?
+cp $SLURM_SUBMIT_DIR/{{ rendered_param }} $SLURM_SUBMIT_DIR/{{ rendered_param_PCP }} $SLURM_SUBMIT_DIR/{{ guess_pulse }} $SCRATCH/ || exit $?
 
 cd $SCRATCH
+mkdir -p Verif # Strangely needed by QOCT-RA
 
 # Load the necessary modules
 
@@ -47,7 +48,7 @@ cd $SCRATCH
 # Compile the code (cluster dependent)
 
 echo -e ">>> Start of QOCT-RA compilation"
-gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
+gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
 rm mymod.mod  
 echo -e ">>> End of QOCT-RA compilation"
 
