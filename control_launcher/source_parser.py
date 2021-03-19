@@ -453,7 +453,7 @@ def qchem_tddft(source_content:list):
     print('')
     for row in system['mime']:
       for val in row:
-        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
       print('')    
 
     # ========================================================= #

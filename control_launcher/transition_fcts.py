@@ -5,12 +5,16 @@
 ##                                consult the documentation at https://chains-ulb.readthedocs.io/ for details                                 ##
 ################################################################################################################################################
 
-import control_errors
-import numpy
+import contextlib
 import os
 
-def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,data_dir:str):
-    """Creates the transition dictionary and the transition files for the transition going from the first given state to the second one.
+import numpy
+
+import control_errors
+
+
+def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict):
+    """Determines the transition dictionary and the transition files for the transition going from the first given state to the second one.
 
     Parameters
     ----------
@@ -24,55 +28,45 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,dat
         Label of the target state.
     system : dict
         Information extracted by the parsing function and derived from it.
-    data_dir : str
-        Path towards the data directory.
 
     Returns
     -------
     transition : dict
-        Dictionary containing six keys: ``label``, ``state1``, ``state2``, ``transition_energy``, ``init_file`` and ``target_file`` where
+        Dictionary containing eight keys:
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
           - ``state1`` is the number of the initial state.
           - ``state2`` is the number of the target state.
           - ``transition_energy`` is the transition energy between the two states.
           - ``init_file`` is the name of the initial state file, minus the number at the end.
+          - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
+          - ``target_content`` is the content of the target state file.
     """
 
-    # Creating the initial population file
+    # Defining the projector for the initial state
+
+    init_proj = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
+    
+    init_proj[state1][state1] = 1 + 0j
+
+    # Creating the initial population file content by converting the projector to the eigenstates basis set
 
     init_file = label1 + "_"
 
-    init_pop = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
+    init_content = numpy.matmul(numpy.matmul(system['transpose'],init_proj),system['eigenvectors'])
+
+    # Defining the projector for the target state
+
+    target_proj = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
     
-    eigenvector = system['transpose'][state1]
+    target_proj[state2][state2] = 1 + 0j
 
-    for state in range(len(system['eigenvalues'])):
-      init_pop[state][state] = eigenvector[state] + 0j
-
-    with open(os.path.join(data_dir, init_file + "1"), "w") as f:
-      for line in init_pop:
-        for val in line:
-          print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
-        print('', file = f)
-
-    # Creating the target population file
+    # Creating the target population file content by converting the projector to the eigenstates basis set
     
     target_file = label2 + "_"
 
-    target_pop = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
-
-    eigenvector = system['transpose'][state2]
-
-    for state in range(len(system['eigenvalues'])):
-      target_pop[state][state] = eigenvector[state] + 0j
-
-    with open(os.path.join(data_dir, target_file + "1"), "w") as f:
-      for line in target_pop:
-        for val in line:
-          print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
-        print('', file = f)
+    target_content = numpy.matmul(numpy.matmul(system['transpose'],target_proj),system['eigenvectors'])
 
     # Calculate the transition energy (in Ha)
 
@@ -86,7 +80,9 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,dat
       "state2" : state2,
       "transition_energy" : energy,
       "init_file" : init_file,
+      "init_content" : init_content,
       "target_file" : target_file,
+      "target_content" : target_content
       }
     
     return transition
@@ -97,8 +93,8 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict,dat
 # =================================================================== #
 # =================================================================== #
 
-def closest_singlet_to_triplet(system:dict,data_dir:str):
-    """Creates the transition files needed by QOCT-RA for the transition between the singlet and triplet states with the lowest transition energy between themselves.
+def closest_singlet_to_triplet(system:dict):
+    """Determines the transition files needed by QOCT-RA for the transition between the singlet and triplet states with the lowest transition energy between themselves.
 
     Parameters
     ----------
@@ -110,20 +106,19 @@ def closest_singlet_to_triplet(system:dict,data_dir:str):
           - ``multiplicity`` is the multiplicity of the state (ex: Singlet, Triplet).
           - ``label`` is the label of the state, which will be used for the label of the transitions.
 
-    data_dir : str
-        Path towards the data directory.
-
     Returns
     -------
     transitions_list : list
-        List of dictionaries containing six keys each: ``label``, ``state1``, ``state2``, ``transition_energy``, ``init_file`` and ``target_file`` where
+        List of dictionaries containing eight keys each: 
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
           - ``state1`` is the number of the initial state.
           - ``state2`` is the number of the target state.
           - ``transition_energy`` is the transition energy between the two states.
           - ``init_file`` is the name of the initial state file, minus the number at the end.
+          - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
+          - ``target_content`` is the content of the target state file.
         
         Note that in this case, this list only contains one dictionary as only one transition is considered.
     """
@@ -164,17 +159,23 @@ def closest_singlet_to_triplet(system:dict,data_dir:str):
     singlet_label = system['states_list'][singlet_number]["label"]
     triplet_label = system['states_list'][triplet_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
 
-    print("\nConsidered transition: from the %s singlet to the %s triplet with a transition energy of %s Ha" % (singlet_label,triplet_label,energy))
-    print(transition)
+    print("")
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Label: ", transition["label"]))
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
     return transitions_list
 
-def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
-    """Creates the transition files needed by QOCT-RA for transitions going from each of the two brightest electronic singlet states of the molecule to each of their two most coupled triplet states. For good measure, the transition between the singlet and triplet states with the lowest transition energy is also added, if it does not correspond to one of the four transitions already considered.
+def bright_singlets_to_coupled_triplets_and_closest(system:dict):
+    """Determines the transition files needed by QOCT-RA for transitions going from each of the two brightest electronic singlet states of the molecule to each of their two most coupled triplet states. For good measure, the transition between the singlet and triplet states with the lowest transition energy is also added, if it does not correspond to one of the four transitions already considered.
 
     Parameters
     ----------
@@ -186,20 +187,19 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
           - ``multiplicity`` is the multiplicity of the state (ex: Singlet, Triplet).
           - ``label`` is the label of the state, which will be used for the label of the transitions.
 
-    data_dir : str
-        Path towards the data directory.
-
     Returns
     -------
     transitions_list : list
-        List of dictionaries containing six keys each: ``label``, ``state1``, ``state2``, ``transition_energy``, ``init_file`` and ``target_file`` where
+        List of dictionaries containing eight keys each: 
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
           - ``state1`` is the number of the initial state.
           - ``state2`` is the number of the target state.
           - ``transition_energy`` is the transition energy between the two states.
           - ``init_file`` is the name of the initial state file, minus the number at the end.
+          - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
+          - ``target_content`` is the content of the target state file.
     """
 
     # Initialize the dictionary that will be returned by the function
@@ -286,11 +286,17 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     singlet_label = system['states_list'][singlet_number]["label"]
     triplet_label = system['states_list'][triplet_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
     transition.update({ "label": "1B1C_" + singlet_label + "-" + triplet_label }) 
 
-    print("\nFirst transition: brightest singlet (%s) to its most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
-    print(transition)
+    print("")
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Label: ", transition["label"]))
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
@@ -307,11 +313,17 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     singlet_label = system['states_list'][singlet_number]["label"]
     triplet_label = system['states_list'][triplet_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
     transition.update({ "label": "1B2C_" + singlet_label + "-" + triplet_label }) 
 
-    print("\nSecond transition: brightest singlet (%s) to its second most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
-    print(transition)
+    print("")
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Label: ", transition["label"]))
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
@@ -328,11 +340,17 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     singlet_label = system['states_list'][singlet_number]["label"]
     triplet_label = system['states_list'][triplet_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
     transition.update({ "label": "2B1C_" + singlet_label + "-" + triplet_label }) 
 
-    print("\nThird transition: second brightest singlet (%s) to its most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
-    print(transition)
+    print("")
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Label: ", transition["label"]))
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
@@ -349,11 +367,17 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     singlet_label = system['states_list'][singlet_number]["label"]
     triplet_label = system['states_list'][triplet_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system,data_dir)
+    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
     transition.update({ "label": "2B2C_" + singlet_label + "-" + triplet_label }) 
 
-    print("\nFourth transition: second brightest singlet (%s) to its second most coupled triplet (%s) with a transition energy of %s Ha" % (singlet_label,triplet_label,transition["transition_energy"]))
-    print(transition)
+    print("")
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Label: ", transition["label"]))
+    print(''.center(50, '-'))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
@@ -361,158 +385,35 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict,data_dir:str):
     #    Transition between the two closest singlet-triplet     #
     # ========================================================= #    
 
-    fifth_transition = closest_singlet_to_triplet(system,data_dir)
-    # fifth_transition is a list containing only one dictionary (see closest_singlet_to_triplet function definition)
+    # Call the "closest_singlet_to_triplet" function, but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
+    # Note that fifth_transition is a list containing only one dictionary (see closest_singlet_to_triplet function definition)
+    with open(os.devnull, 'w') as devnull:
+      with contextlib.redirect_stdout(devnull):
+        fifth_transition = closest_singlet_to_triplet(system)
 
     if not any(transition["transition_energy"] == fifth_transition[0]["transition_energy"] for transition in transitions_list):
-      fifth_transition[0].update({ "label": "LE_" + fifth_transition[0]["label"] }) 
-      print("\nFifth transition: the singlet and triplet pair %s with the lowest transition energy of %s Ha" % (fifth_transition[0]["label"],fifth_transition[0]["transition_energy"]))
-      print(fifth_transition[0])
-      transitions_list.append(fifth_transition[0])
+
+      transition = fifth_transition[0]
+      transition.update({ "label": "LE_" + transition["label"] }) 
+
+      singlet_number = transition["state1"]
+      triplet_number = transition["state2"]
+
+      singlet_label = system['states_list'][singlet_number]["label"]
+      triplet_label = system['states_list'][triplet_number]["label"]
+
+      print("")
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Label: ", transition["label"]))
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
+      print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+      print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+      print(''.center(50, '-'))
+
+      transitions_list.append(transition)
+
     else:
       print("\nThe transition between the singlet and triplet pair with the lowest transition energy (%s) is already included so only four transitions will be considered." % fifth_transition[0]["label"])
-
-    #! ========================================================= #
-    #!                 Temporary states list file                #
-    #! ========================================================= #
-
-    print("{:<60}".format('\nCreating states.csv file ... '), end="")
-    with open(os.path.join(data_dir, "states.csv"), "w") as f:
-      print("Number;Multiplicity;Energy (cm-1);Label", file = f)
-      for state in system['states_list']:
-        # Print every item in state, separated by ";"
-        print(";".join(map(str,state.values())), file = f)
-    print('%12s' % "[ DONE ]")
-
-    return transitions_list
-
-def proj_ground_to_triplet(system:dict,data_dir:str):
-    """Creates the transition files needed by QOCT-RA for transitions going from the ground state to each individual triplet state of the molecule, using projectors.
-
-    Parameters
-    ----------
-    system : dict
-        Information extracted by the parsing function and derived from it.
-        This dictionary needs an additionnal ``states_list`` key which is a list of dictionaries containing at least three keys each: ``number``, ``multiplicity`` and ``label`` where
-
-          - ``number`` is the number of the state, starting at 0 (which is the ground state).
-          - ``multiplicity`` is the multiplicity of the state (ex: Singlet, Triplet).
-          - ``label`` is the label of the state, which will be used for the name of the projectors.
-
-    data_dir : str
-        Path towards the data directory.
-
-    Returns
-    -------
-    transitions_list : list
-        List of dictionaries containing three keys each: ``label``, ``init_file`` and ``target_file`` where
-
-          - ``label`` is the label of the transition, which will be used for the name of the job directories.
-          - ``init_file`` is the name of the initial state file, minus the number at the end.
-          - ``target_file`` is the name of the target state file, minus the number at the end.
-    """
-
-    # ========================================================= #
-    #                     Initial state file                    #
-    # ========================================================= #
-    
-    # Initial population in the ground state
-
-    init_file = "ground_"
-
-    print("{:<60}".format("\nCreating the initial population file ..."), end="") 
-
-    init_pop = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
-    
-    init_pop[0,0] = 1+0j
-
-    with open(os.path.join(data_dir, init_file + "1"), "w") as f:
-      for line in init_pop:
-        for val in line:
-          print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
-        print('', file = f)
-
-    print('%12s' % "[ DONE ]")
-
-    # ========================================================= #
-    #                  Final state file (dummy)                 #
-    # ========================================================= #
-
-    # Dummy file but still needed by QOCT-RA
-
-    final_file = "final_"
-
-    print("{:<60}".format("\nCreating the dummy final population file ..."), end="") 
-
-    final_pop = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
-
-    with open(os.path.join(data_dir, final_file + "1"), "w") as f:
-      for line in final_pop:
-        for val in line:
-          print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
-        print('', file = f)
-
-    print('%12s' % "[ DONE ]")
-
-    # ========================================================= #
-    #                      Projector files                      #
-    # ========================================================= #
-
-    # Each projector targets a different triplet
-
-    transitions_list = [] # List of target state files (projectors)
-
-    for state in system['states_list']:
-
-      if state['multiplicity'].lower() == "triplet":
-
-        proj_file = "projector" + state['label'] + "_"
-        transitions_list.append({"label" : state['label'], "init_file" : init_file, "target_file" : proj_file})
-
-        print("{:<60}".format("\nCreating the %s file ..." % (proj_file + "1")), end="")
-        
-        proj = numpy.zeros((len(system['states_list']),len(system['states_list'])),dtype=complex)
-        
-        proj[state['number'],state['number']] = 1+0j
-        
-        with open(os.path.join(data_dir, proj_file + "1"), "w") as f:
-          for line in proj:
-            for val in line:
-              print('( {0.real:.2f} , {0.imag:.2f} )'.format(val), end = " ", file = f)
-            print('', file = f)
-        
-        print('%12s' % "[ DONE ]")
-
-    #! ========================================================= #
-    #!                 Temporary states list file                #
-    #! ========================================================= #
-
-    print("{:<60}".format('\nCreating states.csv file ... '), end="")
-    with open(os.path.join(data_dir, "states.csv"), "w") as f:
-      print("Number;Multiplicity;Energy (cm-1);Label", file = f)
-      #print(";".join(map(str,state.keys())), file = f)
-      for state in system['states_list']:
-        # Print every item in state, separated by ";"
-        #print((str(state['number'])+";"+state['multiplicity']+";"+str(state['energy'])+";"+state['label']), file = f)
-        print(";".join(map(str,state.values())), file = f)
-    print('%12s' % "[ DONE ]")
-
-    """
-    print("{:<60}".format('\nCreating coupling_list.csv file ... '), end="")
-    with open(os.path.join(data_dir, "coupling_list.csv"), "w") as f:
-      print("State 1;State 2;Energy (cm-1)", file = f)
-      for line in ori_coupling_list:
-        # Print every item in line, separated by ";"
-        print(";".join(map(str,line)), file = f)
-    print('%12s' % "[ DONE ]")
-
-    print("{:<60}".format('\nCreating momdip_list.csv file ... '), end="")
-    with open(os.path.join(data_dir, "momdip_list.csv"), "w") as f:
-      print("State 1;State 2;Dipole (a.u.)", file = f)
-      for line in momdip_list:
-        # Print every item in line, separated by ";"
-        print(";".join(map(str,line)), file = f)
-    print('%12s' % "[ DONE ]")
-    """
 
     return transitions_list

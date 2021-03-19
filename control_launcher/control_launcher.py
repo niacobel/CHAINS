@@ -467,7 +467,7 @@ def main():
     print('')
     for vector in system['eigenvectors']:
       for val in vector:
-        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
       print('')
 
     # ========================================================= #
@@ -481,7 +481,7 @@ def main():
     print('')
     for vector in system['transpose']:
       for val in vector:
-        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
       print('')
 
     # ========================================================= #
@@ -495,7 +495,7 @@ def main():
     print('')
     for row in system['mime_diag']:
       for val in row:
-        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
       print('')
 
     # ========================================================= #
@@ -509,7 +509,7 @@ def main():
     print('')
     for row in system['momdip_es_mtx']:
       for val in row:
-        print(numpy.format_float_scientific(val,precision=5,unique=False,pad_left=2), end = " ")
+        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
       print('')
   
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
@@ -518,14 +518,70 @@ def main():
     print('%12s' % "[ DONE ]")
     sys.stdout = data_log    
 
-    #######################################################################
+    # =================================================================== #
+    # =================================================================== #
+    #                             TRANSITIONS                             #
+    # =================================================================== #
+    # =================================================================== #
 
-    subsection_title = "C. Creating the files"
+    section_title = "2. Determining the transitions"
 
     print("")
+    print(''.center(len(section_title)+10, '*'))
+    print(section_title.center(len(section_title)+10))
+    print(''.center(len(section_title)+10, '*'))
+
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+
+    sys.stdout = original_stdout                                 
+    print ("{:<80}".format('\nDetermining the transitions ...'), end="")
+    sys.stdout = data_log  
+
+    # ========================================================= #
+    # Transition function                                       #
+    # ========================================================= #
+
+    print ("{:<50} {:<100}".format('\nTransition function:',transition_fct))
+
+    # Call the transition function (defined in transition_fcts.py, see the documentation for more information)
+
+    transitions_list = eval("transition_fcts." + transition_fct)(system)
+
+    # Defined the required keys in the transitions_list dictionaries
+
+    required_keys = frozenset({"label","init_file","init_content","target_file","target_content"})
+
+    # Check the transitions list
+
+    if not isinstance(transitions_list, list):
+      raise control_errors.ControlError ('ERROR: The transitions_list returned by the %s transition function is not a list.' % transition_fct) 
+
+    for key in required_keys:
+      for transition in transitions_list:
+        transition_number = transitions_list.index(transition) + 1 
+        if not isinstance(transition, dict):
+          raise control_errors.ControlError ('ERROR: The %s%s transition in the transitions list returned by the %s transition function is not a dictionary.' % (transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number]), transition_fct))  
+        if key not in transition:  
+          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s transition in the transitions list returned by the %s transition function.' % (key, transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number]), transition_fct))  
+ 
+    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
+    
+    sys.stdout = original_stdout                                 
+    print('%12s' % "[ DONE ]")
+    sys.stdout = data_log    
+
+    # =================================================================== #
+    # =================================================================== #
+    #                         DATA FILES CREATION                         #
+    # =================================================================== #
+    # =================================================================== #
+
+    section_title = "2bis. Creating the data files"
+
     print("")
-    print(subsection_title)
-    print(''.center(len(subsection_title), '='))
+    print(''.center(len(section_title)+10, '*'))
+    print(section_title.center(len(section_title)+10))
+    print(''.center(len(section_title)+10, '*'))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
 
@@ -562,7 +618,7 @@ def main():
     print ("{:<20} {:<100}".format('\nData directory:',data_dir))
 
     # ========================================================= #
-    # Creating the data files                                   #
+    # Creating the system data files                            #
     # ========================================================= #
 
     # MIME
@@ -599,64 +655,38 @@ def main():
     numpy.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'],fmt='% 18.10e')	
     print("    ├── The %s file has been created into the directory" % momdip_es_mtx_file)
 
+    # ========================================================= #
+    # Creating the transition files                             #
+    # ========================================================= #
+
+    for transition in transitions_list:
+
+      init_filename = transition["init_file"] + "1"
+      if not os.path.exists(os.path.join(data_dir, init_filename)):
+        with open(os.path.join(data_dir, init_filename), "w") as f:
+          for line in transition["init_content"]:
+            for val in line:
+              print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
+            print('', file = f)
+        print("    ├── The %s initial state file has been created into the directory" % init_filename)
+      
+      target_filename = transition["target_file"] + "1"
+      if not os.path.exists(os.path.join(data_dir, target_filename)):
+        with open(os.path.join(data_dir, target_filename), "w") as f:
+          for line in transition["target_content"]:
+            for val in line:
+              print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
+            print('', file = f)
+        print("    ├── The %s target state file has been created into the directory" % target_filename)
+
+    # ========================================================= #
+    # Other files                                               #
+    # ========================================================= #
+
     # Copying the source file into the data subdirectory
     
     shutil.copy(os.path.join(source_path,source_filename), data_dir)
     print("    └── The source file (%s) has been successfully copied into the directory." % source_filename)
-
-    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
-    
-    sys.stdout = original_stdout                                 
-    print('%12s' % "[ DONE ]")
-    sys.stdout = data_log    
-
-    # =================================================================== #
-    # =================================================================== #
-    #                             TRANSITIONS                             #
-    # =================================================================== #
-    # =================================================================== #
-
-    section_title = "2. Determining the transitions"
-
-    print("")
-    print(''.center(len(section_title)+10, '*'))
-    print(section_title.center(len(section_title)+10))
-    print(''.center(len(section_title)+10, '*'))
-
-    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
-
-    sys.stdout = original_stdout                                 
-    print ("{:<80}".format('\nDetermining the transitions ...'), end="")
-    sys.stdout = data_log  
-
-    # ========================================================= #
-    # Transition function                                       #
-    # ========================================================= #
-
-    print ("{:<50} {:<100}".format('\nTransition function:',transition_fct))
-
-    # Call the transition function (defined in transition_fcts.py, see the documentation for more information)
-
-    transitions_list = eval("transition_fcts." + transition_fct)(system,data_dir)
-
-    # Defined the required keys in the transitions_list dictionaries
-
-    required_keys = frozenset({"label"})
-
-    # Check the transitions list
-
-    if not isinstance(transitions_list, list):
-      raise control_errors.ControlError ('ERROR: The transitions_list returned by the %s transition function is not a list.' % transition_fct) 
-
-    for key in required_keys:
-      for transition in transitions_list:
-        transition_number = transitions_list.index(transition) + 1 
-        if not isinstance(transition, dict):
-          raise control_errors.ControlError ('ERROR: The %s%s transition in the transitions list returned by the %s transition function is not a dictionary.' % (transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number]), transition_fct))  
-        if key not in transition:  
-          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s transition in the transitions list returned by the %s transition function.' % (key, transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number]), transition_fct))  
- 
-    print("\nAll the transition files have been succesfully created.")
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
