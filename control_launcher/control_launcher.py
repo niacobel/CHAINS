@@ -397,11 +397,9 @@ def main():
 
     system = eval("source_parser." + parsing_fct)(source_content)
 
-    # Defined the required keys in system dictionary
-
-    required_keys = frozenset({"mime", "momdip_mtx"})
-
     # Check the system dictionary
+
+    required_keys = frozenset({"states_list", "mime", "momdip_mtx"})
 
     if not isinstance(system, dict):
       raise control_errors.ControlError ('ERROR: The "system" returned by the %s parsing function is not a dictionary.' % parsing_fct) 
@@ -409,8 +407,29 @@ def main():
     for key in required_keys:
       if key not in system:
         raise control_errors.ControlError ('ERROR: There is no defined "%s" key in the system dictionary returned by the %s parsing function.' % (key, parsing_fct))  
-      elif not isinstance(system[key], (list, numpy.ndarray)):
-        raise control_errors.ControlError ('ERROR: The "%s" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (key, parsing_fct))         
+
+    # Check the states list
+
+    states_keys = frozenset({"number", "type", "label", "energy"})
+
+    if not isinstance(system["states_list"], list):
+      raise control_errors.ControlError ('ERROR: The "states_list" value in the system dictionary returned by the %s parsing function is not a list.' % parsing_fct)
+
+    for state in system["states_list"]:
+      if not isinstance(state, dict):
+        state_number = system["states_list"].index(state) + 1
+        raise control_errors.ControlError ('ERROR: The %s%s state in the states list returned by the %s parsing function is not a dictionary.' % (state_number, ("th" if not state_number in special_numbers else special_numbers[state_number]), parsing_fct)) 
+      for key in states_keys:
+        if key not in state:
+          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s state in the states list returned by the %s parsing function.' % (key, state_number, ("th" if not state_number in special_numbers else special_numbers[state_number]), parsing_fct))  
+
+    # Check the MIME and the dipole moments matrix
+
+    if not isinstance(system["mime"], (list, numpy.ndarray)):
+      raise control_errors.ControlError ('ERROR: The "mime" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % parsing_fct)
+
+    if not isinstance(system["momdip_mtx"], (list, numpy.ndarray)):
+      raise control_errors.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % parsing_fct)
 
     print("\nThe source file has been succesfully parsed.")
 
@@ -620,6 +639,16 @@ def main():
     # ========================================================= #
     # Creating the system data files                            #
     # ========================================================= #
+
+    # States list
+
+    state_file = "states"
+    with open(os.path.join(data_dir,state_file), "w") as f:
+      print("{:<10} {:<15} {:<10} {:<15}".format('Number','Type','Label','Energy (Ha)'), file = f)
+      print(''.center(50, '-'), file = f)
+      for state in system['states_list']:
+        print("{:<10} {:<15} {:<10} {:<.5e}".format(state['number'],state['type'],state['label'],state['energy']), file = f)
+    print("    ├── The %s file has been created into the directory" % state_file)
 
     # MIME
 

@@ -82,12 +82,12 @@ def qchem_tddft(source_content:list):
     system : dict
         The extracted information of the source file. It contains three keys and their associated values: ``states_list``, ``mime`` and ``momdip_mtx`` where
         
-        - ``states_list`` is a list of dictionaries containing four keys each: ``number``, ``multiplicity``, ``energy`` and ``label`` where
+        - ``states_list`` is a list of dictionaries containing four keys each: ``number``, ``type``, ``label`` and ``energy`` where
 
           - ``number`` is the number of the state, starting at 0 (which is the ground state).
-          - ``multiplicity`` is the multiplicity of the state (Singlet, Triplet, ...).
-          - ``energy`` is the excitation energy of the state, in cm\ :sup:`-1`\ .
-          - ``label`` is the label of the state, in the form of the first letter of multiplicity + number of that state of this multiplicity (e.g. T1 for the first triplet, S3 for the third singlet, ...).
+          - ``type`` reflects the selection rule for transitions going from the ground state to this state, i.e. either "Bright" or "Dark".
+          - ``energy`` is the excitation energy of the state, in Ha.
+          - ``label`` is the label of the state, in the form of the first letter of its multiplicity + number of that state of this multiplicity (e.g. T1 for the first triplet, S3 for the third singlet, ...).
 
         - ``mime`` is a NumPy array, representing the Matrix Image of the MoleculE which acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the spin-orbit couplings on the non-diagonal elements (in Hartree).
         - ``momdip_mtx`` is a NumPy array representing the transition dipole moments (in atomic units).
@@ -177,7 +177,7 @@ def qchem_tddft(source_content:list):
 
     # Define the ground state of our molecule (which is the first state and has a null energy)
     
-    system['states_list'] = [{'number': 0, 'multiplicity': 'Singlet', 'energy': 0.0, 'label': 'S0'}]
+    system['states_list'] = [{'number': 0, 'type': '-', 'label': 'S0', 'energy' : 0.0}]
 
     # Define the START and END expression patterns of the "TDDFT/TDA Excitation Energies" section of the output file
 
@@ -250,11 +250,13 @@ def qchem_tddft(source_content:list):
             cnt = -1
 
             if multiplicity == "Triplet":
+              state_type = "Dark"
               first_letter = "T"
               cnt_triplet += 1
               cnt = cnt_triplet
 
             elif multiplicity == "Singlet":
+              state_type = "Bright"
               first_letter = "S"
               cnt_singlet += 1
               cnt = cnt_singlet
@@ -266,7 +268,7 @@ def qchem_tddft(source_content:list):
 
             # Append information about the current state to the states_list variable
 
-            system['states_list'].append({'number': exc_state, 'multiplicity': multiplicity, 'energy': energy_unit_conversion(exc_energy,"ev","cm-1"), 'label': (first_letter + str(cnt))})
+            system['states_list'].append({'number': exc_state, 'type': state_type, 'label': (first_letter + str(cnt)), 'energy': energy_unit_conversion(exc_energy,"ev","cm-1")})
 
             continue
 
@@ -289,10 +291,10 @@ def qchem_tddft(source_content:list):
     print(''.center(50, '-'))
     print('States List'.center(50, ' '))
     print(''.center(50, '-'))
-    print("{:<10} {:<15} {:<15} {:<10}".format('Number','Multiplicity','Energy (cm-1)','Label'))
+    print("{:<10} {:<15} {:<10} {:<15}".format('Number','Type','Label','Energy (cm-1)'))
     print(''.center(50, '-'))
     for state in system['states_list']:
-      print("{:<10} {:<15} {:<15.3f} {:<10}".format(state['number'],state['multiplicity'],state['energy'],state['label']))
+      print("{:<10} {:<15} {:<10} {:<15.3f}".format(state['number'],state['type'],state['label'],state['energy']))
     print(''.center(50, '-'))
 
     # ========================================================= #
@@ -553,6 +555,9 @@ def qchem_tddft(source_content:list):
         print(numpy.format_float_positional(val,precision=6,unique=False,pad_left=2,trim="0",pad_right=6), end = " ")
       print('')
 
-    # End of the function, return the needed variables
+    # End of the function, return the needed variables after having converted the states energy from cm-1 to Ha
+
+    for state in system['states_list']:
+      state['energy'] = energy_unit_conversion(state['energy'],"cm-1","ha")
     
     return system

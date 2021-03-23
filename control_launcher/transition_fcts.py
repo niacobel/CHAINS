@@ -70,7 +70,7 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict):
 
     # Calculate the transition energy (in Ha)
 
-    energy = abs(system['mime'][state1][state1] - system['mime'][state2][state2])
+    energy = abs(system['mime'][state1][state1] - system['mime'][state2][state2]) #! Eigenstates or zero order states?
 
     # Building the transition dictionary
 
@@ -93,18 +93,13 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict):
 # =================================================================== #
 # =================================================================== #
 
-def closest_singlet_to_triplet(system:dict):
-    """Determines the transition files needed by QOCT-RA for the transition between the singlet and triplet states with the lowest transition energy between themselves.
+def closest_bright_to_dark(system:dict):
+    """Determines the transition files needed by QOCT-RA for the transition between the bright and dark states with the lowest transition energy between themselves.
 
     Parameters
     ----------
     system : dict
         Information extracted by the parsing function and derived from it.
-        This dictionary needs an additionnal ``states_list`` key which is a list of dictionaries containing at least three keys each: ``number``, ``multiplicity`` and ``label`` where
-
-          - ``number`` is the number of the state, starting at 0 (which is the ground state).
-          - ``multiplicity`` is the multiplicity of the state (ex: Singlet, Triplet).
-          - ``label`` is the label of the state, which will be used for the label of the transitions.
 
     Returns
     -------
@@ -128,45 +123,45 @@ def closest_singlet_to_triplet(system:dict):
     transitions_list = []
 
     # ========================================================= #
-    #             Identifying singlets and triplets             #
+    #            Identifying bright and dark states             #
     # ========================================================= #
 
-    singlet_list = []
-    triplet_list = []
+    bright_list = []
+    dark_list = []
 
     for state in system['states_list']:
       if state['number'] == 0:
         continue
-      elif state['multiplicity'].lower() == "triplet":
-        triplet_list.append(state['number'])
-      elif state['multiplicity'].lower() == "singlet":
-        singlet_list.append(state['number'])
+      elif state['type'].lower() == "dark":
+        dark_list.append(state['number'])
+      elif state['type'].lower() == "bright":
+        bright_list.append(state['number'])
 
     # ========================================================= #
-    #    Transition between the two closest singlet-triplet     #
+    #      Transition between the two closest bright-dark       #
     # ========================================================= #    
 
     minimum = float('inf')
 
-    for singlet in singlet_list:
-      for triplet in triplet_list:
-        energy = abs(system['eigenvalues'][singlet] - system['eigenvalues'][triplet]) # Using eigenvalues to better distinguish between degenerated zero order states
+    for bright in bright_list:
+      for dark in dark_list:
+        energy = abs(system['eigenvalues'][bright] - system['eigenvalues'][dark]) # Using eigenvalues to better distinguish between degenerated zero order states
         if energy < minimum:
           minimum = energy
-          singlet_number = singlet
-          triplet_number = triplet
+          bright_number = bright
+          dark_number = dark
 
-    singlet_label = system['states_list'][singlet_number]["label"]
-    triplet_label = system['states_list'][triplet_number]["label"]
+    bright_label = system['states_list'][bright_number]["label"]
+    dark_label = system['states_list'][dark_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
+    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
 
     print("")
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Label: ", transition["label"]))
     print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
     print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
     print(''.center(50, '-'))
 
@@ -174,18 +169,13 @@ def closest_singlet_to_triplet(system:dict):
 
     return transitions_list
 
-def bright_singlets_to_coupled_triplets_and_closest(system:dict):
-    """Determines the transition files needed by QOCT-RA for transitions going from each of the two brightest electronic singlet states of the molecule to each of their two most coupled triplet states. For good measure, the transition between the singlet and triplet states with the lowest transition energy is also added, if it does not correspond to one of the four transitions already considered.
+def brightests_to_coupled_darks_and_closest(system:dict):
+    """Determines the transition files needed by QOCT-RA for transitions going from each of the two brightest states of the molecule to each of their two most coupled dark states. For good measure, the transition between the bright and dark states with the lowest transition energy is also added, if it does not correspond to one of the four transitions already considered.
 
     Parameters
     ----------
     system : dict
         Information extracted by the parsing function and derived from it.
-        This dictionary needs an additionnal ``states_list`` key which is a list of dictionaries containing at least three keys each: ``number``, ``multiplicity`` and ``label`` where
-
-          - ``number`` is the number of the state, starting at 0 (which is the ground state).
-          - ``multiplicity`` is the multiplicity of the state (ex: Singlet, Triplet).
-          - ``label`` is the label of the state, which will be used for the label of the transitions.
 
     Returns
     -------
@@ -207,42 +197,42 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict):
     transitions_list = []
 
     # ========================================================= #
-    #             Identifying singlets and triplets             #
+    #            Identifying bright and dark states             #
     # ========================================================= #
 
-    singlet_list = []
-    triplet_list = []
+    bright_list = []
+    dark_list = []
 
     for state in system['states_list']:
       if state['number'] == 0:
         continue
-      elif state['multiplicity'].lower() == "triplet":
-        triplet_list.append(state['number'])
-      elif state['multiplicity'].lower() == "singlet":
-        singlet_list.append(state['number'])
+      elif state['type'].lower() == "dark":
+        dark_list.append(state['number'])
+      elif state['type'].lower() == "bright":
+        bright_list.append(state['number'])
 
     # ========================================================= #
     #                        Subfunction                        #
     # ========================================================= #
 
-    def brightest_to_most_coupled(singlet_list:list,triplet_list:list,system:dict):
-        """Determines the brightest electronic singlet state of the molecule and its most coupled triplet state.
+    def brightest_to_most_coupled(bright_list:list,dark_list:list,system:dict):
+        """Determines the brightest state of the molecule and its most coupled dark state.
 
         Parameters
         ----------
-        singlet_list : list
-            List of the state numbers with the singlet multiplicity.
-        triplet_list : list
-            List of the state numbers with the triplet multiplicity.
+        bright_list : list
+            List of the bright state numbers.
+        dark_list : list
+            List of the dark state numbers.
         system : dict
             Information extracted by the parsing function and derived from it.
 
         Returns
         -------
-        singlet_number : int
-          Number of the brightest singlet state.
-        triplet_number : int
-          Number of the triplet state presenting the highest SOC with the brightest singlet state.
+        bright_number : int
+          Number of the brightest state.
+        dark_number : int
+          Number of the dark state presenting the highest coupling with the brightest state.
         """
 
         # Ensure we are working with lists and not numpy arrays
@@ -257,163 +247,163 @@ def bright_singlets_to_coupled_triplets_and_closest(system:dict):
         if isinstance(system['mime'], list):
           mime = system['mime']
 
-        # Identifying the brightest singlet
+        # Identifying the brightest state
 
         highest_mom = -1
 
         for moment in momdip_mtx[0]:
-          if (momdip_mtx[0].index(moment) in singlet_list) and (moment > highest_mom):
+          if (momdip_mtx[0].index(moment) in bright_list) and (moment > highest_mom):
             highest_mom = moment
-            singlet_number = momdip_mtx[0].index(moment)
+            bright_number = momdip_mtx[0].index(moment)
 
-        # Identifying the triplet with the strongest SOC
+        # Identifying the dark state with the strongest coupling
 
-        strongest_soc = -1
+        strongest_cou = -1
 
-        for soc in mime[singlet_number]:
-          if (mime[singlet_number].index(soc) in triplet_list) and (soc > strongest_soc):
-            strongest_soc = soc
-            triplet_number = mime[singlet_number].index(soc)
+        for coupling in mime[bright_number]:
+          if (mime[bright_number].index(coupling) in dark_list) and (coupling > strongest_cou):
+            strongest_cou = coupling
+            dark_number = mime[bright_number].index(coupling)
         
-        return singlet_number,triplet_number
+        return bright_number,dark_number
 
     # ========================================================= #
-    #       Brightest singlet to its most coupled triplet       #
+    #      Brightest state to its most coupled dark state       #
     # ========================================================= #
 
-    singlet_number,triplet_number = brightest_to_most_coupled(singlet_list,triplet_list,system)
+    bright_number,dark_number = brightest_to_most_coupled(bright_list,dark_list,system)
 
-    singlet_label = system['states_list'][singlet_number]["label"]
-    triplet_label = system['states_list'][triplet_number]["label"]
+    bright_label = system['states_list'][bright_number]["label"]
+    dark_label = system['states_list'][dark_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
-    transition.update({ "label": "1B1C_" + singlet_label + "-" + triplet_label }) 
+    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+    transition.update({ "label": "1B1C_" + bright_label + "-" + dark_label }) 
 
     print("")
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Label: ", transition["label"]))
     print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
     print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
     # ========================================================= #
-    #     Brightest singlet to its 2nd most coupled triplet     #
+    #     Brightest state to its 2nd most coupled dark state    #
     # ========================================================= #    
 
-    copy_triplet_list = triplet_list[:]
+    copy_dark_list = dark_list[:]
 
-    copy_triplet_list.remove(triplet_number)
+    copy_dark_list.remove(dark_number)
 
-    singlet_number,triplet_number = brightest_to_most_coupled(singlet_list,copy_triplet_list,system)
+    bright_number,dark_number = brightest_to_most_coupled(bright_list,copy_dark_list,system)
 
-    singlet_label = system['states_list'][singlet_number]["label"]
-    triplet_label = system['states_list'][triplet_number]["label"]
+    bright_label = system['states_list'][bright_number]["label"]
+    dark_label = system['states_list'][dark_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
-    transition.update({ "label": "1B2C_" + singlet_label + "-" + triplet_label }) 
+    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+    transition.update({ "label": "1B2C_" + bright_label + "-" + dark_label }) 
 
     print("")
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Label: ", transition["label"]))
     print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
     print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
     # ========================================================= #
-    #     2nd brightest singlet to its most coupled triplet     #
+    #    2nd brightest state to its most coupled dark state     #
     # ========================================================= #
 
-    copy_singlet_list = singlet_list[:]
+    copy_bright_list = bright_list[:]
 
-    copy_singlet_list.remove(singlet_number)
+    copy_bright_list.remove(bright_number)
 
-    singlet_number,triplet_number = brightest_to_most_coupled(copy_singlet_list,triplet_list,system)
+    bright_number,dark_number = brightest_to_most_coupled(copy_bright_list,dark_list,system)
 
-    singlet_label = system['states_list'][singlet_number]["label"]
-    triplet_label = system['states_list'][triplet_number]["label"]
+    bright_label = system['states_list'][bright_number]["label"]
+    dark_label = system['states_list'][dark_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
-    transition.update({ "label": "2B1C_" + singlet_label + "-" + triplet_label }) 
+    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+    transition.update({ "label": "2B1C_" + bright_label + "-" + dark_label }) 
 
     print("")
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Label: ", transition["label"]))
     print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
     print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
     # ========================================================= #
-    #   2nd brightest singlet to its 2nd most coupled triplet   #
+    #   2nd brightest state to its 2nd most coupled dark state  #
     # ========================================================= #    
 
-    copy_triplet_list = triplet_list[:]
+    copy_dark_list = dark_list[:]
 
-    copy_triplet_list.remove(triplet_number)
+    copy_dark_list.remove(dark_number)
 
-    singlet_number,triplet_number = brightest_to_most_coupled(copy_singlet_list,copy_triplet_list,system)
+    bright_number,dark_number = brightest_to_most_coupled(copy_bright_list,copy_dark_list,system)
 
-    singlet_label = system['states_list'][singlet_number]["label"]
-    triplet_label = system['states_list'][triplet_number]["label"]
+    bright_label = system['states_list'][bright_number]["label"]
+    dark_label = system['states_list'][dark_number]["label"]
 
-    transition = build_transition(singlet_number,triplet_number,singlet_label,triplet_label,system)
-    transition.update({ "label": "2B2C_" + singlet_label + "-" + triplet_label }) 
+    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+    transition.update({ "label": "2B2C_" + bright_label + "-" + dark_label }) 
 
     print("")
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Label: ", transition["label"]))
     print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
     print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
 
     # ========================================================= #
-    #    Transition between the two closest singlet-triplet     #
+    #   Transition between the two closest bright-dark states   #
     # ========================================================= #    
 
-    # Call the "closest_singlet_to_triplet" function, but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
-    # Note that fifth_transition is a list containing only one dictionary (see closest_singlet_to_triplet function definition)
+    # Call the "closest_bright_to_dark" function, but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
+    # Note that fifth_transition is a list containing only one dictionary (see closest_bright_to_dark function definition)
     with open(os.devnull, 'w') as devnull:
       with contextlib.redirect_stdout(devnull):
-        fifth_transition = closest_singlet_to_triplet(system)
+        fifth_transition = closest_bright_to_dark(system)
 
     if not any(transition["transition_energy"] == fifth_transition[0]["transition_energy"] for transition in transitions_list):
 
       transition = fifth_transition[0]
       transition.update({ "label": "LE_" + transition["label"] }) 
 
-      singlet_number = transition["state1"]
-      triplet_number = transition["state2"]
+      bright_number = transition["state1"]
+      dark_number = transition["state2"]
 
-      singlet_label = system['states_list'][singlet_number]["label"]
-      triplet_label = system['states_list'][triplet_number]["label"]
+      bright_label = system['states_list'][bright_number]["label"]
+      dark_label = system['states_list'][dark_number]["label"]
 
       print("")
       print(''.center(50, '-'))
       print("{:<20} {:<30}".format("Label: ", transition["label"]))
       print(''.center(50, '-'))
-      print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (singlet_label,singlet_number)))
-      print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (triplet_label,triplet_number)))
+      print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+      print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
       print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
       print(''.center(50, '-'))
 
       transitions_list.append(transition)
 
     else:
-      print("\nThe transition between the singlet and triplet pair with the lowest transition energy (%s) is already included so only four transitions will be considered." % fifth_transition[0]["label"])
+      print("\nThe transition between the bright and dark pair with the lowest transition energy (%s) is already included so only four transitions will be considered." % fifth_transition[0]["label"])
 
     return transitions_list
