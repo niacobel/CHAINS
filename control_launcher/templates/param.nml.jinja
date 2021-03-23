@@ -22,7 +22,7 @@
 &OPC
   nb_steps = {{ nb_steps }},                    ! Number of time steps
   alpha = {{ alpha }},                          ! Constraint on the field amplitude
-  write_freq = {{ write_freq }},                ! Number of iterations between each writing of the field
+  write_freq = {{ write_freq }}                 ! Number of iterations between each writing of the field
 /
 {%- endif %}
 
@@ -43,10 +43,11 @@
 /
 {% else -%}
 &POST_CONTROL
-  conv_mtx = "{{ mat_et0_path }}",              ! Conversion matrix, from eigenstates to zero order states
+  conv_mtx = "{{ mat_et0_path }}"               ! Conversion matrix, from eigenstates to zero order states
 /
 {%- endif %}
 
 &OPTIONS
   pulses = 2                     ! Enable writing of the pulses ([2] = every iteration)
 /
+{{ " " }} {# Make sure the namelist ends by a blank line #}

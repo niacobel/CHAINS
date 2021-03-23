@@ -344,7 +344,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     script_render_vars = {
       "source_name" : misc['source_name'],
       "transition" : data['transition']['label'],
-      "process" : process,
+      "config_name" : misc['config_name'],
       "job_walltime" : job_specs['walltime'],
       "job_memory" : job_specs['memory'], # in MB
       "partition" : job_specs['partition'],
@@ -388,7 +388,6 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
         "mol_dir" : misc['mol_dir'],
         "nb_transitions" : len(misc['transitions_list']),
         "data_dir" : data['main_path'],
-        "job_dirname" : misc['job_dirname'],
         "job_script" : rendered_script,
         "max_iter" : max_iter # Associated with the config file, but it has already been verified
       })
