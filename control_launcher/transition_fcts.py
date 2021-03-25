@@ -13,18 +13,18 @@ import numpy
 import control_errors
 
 
-def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict):
+def build_transition(init_state:int,target_state:int,init_label:str,target_label:str,system:dict):
     """Determines the transition dictionary and the transition files for the transition going from the first given state to the second one.
 
     Parameters
     ----------
-    state1 : int
+    init_state : int
         Number of the initial state.
-    state2 : int
+    target_state : int
         Number of the target state.
-    label1 : str
+    init_label : str
         Label of the initial state.
-    label2 : str
+    target_label : str
         Label of the target state.
     system : dict
         Information extracted by the parsing function and derived from it.
@@ -35,9 +35,9 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict):
         Dictionary containing eight keys:
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
-          - ``state1`` is the number of the initial state.
-          - ``state2`` is the number of the target state.
-          - ``transition_energy`` is the transition energy between the two states.
+          - ``init_state`` is the number of the initial state.
+          - ``target_state`` is the number of the target state.
+          - ``energy`` is the transition energy between the two states.
           - ``init_file`` is the name of the initial state file, minus the number at the end.
           - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
@@ -48,11 +48,11 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict):
 
     init_proj = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
     
-    init_proj[state1][state1] = 1 + 0j
+    init_proj[init_state][init_state] = 1 + 0j
 
     # Creating the initial population file content by converting the projector to the eigenstates basis set
 
-    init_file = label1 + "_"
+    init_file = init_label + "_"
 
     init_content = numpy.matmul(numpy.matmul(system['transpose'],init_proj),system['eigenvectors'])
 
@@ -60,25 +60,25 @@ def build_transition(state1:int,state2:int,label1:str,label2:str,system:dict):
 
     target_proj = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])),dtype=complex)  # Quick init of a zero-filled matrix
     
-    target_proj[state2][state2] = 1 + 0j
+    target_proj[target_state][target_state] = 1 + 0j
 
     # Creating the target population file content by converting the projector to the eigenstates basis set
     
-    target_file = label2 + "_"
+    target_file = target_label + "_"
 
     target_content = numpy.matmul(numpy.matmul(system['transpose'],target_proj),system['eigenvectors'])
 
     # Calculate the transition energy (in Ha)
 
-    energy = abs(system['mime'][state1][state1] - system['mime'][state2][state2]) #! Eigenstates or zero order states?
+    energy = abs(system['mime'][init_state][init_state] - system['mime'][target_state][target_state]) #! Eigenstates or zero order states?
 
     # Building the transition dictionary
 
     transition = {
-      "label" : label1 + "-" + label2,
-      "state1" : state1,
-      "state2" : state2,
-      "transition_energy" : energy,
+      "label" : init_label + "-" + target_label,
+      "init_state" : init_state,
+      "target_state" : target_state,
+      "energy" : energy,
       "init_file" : init_file,
       "init_content" : init_content,
       "target_file" : target_file,
@@ -107,9 +107,9 @@ def closest_bright_to_dark(system:dict):
         List of dictionaries containing eight keys each: 
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
-          - ``state1`` is the number of the initial state.
-          - ``state2`` is the number of the target state.
-          - ``transition_energy`` is the transition energy between the two states.
+          - ``init_state`` is the number of the initial state.
+          - ``target_state`` is the number of the target state.
+          - ``energy`` is the transition energy between the two states.
           - ``init_file`` is the name of the initial state file, minus the number at the end.
           - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
@@ -162,7 +162,7 @@ def closest_bright_to_dark(system:dict):
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
     print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
@@ -183,9 +183,9 @@ def brightests_to_coupled_darks_and_closest(system:dict):
         List of dictionaries containing eight keys each: 
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
-          - ``state1`` is the number of the initial state.
-          - ``state2`` is the number of the target state.
-          - ``transition_energy`` is the transition energy between the two states.
+          - ``init_state`` is the number of the initial state.
+          - ``target_state`` is the number of the target state.
+          - ``energy`` is the transition energy between the two states.
           - ``init_file`` is the name of the initial state file, minus the number at the end.
           - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
@@ -285,7 +285,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
     print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
@@ -312,7 +312,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
     print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
@@ -339,7 +339,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
     print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
@@ -366,7 +366,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     print(''.center(50, '-'))
     print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
     print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
     print(''.center(50, '-'))
 
     transitions_list.append(transition)
@@ -381,13 +381,13 @@ def brightests_to_coupled_darks_and_closest(system:dict):
       with contextlib.redirect_stdout(devnull):
         fifth_transition = closest_bright_to_dark(system)
 
-    if not any(transition["transition_energy"] == fifth_transition[0]["transition_energy"] for transition in transitions_list):
+    if not any(transition["energy"] == fifth_transition[0]["energy"] for transition in transitions_list):
 
       transition = fifth_transition[0]
       transition.update({ "label": "LE_" + transition["label"] }) 
 
-      bright_number = transition["state1"]
-      dark_number = transition["state2"]
+      bright_number = transition["init_state"]
+      dark_number = transition["target_state"]
 
       bright_label = system['states_list'][bright_number]["label"]
       dark_label = system['states_list'][dark_number]["label"]
@@ -398,7 +398,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
       print(''.center(50, '-'))
       print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
       print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-      print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["transition_energy"])))
+      print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
       print(''.center(50, '-'))
 
       transitions_list.append(transition)

@@ -568,7 +568,7 @@ def main():
 
     # Defined the required keys in the transitions_list dictionaries
 
-    required_keys = frozenset({"label","init_file","init_content","target_file","target_content"})
+    required_keys = frozenset({"label","init_state","target_state","energy","init_file","init_content","target_file","target_content"})
 
     # Check the transitions list
 
@@ -645,44 +645,52 @@ def main():
     state_file = "states"
     with open(os.path.join(data_dir,state_file), "w") as f:
       print("{:<10} {:<15} {:<10} {:<15}".format('Number','Type','Label','Energy (Ha)'), file = f)
-      print(''.center(50, '-'), file = f)
       for state in system['states_list']:
         print("{:<10} {:<15} {:<10} {:<.5e}".format(state['number'],state['type'],state['label'],state['energy']), file = f)
-    print("    ├── The %s file has been created into the directory" % state_file)
+    print("    ├── The states list file ('%s') has been created into the directory" % state_file)
 
     # MIME
 
     mime_file = "mime"
     numpy.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
-    print("    ├── The %s file has been created into the directory" % mime_file)
+    print("    ├── The MIME file ('%s') has been created into the directory" % mime_file)
 
     # Dipole moments matrix
 
     momdip_mtx_file = "momdip_mtx"
     numpy.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'],fmt='% 18.10e')
-    print("    ├── The %s file has been created into the directory" % momdip_mtx_file)
+    print("    ├── The transition dipole moment matrix file ('%s') has been created into the directory" % momdip_mtx_file)
 
     # Eigenvalues
 
     eigenvalues_file = "eigenvalues"
     numpy.savetxt(os.path.join(data_dir,eigenvalues_file),system['eigenvalues'],fmt='%1.10e')
-    print("    ├── The %s file has been created into the directory" % eigenvalues_file)
+    print("    ├── The eigenvalues file ('%s') has been created into the directory" % eigenvalues_file)
 
     # Eigenvectors matrix and eigenvectors transpose matrix
 
     eigenvectors_file = "eigenvectors"
     numpy.savetxt(os.path.join(data_dir,eigenvectors_file),system['eigenvectors'],fmt='% 18.10e')
-    print("    ├── The %s file has been created into the directory" % eigenvectors_file)
+    print("    ├── The eigenvectors file ('%s') has been created into the directory" % eigenvectors_file)
 
     transpose_file = "transpose"
     numpy.savetxt(os.path.join(data_dir,transpose_file),system['transpose'],fmt='% 18.10e')
-    print("    ├── The %s file has been created into the directory" % transpose_file)
+    print("    ├── The transpose of the eigenvectors file ('%s') has been created into the directory" % transpose_file)
 
     # Dipole moments matrix in the eigenstates basis set
 
     momdip_es_mtx_file = "momdip_es_mtx"
     numpy.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'],fmt='% 18.10e')	
-    print("    ├── The %s file has been created into the directory" % momdip_es_mtx_file)
+    print("    ├── The transition dipole moment matrix file in the eigenstates basis set ('%s') has been created into the directory" % momdip_es_mtx_file)
+
+    # Transitions list
+
+    transitions_file = "transitions"
+    with open(os.path.join(data_dir,transitions_file), "w") as f:
+      print("{:<20} {:<20} {:<20} {:<15}".format('Label','Initial state number','Target state number','Energy (Ha)'), file = f)
+      for transition in transitions_list:
+        print("{:<20} {:<20} {:<20} {:<.5e}".format(transition['label'],transition['init_state'],transition['target_state'],transition['energy']), file = f)
+    print("    ├── The transitions list file ('%s') has been created into the directory" % transitions_file)
 
     # ========================================================= #
     # Creating the transition files                             #
