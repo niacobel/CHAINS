@@ -11,6 +11,7 @@
 ################################################################################################################################################
 
 import argparse
+import contextlib
 import csv
 import os
 import re
@@ -232,7 +233,7 @@ def main():
     # ========================================================= #
 
     out_dir = results_errors.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
-    print ("{:<40} {:<100}".format('\nFigures directory:',out_dir))
+    print ("{:<40} {:<100}".format('\nOutput directory:',out_dir))
 
     # ========================================================= #
     # Determine other important variables                       #
@@ -305,9 +306,12 @@ def main():
       with open(opt_geom_file, 'r') as mol_file:
         mol_content = mol_file.read().splitlines()
 
-      # Call the scanning function from ABIN LAUNCHER to get the chemical formula
+      # Call the scanning function from ABIN LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
 
-      file_data = geom_scan.xyz_scan(mol_content)
+      with open(os.devnull, 'w') as devnull:
+        with contextlib.redirect_stdout(devnull):
+          file_data = geom_scan.xyz_scan(mol_content)
+
       chemical_formula = file_data["chemical_formula"]
 
       # Get the non-H atom types
@@ -378,10 +382,10 @@ def main():
 
       data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
 
-      states_file = results_errors.check_abspath(os.path.join(data_dir, "states"),"States file","file",True)
+      states_file = results_errors.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file",True)
       mime_file = results_errors.check_abspath(os.path.join(data_dir, "mime"),"MIME file","file",True)
       momdip_file = results_errors.check_abspath(os.path.join(data_dir, "momdip_mtx"),"Transition dipole moments matrix file","file",True)
-      transitions_file = results_errors.check_abspath(os.path.join(data_dir, "transitions"),"Transitions file","file",True)
+      transitions_file = results_errors.check_abspath(os.path.join(data_dir, "transitions.csv"),"Transitions file","file",True)
 
       eigenvalues_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file",True)
       eigenvectors_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvectors"),"Eigenvectors file","file",True)
@@ -392,17 +396,19 @@ def main():
       # Load the files                                            #
       # ========================================================= #
 
-      # TSV-type lists
+      # CSV-type lists
 
-      with open(states_file, 'r', newline='') as tsv_file:
+      with open(states_file, 'r', newline='') as csv_file:
 
-        states_content = csv.DictReader(tsv_file, delimiter='\t')
+        states_content = csv.DictReader(csv_file, delimiter=';')
         states_list = list(states_content)
         states_header = states_content.fieldnames
 
-      with open(transitions_file, 'r', newline='') as tsv_file:
+      print(states_list)
 
-        transitions_content = csv.DictReader(tsv_file, delimiter='\t')
+      with open(transitions_file, 'r', newline='') as csv_file:
+
+        transitions_content = csv.DictReader(csv_file, delimiter=';')
         transitions_list = list(transitions_content)
         transitions_header = transitions_content.fieldnames
 
@@ -426,25 +432,30 @@ def main():
 
       # Calculate each shift
 
-      for eigenvector in eigenvectors:
+      for eigenvalue in eigenvalues:
         
         shift = {}
+
+        number = eigenvalues.index(eigenvalue)
+
+        if number == 0:
+          continue # Skip the ground state
         
-        shift["Zero order state number"] = numpy.argmax(eigenvector)
-        shift["Zero order state energy"] = states_list[shift["Zero order state number"]]["Energy (Ha)"]
+        shift["Zero order state number"] = number
+        shift["Zero order state energy"] = float(states_list[number]["Energy (Ha)"])
 
-        shift["Eigenstate number"] = eigenvectors.index(eigenvector)
-        shift["Eigenstate energy"] = eigenvalues[shift["Eigenstate number"]]
+        shift["Eigenstate number"] = number
+        shift["Eigenstate energy"] = float(eigenvalues[number])
 
-        shift["Shift value (Ha)"] = shift["Zero order state energy"] - shift["Eigenstate energy"]
-        shift["Shift value (%)"] = abs(shift["Shift value (Ha)"]) / shift["Zero order state energy"] * 100
+        shift["Shift (Ha)"] = shift["Zero order state energy"] - shift["Eigenstate energy"]
+        shift["Shift (%)"] = abs(shift["Shift (Ha)"]) / shift["Zero order state energy"]
 
         shifts.append(shift)
 
       # Calculate the mean and standard deviation
 
-      shift_mean = numpy.mean([shift["Shift value (%)"] for shift in shifts])
-      shift_std = numpy.std([shift["Shift value (%)"] for shift in shifts])
+      shift_mean = numpy.mean([shift["Shift (%)"] for shift in shifts])
+      shift_std = numpy.std([shift["Shift (%)"] for shift in shifts])
 
       # Brightest dipole moment
       # =======================
@@ -461,9 +472,9 @@ def main():
         "Serie" : tag,
         "Type" : mol_type,
         "Molecule" : pretty_name,
-        "Mean relativistic shift" : shift_mean,
-        "Shift standard deviation" : shift_std,
-        "Brightest dipole moment (a.u.)" : brightest_mom
+        "Mean relativistic shift" : "{:.10e}".format(shift_mean),
+        "Shift standard deviation" : "{:.10e}".format(shift_std),
+        "Brightest dipole moment (a.u.)" : "{:.10e}".format(brightest_mom)
       }
 
       # Define the CSV file
