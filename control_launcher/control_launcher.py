@@ -642,11 +642,12 @@ def main():
 
     # States list
 
-    state_file = "states"
+    state_file = "states.csv"
     with open(os.path.join(data_dir,state_file), "w") as f:
-      print("{:<10} {:<15} {:<10} {:<15}".format('Number','Type','Label','Energy (Ha)'), file = f)
+      print("Number;Type;Label;Energy (Ha)", file = f)
       for state in system['states_list']:
-        print("{:<10} {:<15} {:<10} {:<.5e}".format(state['number'],state['type'],state['label'],state['energy']), file = f)
+        state_line = ";".join((str(state['number']),state['type'],state['label'],"{:.5e}".format(state['energy'])))
+        print(state_line, file = f)
     print("    ├── The states list file ('%s') has been created into the directory" % state_file)
 
     # MIME
@@ -685,11 +686,12 @@ def main():
 
     # Transitions list
 
-    transitions_file = "transitions"
+    transitions_file = "transitions.csv"
     with open(os.path.join(data_dir,transitions_file), "w") as f:
-      print("{:<20} {:<20} {:<20} {:<15}".format('Label','Initial state number','Target state number','Energy (Ha)'), file = f)
+      print("Label;Initial state number;Target state number;Energy (Ha)", file = f)
       for transition in transitions_list:
-        print("{:<20} {:<20} {:<20} {:<.5e}".format(transition['label'],transition['init_state'],transition['target_state'],transition['energy']), file = f)
+        transition_line = ";".join((transition['label'],str(transition['init_state']),str(transition['target_state']),"{:.5e}".format(transition['energy'])))
+        print(transition_line, file = f)
     print("    ├── The transitions list file ('%s') has been created into the directory" % transitions_file)
 
     # ========================================================= #
