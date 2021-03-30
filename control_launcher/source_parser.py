@@ -506,14 +506,16 @@ def qchem_tddft(source_content:list):
   
         matching_line = moment_rx['moment'].match(line)
 
-        # If the line matches our pattern, get the two states number and their associated strength
+        # If the line matches our pattern, get the two states number and their associated vector
   
         if matching_line is not None:
 
           state_1 = matching_line.group('mom_key1')
           state_2 = matching_line.group('mom_key2')
-          value = math.sqrt((float(matching_line.group('mom_x'))**2)+(float(matching_line.group('mom_y'))**2)+(float(matching_line.group('mom_z'))**2)) # Calculate the module of the transition dipole moment vector
-          mom_line = (state_1, state_2, value)
+          value_x = float(matching_line.group('mom_x'))
+          value_y = float(matching_line.group('mom_y'))
+          value_z = float(matching_line.group('mom_z'))
+          mom_line = (state_1, state_2, value_x, value_y, value_z)
         
           # Add the new line to the momdip_list
           momdip_list.append(mom_line)
@@ -535,6 +537,43 @@ def qchem_tddft(source_content:list):
     #                   Dipole Moments Matrix                   #
     # ========================================================= #
 
+    # Determining the best component
+    # ==============================
+
+    # Count the number of times each component is the dominating one
+
+    count_max = [0,0,0]
+
+    for momdip in momdip_list:
+
+      vector = [abs(momdip[2]),abs(momdip[3]),abs(momdip[4])]
+
+      # Find the index of the maximum (indexes if there are more than one occurrence of this maximum, see https://moonbooks.org/Articles/Hot-to-find-the-largest-number-and-its-index-in-a-list-with-python-/)
+      if vector.count(max(vector)) > 1:
+        best_comp = [idx for idx, comp in enumerate(vector) if comp == max(vector)]
+      else:
+        best_comp = [vector.index(max(vector))]
+      
+      # Increase the relevant counters
+      for index in best_comp:
+        count_max[index] += 1
+
+    # Find the component offering the highest number of transitions. In case of a tie, use the total values of all the dipoles as a tie breaker
+
+    if count_max.count(max(count_max)) > 1:
+
+      components = [idx for idx, comp in enumerate(count_max) if comp == max(count_max)]
+      total_values = [0,0,0]
+      for index in components:
+        total_values[index] = sum([abs(momdip[index+2]) for momdip in momdip_list])
+      component = total_values.index(max(total_values))
+
+    else:
+      component = count_max.index(max(count_max))
+
+    # Build the matrix
+    # ================
+
     # Initialize the matrix as a zero-filled matrix
 
     system['momdip_mtx'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
@@ -544,11 +583,11 @@ def qchem_tddft(source_content:list):
     for momdip in momdip_list:
       k1 = int(momdip[0])
       k2 = int(momdip[1])
-      val = float(momdip[2])
-      system['momdip_mtx'][k1][k2] = val
-      system['momdip_mtx'][k2][k1] = val    # For symetry purposes
+      value = momdip[component+2]
+      system['momdip_mtx'][k1][k2] = value
+      system['momdip_mtx'][k2][k1] = value    # For symetry purposes
 
-    print("\nDipole moments matrix (atomic units)")
+    print("\nDipole moments matrix along the %s axis (atomic units)" % ["X","Y","Z"][component])
     print('')
     for row in system['momdip_mtx']:
       for val in row:

@@ -237,33 +237,28 @@ def brightests_to_coupled_darks_and_closest(system:dict):
 
         # Ensure we are working with lists and not numpy arrays
 
-        if isinstance(system['momdip_mtx'], numpy.ndarray):
-          momdip_mtx = system['momdip_mtx'].tolist()
-        if isinstance(system['momdip_mtx'], list):
-          momdip_mtx = system['momdip_mtx']
-
-        if isinstance(system['mime'], numpy.ndarray):
-          mime = system['mime'].tolist()
-        if isinstance(system['mime'], list):
-          mime = system['mime']
+        if isinstance(system['momdip_es_mtx'], numpy.ndarray):
+          momdip_es_mtx = system['momdip_es_mtx'].tolist()
+        if isinstance(system['momdip_es_mtx'], list):
+          momdip_es_mtx = system['momdip_es_mtx']
 
         # Identifying the brightest state
 
-        highest_mom = -1
+        brightest_mom = 0
 
-        for moment in momdip_mtx[0]:
-          if (momdip_mtx[0].index(moment) in bright_list) and (moment > highest_mom):
-            highest_mom = moment
-            bright_number = momdip_mtx[0].index(moment)
+        for moment in momdip_es_mtx[0]:
+          if (momdip_es_mtx[0].index(moment) in bright_list) and (abs(moment) > abs(brightest_mom)):
+            brightest_mom = moment
+            bright_number = momdip_es_mtx[0].index(moment)
 
-        # Identifying the dark state with the strongest coupling
+        # Identifying the most coupled dark state
 
-        strongest_cou = -1
+        best_dark = 0
 
-        for coupling in mime[bright_number]:
-          if (mime[bright_number].index(coupling) in dark_list) and (coupling > strongest_cou):
-            strongest_cou = coupling
-            dark_number = mime[bright_number].index(coupling)
+        for moment in momdip_es_mtx[bright_number]:
+          if (momdip_es_mtx[bright_number].index(moment) in dark_list) and (abs(moment) > abs(best_dark)):
+            best_dark = moment
+            dark_number = momdip_es_mtx[bright_number].index(moment)
         
         return bright_number,dark_number
 

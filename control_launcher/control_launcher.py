@@ -458,16 +458,37 @@ def main():
     # MIME diagonalization                                      #
     # ========================================================= #
 
+    # Diagonalization
+    # ===============
+
+    # Use NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)  
+     
     print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
-    # Using NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)   
-    system['eigenvalues'], system['eigenvectors'] = numpy.linalg.eig(system['mime'])
+    eigenvalues, eigenvectors = numpy.linalg.eig(system['mime'])
     print("[ DONE ]")
 
-    # Sort the eigenvalues and associated eigenvectors (see https://stackoverflow.com/questions/8092920/sort-eigenvalues-and-associated-eigenvectors-after-using-numpy-linalg-eig-in-pyt for reference)
+    # Sorting the eigenvalues and associated eigenvectors
+    # ===================================================
 
-    idx = system['eigenvalues'].argsort()   
-    system['eigenvalues'] = system['eigenvalues'][idx]
-    system['eigenvectors'] = system['eigenvectors'][:,idx]
+    # Initialize the variables
+
+    eigenvectors = eigenvectors.tolist()
+    system['eigenvalues'] = [0] * len(system['states_list'])
+    system['eigenvectors'] = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])))
+
+    # Sort according to the major contributor among the zero order states
+
+    for eigenvector in eigenvectors:
+
+      # Look for the major contributor
+
+      vector_list = [abs(value) for value in eigenvector]
+      max_index = vector_list.index(max(vector_list))
+
+      # Write the eigenstate information on the same index than its major contributor
+
+      system['eigenvalues'][max_index] = eigenvalues[eigenvectors.index(eigenvector)]
+      system['eigenvectors'][max_index] = eigenvector
 
     # ========================================================= #
     # Eigenvalues                                               #
