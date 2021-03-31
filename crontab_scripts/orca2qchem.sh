@@ -38,7 +38,7 @@ yaml() {
 
 # Define the directory containing the ORCA optimized geometry files
 
-WATCH_DIR=$(yaml "${chains_config}" "['output_dir']['orca']")
+WATCH_DIR=$(yaml "${chains_config}" "['output_orca']")
 
 # Define the type of the ORCA optimized geometry files
 

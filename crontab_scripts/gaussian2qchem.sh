@@ -38,7 +38,7 @@ yaml() {
 
 # Define the directory containing the GAUSSIAN optimized geometry files
 
-WATCH_DIR=$(yaml "${chains_config}" "['output_dir']['gaussian']")
+WATCH_DIR=$(yaml "${chains_config}" "['output_gaussian']")
 
 # Define the type of the ORCA optimized geometry files
 

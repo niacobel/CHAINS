@@ -38,7 +38,7 @@ yaml() {
 
 # Define the directory containing the QCHEM output files
 
-WATCH_DIR=$(yaml "${chains_config}" "['output_dir']['qchem']")
+WATCH_DIR=$(yaml "${chains_config}" "['output_qchem']")
 
 # Define the extension of the QCHEM output files
 
