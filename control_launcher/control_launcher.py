@@ -467,28 +467,91 @@ def main():
     eigenvalues, eigenvectors = numpy.linalg.eig(system['mime'])
     print("[ DONE ]")
 
-    # Sorting the eigenvalues and associated eigenvectors
-    # ===================================================
+    # Assigning the eigenstates to the zero order states
+    # ==================================================
 
     # Initialize the variables
 
     eigenvectors = eigenvectors.tolist()
-    system['eigenvalues'] = [0] * len(system['states_list'])
-    system['eigenvectors'] = numpy.zeros((len(system['eigenvalues']), len(system['eigenvalues'])))
+    eigenvalues = eigenvalues.tolist()
+    system['eigenvalues'] = [0] * len(eigenvalues)
+    system['eigenvectors'] = [[] for x in range(len(eigenvalues))] # creates an empty list of lists, e.g. [[],[],[]]
 
-    # Sort according to the major contributor among the zero order states
+    # Assign according to the major contributor amongst the zero order states
 
     for eigenvector in eigenvectors:
 
-      # Look for the major contributor
+      # Initialize important variables
 
-      vector_list = [abs(value) for value in eigenvector]
-      max_index = vector_list.index(max(vector_list))
+      looking_for_home = True
+      current_vector = eigenvector
+      current_value = eigenvalues[eigenvectors.index(eigenvector)]
 
-      # Write the eigenstate information on the same index than its major contributor
+      while looking_for_home:
 
-      system['eigenvalues'][max_index] = eigenvalues[eigenvectors.index(eigenvector)]
-      system['eigenvectors'][max_index] = eigenvector
+        # Sort the indices by decreasing order of the absolute values of their corresponding coefficients in the vector
+        # e.g. if eigenvector = [-10, 50, -30, 40, 20] then max_indices = [1, 3, 2, 4, 0]
+
+        vector_abs = [abs(coef) for coef in current_vector]
+        max_indices = [vector_abs.index(x) for x in sorted(vector_abs, reverse=True)]
+
+        for max_index in max_indices: # Start working with first maximum, then second maximum, etc.
+
+          if system['eigenvectors'][max_index] == []:
+
+            # Write the eigenstate information on the same index than its main contributor, for easy handling later on
+
+            system['eigenvectors'][max_index] = current_vector
+            system['eigenvalues'][max_index] = current_value
+
+            # Make a clear statement about it in the log file
+
+            eigen_number = eigenvectors.index(current_vector)
+            eigen_suffix = "th" if not eigen_number in special_numbers else special_numbers[eigen_number]
+            zero_label = system["states_list"][max_index]["label"]
+            print("\nThe %s%s eigenstate has been succesfully assigned to the '%s' zero order state." % (eigen_number, eigen_suffix, zero_label))
+
+            # Proceed to the next eigenvector
+
+            looking_for_home = False
+            break
+
+          else: # We are facing a conflict
+
+            # Make a clear statement about it in the log file
+
+            new_number = eigenvectors.index(current_vector)
+            new_suffix = "th" if not new_number in special_numbers else special_numbers[new_number]
+            old_number = eigenvectors.index(system['eigenvectors'][max_index])
+            old_suffix = "th" if not old_number in special_numbers else special_numbers[old_number]
+            zero_label = system["states_list"][max_index]["label"] 
+
+            print("\nConflict between the %s%s and %s%s eigenstates over the '%s' zero order state has emerged." % (new_number, new_suffix, old_number, old_suffix, zero_label))
+
+            # Resolve the conflict
+
+            if abs(current_vector[max_index]) <= abs(system['eigenvectors'][max_index][max_index]):
+
+              print("\tThe %s%s eigenstate stays in place, the next maximum for the %s%s eigenstate will now be considered." % (old_number, old_suffix, new_number, new_suffix))
+              continue
+
+            else:
+
+              print("\tThe %s%s eigenstate will be replaced by the %s%s eigenstate and will be assigned to another zero order state." % (old_number, old_suffix, new_number, new_suffix))
+
+              # We need to exchange places with the current resident
+
+              temp_vector = system['eigenvectors'][max_index]
+              temp_value = system['eigenvalues'][max_index]
+
+              system['eigenvectors'][max_index] = current_vector              
+              system['eigenvalues'][max_index] = current_value
+
+              # We are done with this eigenvector, but we need to relocate the now homeless eigenvector
+
+              current_vector = temp_vector
+              current_value = temp_value
+              break
 
     # ========================================================= #
     # Eigenvalues                                               #
