@@ -209,7 +209,7 @@ def main():
       multiple_mol = results_errors.check_abspath(multiple_mol,"Command line argument -m / --multiple","directory")
       mol_inp_path = multiple_mol
 
-      print("{:<40} {:<100}".format("\nLooking for every molecule directory in", mol_inp_path + " ..."), end="")
+      print("{:<40} {:<99}".format("\nLooking for every molecule directory in", mol_inp_path + " ..."), end="")
 
       # We need to look for directories in the multiple_mol directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
       mol_inp_list = [dir.name for dir in os.scandir(mol_inp_path) if dir.is_dir()]
@@ -380,7 +380,7 @@ def main():
       # Check the data directory and its files                    #
       # ========================================================= #
 
-      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
+      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory",True)
 
       states_file = results_errors.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file",True)
       mime_file = results_errors.check_abspath(os.path.join(data_dir, "mime"),"MIME file","file",True)
@@ -404,8 +404,6 @@ def main():
         states_list = list(states_content)
         states_header = states_content.fieldnames
 
-      print(states_list)
-
       with open(transitions_file, 'r', newline='') as csv_file:
 
         transitions_content = csv.DictReader(csv_file, delimiter=';')
@@ -420,6 +418,15 @@ def main():
       eigenvectors = numpy.loadtxt(eigenvectors_file).tolist()
       transpose = numpy.loadtxt(transpose_file).tolist()
       momdip_es = numpy.loadtxt(momdip_es_file).tolist()
+
+      # Convert from strings to integer or floats when necessary
+
+      eigenvalues = [float(value) for value in eigenvalues]
+      momdip_es = [[float(moment) for moment in line] for line in momdip_es]
+
+      for state in states_list:
+        state["Energy (Ha)"] = float(state["Energy (Ha)"])
+        state['Number'] = int(state['Number'])
 
       # ========================================================= #
       # Computing values                                          #
@@ -442,10 +449,10 @@ def main():
           continue # Skip the ground state
         
         shift["Zero order state number"] = number
-        shift["Zero order state energy"] = float(states_list[number]["Energy (Ha)"])
+        shift["Zero order state energy"] = states_list[number]["Energy (Ha)"]
 
         shift["Eigenstate number"] = number
-        shift["Eigenstate energy"] = float(eigenvalues[number])
+        shift["Eigenstate energy"] = eigenvalues[number]
 
         shift["Shift (Ha)"] = shift["Zero order state energy"] - shift["Eigenstate energy"]
         shift["Shift (%)"] = abs(shift["Shift (Ha)"]) / shift["Zero order state energy"]
@@ -457,10 +464,41 @@ def main():
       shift_mean = numpy.mean([shift["Shift (%)"] for shift in shifts])
       shift_std = numpy.std([shift["Shift (%)"] for shift in shifts])
 
-      # Brightest dipole moment
-      # =======================
+      # Brightest transition dipole moment
+      # ==================================
 
-      brightest_mom = max([dipole_line[0] for dipole_line in momdip])
+      momdip_abs = [abs(moment) for moment in momdip_es[0]]
+      brightest_number = momdip_abs.index(max(momdip_abs))
+      brightest_mom = momdip_es[0][brightest_number]
+
+      # Singlet-triplet transition dipole moment
+      # ========================================
+
+      # Identify singlet (bright) and triplet (dark) zero order states
+
+      bright_list = []
+      dark_list = []
+
+      for state in states_list:
+        if state['Number'] == 0:
+          continue # exclude the ground state
+        elif state['Type'].lower() == "dark":
+          dark_list.append(state['Number'])
+        elif state['Type'].lower() == "bright":
+          bright_list.append(state['Number'])
+
+      # Get each singlet-triplet transition dipole moment
+
+      st_momdip_list = []
+
+      for bright in bright_list:
+        for dark in dark_list:
+          st_momdip_list.append(momdip_es[bright][dark])
+
+      # Calculate the mean and standard deviation
+
+      st_momdip_mean = numpy.mean(st_momdip_list)
+      st_momdip_std = numpy.std(st_momdip_list)
 
       # ========================================================= #
       # Writing values in the corresponding CSV file              #
@@ -472,9 +510,12 @@ def main():
         "Serie" : tag,
         "Type" : mol_type,
         "Molecule" : pretty_name,
+        "Nb excited states" : len(eigenvalues) - 1,
         "Mean relativistic shift" : "{:.10e}".format(shift_mean),
         "Shift standard deviation" : "{:.10e}".format(shift_std),
-        "Brightest dipole moment (a.u.)" : "{:.10e}".format(brightest_mom)
+        "Brightest dipole moment (a.u.)" : "{:.10e}".format(brightest_mom),
+        "Mean singlet-triplet dipole moment (a.u.)" : "{:.10e}".format(st_momdip_mean),
+        "S-T dipole moment std deviation (a.u.)" : "{:.10e}".format(st_momdip_std)
       }
 
       # Define the CSV file
@@ -501,7 +542,7 @@ def main():
 
         csv_writer.writerow(mol_line)      
 
-      print("{:>12}".format("[DONE]"))
+      print('%12s' % "[ DONE ]")
 
     except results_errors.ResultsError as error:
       print(error)

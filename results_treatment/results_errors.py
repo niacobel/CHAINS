@@ -85,7 +85,7 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
 
     except ResultsError as error:
 
-        print("Something went wrong when checking the path ", path)
+        print("\nSomething went wrong when checking the path ", path)
         print("Context: ",context)
         if not SkipError:
           print(error)
