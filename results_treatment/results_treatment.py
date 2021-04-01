@@ -493,7 +493,7 @@ def main():
 
       for bright in bright_list:
         for dark in dark_list:
-          st_momdip_list.append(momdip_es[bright][dark])
+          st_momdip_list.append(abs(momdip_es[bright][dark]))
 
       # Calculate the mean and standard deviation
 
