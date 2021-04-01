@@ -94,7 +94,7 @@ def build_transition(init_state:int,target_state:int,init_label:str,target_label
 # =================================================================== #
 
 def closest_bright_to_dark(system:dict):
-    """Determines the transition files needed by QOCT-RA for the transition between the bright and dark states with the lowest transition energy between themselves.
+    """Determines the transition files needed by QOCT-RA for the transition between the bright and dark states with the lowest transition energy between themselves, in the eigenstates basis set.
 
     Parameters
     ----------
@@ -131,7 +131,7 @@ def closest_bright_to_dark(system:dict):
 
     for state in system['states_list']:
       if state['number'] == 0:
-        continue
+        continue # exclude the ground state
       elif state['type'].lower() == "dark":
         dark_list.append(state['number'])
       elif state['type'].lower() == "bright":
@@ -170,7 +170,7 @@ def closest_bright_to_dark(system:dict):
     return transitions_list
 
 def brightests_to_coupled_darks_and_closest(system:dict):
-    """Determines the transition files needed by QOCT-RA for transitions going from each of the two brightest states of the molecule to each of their two most coupled dark states. For good measure, the transition between the bright and dark states with the lowest transition energy is also added, if it does not correspond to one of the four transitions already considered.
+    """Determines the transition files needed by QOCT-RA for transitions going from each of the two brightest states of the molecule to each of their two most coupled ('brightest') dark states. For good measure, the transition between the bright and dark states with the lowest transition energy is also added, if it does not correspond to one of the four transitions already considered.
 
     Parameters
     ----------
@@ -205,7 +205,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
 
     for state in system['states_list']:
       if state['number'] == 0:
-        continue
+        continue # exclude the ground state
       elif state['type'].lower() == "dark":
         dark_list.append(state['number'])
       elif state['type'].lower() == "bright":
@@ -272,7 +272,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     dark_label = system['states_list'][dark_number]["label"]
 
     transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
-    transition.update({ "label": "1B1C_" + bright_label + "-" + dark_label }) 
+    transition.update({ "label": "1B1D_" + bright_label + "-" + dark_label }) 
 
     print("")
     print(''.center(50, '-'))
@@ -299,7 +299,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     dark_label = system['states_list'][dark_number]["label"]
 
     transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
-    transition.update({ "label": "1B2C_" + bright_label + "-" + dark_label }) 
+    transition.update({ "label": "1B2D_" + bright_label + "-" + dark_label }) 
 
     print("")
     print(''.center(50, '-'))
@@ -326,7 +326,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     dark_label = system['states_list'][dark_number]["label"]
 
     transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
-    transition.update({ "label": "2B1C_" + bright_label + "-" + dark_label }) 
+    transition.update({ "label": "2B1D_" + bright_label + "-" + dark_label }) 
 
     print("")
     print(''.center(50, '-'))
@@ -353,7 +353,7 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     dark_label = system['states_list'][dark_number]["label"]
 
     transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
-    transition.update({ "label": "2B2C_" + bright_label + "-" + dark_label }) 
+    transition.update({ "label": "2B2D_" + bright_label + "-" + dark_label }) 
 
     print("")
     print(''.center(50, '-'))

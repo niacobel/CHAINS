@@ -489,11 +489,11 @@ def main():
 
       while looking_for_home:
 
-        # Sort the indices by decreasing order of the absolute values of their corresponding coefficients in the vector
+        # Sort the indices by decreasing order of the square values of their corresponding coefficients in the vector
         # e.g. if eigenvector = [-10, 50, -30, 40, 20] then max_indices = [1, 3, 2, 4, 0]
 
-        vector_abs = [abs(coef) for coef in current_vector]
-        max_indices = [vector_abs.index(x) for x in sorted(vector_abs, reverse=True)]
+        contributions = [(coef**2) for coef in current_vector]
+        max_indices = [contributions.index(x) for x in sorted(contributions, reverse=True)]
 
         for max_index in max_indices: # Start working with first maximum, then second maximum, etc.
 
@@ -530,7 +530,7 @@ def main():
 
             # Resolve the conflict
 
-            if abs(current_vector[max_index]) <= abs(system['eigenvectors'][max_index][max_index]):
+            if (current_vector[max_index]**2) <= (system['eigenvectors'][max_index][max_index]**2):
 
               print("\tThe %s%s eigenstate stays in place, the next maximum for the %s%s eigenstate will now be considered." % (old_number, old_suffix, new_number, new_suffix))
               continue
