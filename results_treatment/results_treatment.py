@@ -57,7 +57,7 @@ def energy_unit_conversion(value:float,init:str,target:str) -> float:
       "Ha" : 1,
       "cm-1" : 2.1947463136320e+05,
       "eV" : 27.211386245988,
-      "nm" : 2.1947463136320e+05 / 1e+07,
+      "nm" : 2.1947463136320e+05 * 1e+07,
       "Hz" : 6.579683920502e+15,
       "J" : 4.3597447222071e-18
       }
@@ -314,7 +314,7 @@ def main():
 
       chemical_formula = file_data["chemical_formula"]
 
-      # Get the non-H atom types
+      # Get the non-H atom types, and put Si at the front
 
       atoms = list(chemical_formula.keys())
       atoms.remove("H")
@@ -428,6 +428,11 @@ def main():
         state["Energy (Ha)"] = float(state["Energy (Ha)"])
         state['Number'] = int(state['Number'])
 
+      for transition in transitions_list:
+        transition["Energy (Ha)"] = float(transition["Energy (Ha)"])
+        transition['Initial state number'] = int(transition['Initial state number'])
+        transition['Target state number'] = int(transition['Target state number'])
+
       # ========================================================= #
       # Computing values                                          #
       # ========================================================= #
@@ -507,8 +512,8 @@ def main():
       # Define line
 
       mol_line = {
-        "Serie" : tag,
-        "Type" : mol_type,
+        "TAG" : tag,
+        "Atoms" : mol_type,
         "Molecule" : pretty_name,
         "Nb excited states" : len(eigenvalues) - 1,
         "Mean relativistic shift" : "{:.10e}".format(shift_mean),
@@ -543,6 +548,100 @@ def main():
         csv_writer.writerow(mol_line)      
 
       print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    # Exception handling for the characterization results       #
+    # ========================================================= #
+
+    except results_errors.ResultsError as error:
+      print(error)
+      print("Skipping %s molecule" % mol_name)
+      continue
+
+    # ========================================================= #
+    # ========================================================= #
+    #                      CONTROL RESULTS                      #
+    # ========================================================= #
+    # ========================================================= #
+
+    # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+    try:
+    
+      print ("{:<140}".format('\nCompiling control results ...'), end="")
+
+      # We need to look for directories in the results CONTROL directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
+      dir_list_all = [dir.name for dir in os.scandir(os.path.join(mol_dir,"CONTROL")) if dir.is_dir()]
+
+      dir_list = []
+
+      # We only want to keep the 'transition_config'-type directories
+      for dirname in dir_list_all:
+        for transition in transitions_list:
+
+          # Define the 'transition_config' regex and apply it to the dirname
+
+          pattern = re.compile(r"^" + re.escape(transition["Label"]) + r"_(?P<config>.*)$")
+          matching_dir = pattern.match(dirname)
+
+          # If it is a 'transition_config' directory, collect and write the data
+
+          if matching_dir is not None:
+
+            dir_list.append(dirname)
+
+            # ========================================================= #
+            # Writing values in the corresponding CSV file              #
+            # ========================================================= #
+
+            # Define line
+
+            pulse_line = {
+              "TAG" : tag,
+              "Atoms" : mol_type,
+              "Molecule" : pretty_name,
+              "Nb excited states" : len(eigenvalues) - 1,
+              "Type" : pattern.match(dirname).group('config'),
+              "Transition" : transition["Label"],
+              "Initial state" : states_list[transition['Initial state number']]["Label"],
+              "Target state" : states_list[transition['Target state number']]["Label"],
+              "Energy (cm-1)" : energy_unit_conversion(transition["Energy (Ha)"],"Ha","cm-1"),
+              "Energy (Hz)" : energy_unit_conversion(transition["Energy (Ha)"],"Ha","Hz")
+            }
+
+            # Define the CSV file
+
+            pulses_csv_file = os.path.join(out_dir,"pulses_results.csv")
+            pulses_csv_header = list(pulse_line.keys())
+
+            # Define if we have to write the header or not (only write it if the file does not exist or is empty)
+
+            write_header = True
+
+            if (os.path.exists(pulses_csv_file) and os.path.isfile(pulses_csv_file)):
+              with open(pulses_csv_file, 'r') as f:
+                write_header = (not f.readline()) # If the file is empty, write_header = True. Otherwise, write_header = False
+
+            # Open the CSV file in 'Append' mode and add the new line (+ write header if required)
+
+            with open(pulses_csv_file, 'a', newline='') as final_f:
+
+              csv_writer = csv.DictWriter(final_f, fieldnames=pulses_csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+
+              if write_header:
+                csv_writer.writeheader()
+
+              csv_writer.writerow(pulse_line)      
+
+            break # No need to consider the other transitions for this directory
+
+      if dir_list == []:
+        raise results_errors.ResultsError ("ERROR: Can't find any 'transition_config' directory in %s" % os.path.join(mol_dir,"CONTROL"))
+
+      print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #    Exception handling for the control results             #
+    # ========================================================= #
 
     except results_errors.ResultsError as error:
       print(error)
