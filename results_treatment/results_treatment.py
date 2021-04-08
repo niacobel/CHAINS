@@ -505,6 +505,23 @@ def main():
       st_momdip_mean = numpy.mean(st_momdip_list)
       st_momdip_std = numpy.std(st_momdip_list)
 
+      # Singlet-triplet transition energy
+      # =================================
+
+      # Get each singlet-triplet transition dipole moment
+
+      st_energies = []
+
+      for bright in bright_list:
+        for dark in dark_list:
+          energy = abs(states_list[bright]["Energy (Ha)"] - states_list[dark]["Energy (Ha)"])
+          st_energies.append(energy)
+
+      # Calculate the mean and standard deviation
+
+      st_energies_mean = numpy.mean(st_energies)
+      st_energies_std = numpy.std(st_energies)
+
       # ========================================================= #
       # Writing values in the corresponding CSV file              #
       # ========================================================= #
@@ -517,10 +534,12 @@ def main():
         "Molecule" : pretty_name,
         "Nb excited states" : len(eigenvalues) - 1,
         "Mean relativistic shift" : "{:.10e}".format(shift_mean),
-        "Shift standard deviation" : "{:.10e}".format(shift_std),
-        "Brightest dipole moment (a.u.)" : "{:.10e}".format(brightest_mom),
-        "Mean singlet-triplet dipole moment (a.u.)" : "{:.10e}".format(st_momdip_mean),
-        "S-T dipole moment std deviation (a.u.)" : "{:.10e}".format(st_momdip_std)
+        "Shift σ" : "{:.10e}".format(shift_std),
+        "Brightest µ_GS-S (a.u.)" : "{:.10e}".format(brightest_mom),
+        "Mean µ_S-T (a.u.)" : "{:.10e}".format(st_momdip_mean),
+        "µ_S-T σ (a.u.)" : "{:.10e}".format(st_momdip_std),
+        "Mean S-T energy (Ha)" : "{:.10e}".format(st_energies_mean),
+        "S-T energy σ (Ha)" : "{:.10e}".format(st_energies_std)
       }
 
       # Define the CSV file
@@ -533,12 +552,12 @@ def main():
       write_header = True
 
       if (os.path.exists(charac_csv_file) and os.path.isfile(charac_csv_file)):
-        with open(charac_csv_file, 'r') as f:
+        with open(charac_csv_file, 'r', encoding='utf-8') as f:
           write_header = (not f.readline()) # If the file is empty, write_header = True. Otherwise, write_header = False
 
       # Open the CSV file in 'Append' mode and add the new line (+ write header if required)
 
-      with open(charac_csv_file, 'a', newline='') as final_f:
+      with open(charac_csv_file, 'a', newline='', encoding='utf-8') as final_f:
 
         csv_writer = csv.DictWriter(final_f, fieldnames=charac_csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
 
@@ -618,12 +637,12 @@ def main():
             write_header = True
 
             if (os.path.exists(pulses_csv_file) and os.path.isfile(pulses_csv_file)):
-              with open(pulses_csv_file, 'r') as f:
+              with open(pulses_csv_file, 'r', encoding='utf-8') as f:
                 write_header = (not f.readline()) # If the file is empty, write_header = True. Otherwise, write_header = False
 
             # Open the CSV file in 'Append' mode and add the new line (+ write header if required)
 
-            with open(pulses_csv_file, 'a', newline='') as final_f:
+            with open(pulses_csv_file, 'a', newline='', encoding='utf-8') as final_f:
 
               csv_writer = csv.DictWriter(final_f, fieldnames=pulses_csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
 
