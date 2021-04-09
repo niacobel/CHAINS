@@ -1,7 +1,8 @@
 #!/bin/bash
 
 #########################################################################################################
-###        This script will be called via a cron task to execute abin_launcher.py (with Q-CHEM)       ###
+###              This script will be called via a cron task to execute abin_launcher.py               ###
+###                  (with the qchem profile, the qchem and qchem_TZVP config files)                  ###
 #########################################################################################################
 
 ####################################
@@ -20,6 +21,7 @@ source "/CECI/home/ulb/cqp/niacobel/CHAINS/load_modules.sh"
 
 cluster_name=$1
 out_dir=$2
+out_dir_tzvp=$3
 
 # Define the path towards CHAINS' directory (parent directory from the directory of this script)
 
@@ -28,7 +30,7 @@ chains_path=$(dirname "$(readlink -f "${script_dir}")")
 
 # Define the path towards CHAINS' configuration file
 
-chains_config="${chains_path}/chains_config.yml"
+chains_config="${chains_path}/configs/chains_config.yml"
 
 # Create the function allowing us to read YAML files (this is done through Python, see https://stackoverflow.com/a/47791935/14608112)
 
@@ -40,13 +42,9 @@ yaml() {
 
 WATCH_DIR=$(yaml "${chains_config}" "['output_gaussian']")
 
-# Define the type of the ORCA optimized geometry files
+# Define the extension of the GAUSSIAN optimized geometry files
 
 XYZ_FILEPATH="${WATCH_DIR}/*.xyz"
-
-# Define path towards the results directory (to get the program configuration file)
-
-results_path=$(yaml "${chains_config}" "['results_dir']")
 
 # Define the path towards the ABIN LAUNCHER directory
 
@@ -76,8 +74,21 @@ else
   do
     filename="$(basename -- "${filepath}")"
     MOL_NAME=${filename%.*}
+
+    # Check if the TAG of our molecule asks for a TZVP run or not (see https://stackoverflow.com/questions/2172352/in-bash-how-can-i-check-if-a-string-begins-with-some-value for details)
+    # /!\ Do not archive the geometry file since it is also needed for the standard SVP run
+
+    if  [[ $MOL_NAME == s00-* ]] || [[ $MOL_NAME == s01-* ]] || [[ $MOL_NAME == s02-* ]] || [[ $MOL_NAME == s03-* ]] || [[ $MOL_NAME == s04-* ]] || [[ $MOL_NAME == p01-* ]] ;
+    then
+        mkdir -p "${out_dir_tzvp}"
+        python "${abin_dir}/abin_launcher.py" -p qchem -m "${filepath}" -cf "${chains_path}/configs/qchem_TZVP.yml" -o "${out_dir_tzvp}" -cl "${cluster_name}" -ow -kc -km > "${abin_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}_TZVP.log"
+    fi
+
+    # Proceed with standard SVP run
+
     mkdir -p "${out_dir}"
-    python "${abin_dir}/abin_launcher.py" -p qchem -m "${filepath}" -cf "${results_path}/${MOL_NAME}/config.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -kc  > "${abin_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log"
+    python "${abin_dir}/abin_launcher.py" -p qchem -m "${filepath}" -cf "${chains_path}/configs/qchem.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -kc > "${abin_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log"
+
   done
 
   echo -e "$(date +"%Y-%m-%d %T")\tINFO - Successfully processed:\n${file_list}"

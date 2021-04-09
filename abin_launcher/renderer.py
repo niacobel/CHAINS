@@ -523,10 +523,20 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
       # Variables associated with the CHAINS configuration file
 
       try:
-        script_render_vars.update({
-          "output_dir" : chains_config['output_qchem'],
-          "results_dir" : chains_config['results_dir']
-        })
+
+        if config['qchem']['keywords']['basis_set'].lower() == "def2-tzvp": # The output directories are different for the TZVP basis set
+
+          script_render_vars.update({
+            "output_dir" : chains_config['output_qchem_tzvp'],
+            "results_dir" : chains_config['results_dir_tzvp']
+          })
+
+        else:
+
+          script_render_vars.update({
+            "output_dir" : chains_config['output_qchem'],
+            "results_dir" : chains_config['results_dir']
+          })
 
       except KeyError as error:
         raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the CHAINS configuration file (chains_config.yml).' % error)

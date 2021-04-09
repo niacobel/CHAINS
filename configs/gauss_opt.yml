@@ -1,0 +1,22 @@
+# ========================================================= #
+#                    General Information                    #
+# ========================================================= #
+
+general: 
+  charge: 0
+  multiplicity: 1
+  user_email: nicolas.iacobellis@ulb.be
+  mail_type: FAIL
+
+# ========================================================= #
+#                    GAUSSIAN Information                   #
+# ========================================================= #
+
+gaussian:
+  copy_files: True                                 # False if you don't want to copy the output files to their respective results directory (to proceed to the next step in CHAINS)
+  benchmark: True                                  # True if you want to activate ABIN LAUNCHER's benchmarking option
+  keywords:                                        # The keywords will be used "as-is" in the keyword line of the GAUSSIAN input file, be sure that GAUSSIAN knows them! (see GAUSSIAN's manual for more information)
+    method: B3LYP
+    basis_set: Def2TZVP
+    other: Symmetry=(on,follow) IOp(2/15=4,2/16=3) # You can put multiple keywords on this line (separated by a space) | Here we enforce symmetry during the optimization (see https://www.researchgate.net/post/How-can-one-perform-a-symmetry-constrained-optimization-in-gaussian)
+

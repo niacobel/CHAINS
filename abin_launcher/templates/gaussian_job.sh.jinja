@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --output=slurm_output.log
-#SBATCH --job-name={{ mol_name }}_gaussian
+#SBATCH --job-name={{ mol_name }}_{{ config_file }}
 #SBATCH --mail-user={{ user_email }}
 #SBATCH --mail-type={{ mail_type }}
 #SBATCH --time={{ job_walltime }}
@@ -84,10 +84,6 @@ rm {{ mol_name }}.chk
 echo -e "\nCopying optimized geometry to {{ output_dir }}."
 mkdir -p {{ output_dir }}
 cp {{ mol_name }}.xyz {{ output_dir }}/
-
-echo -e "\nCopying and renaming main configuration file to {{ results_dir }}/{{ mol_name }}."
-mkdir -p {{ results_dir }}/{{ mol_name }}
-cp {{ config_file }}.yml {{ results_dir }}/{{ mol_name }}/config.yml
 
 res_dir="{{ results_dir }}/{{ mol_name }}/GAUSSIAN"
 echo -e "\nCopying output files to $res_dir."

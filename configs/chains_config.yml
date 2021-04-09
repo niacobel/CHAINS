@@ -18,6 +18,12 @@ output_qoctra: /CECI/home/ulb/cqp/niacobel/CONTROL_q-SVP_OUT
 
 results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP
 
+# Alternate directories specific to the qchem TZVP branching
+
+output_qchem_tzvp: /CECI/home/ulb/cqp/niacobel/QCHEM_TZVP_OUT
+output_qoctra_tzvp: /CECI/home/ulb/cqp/niacobel/CONTROL_q-TZVP_OUT
+results_dir_tzvp: /CECI/home/ulb/cqp/niacobel/RESULTS/q-TZVP
+
 # ========================================================= #
 #               Results Treatment Information               #
 # ========================================================= #
