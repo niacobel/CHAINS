@@ -11,7 +11,7 @@ shared:
   profiles:
     qoctra: &qoctra
       parsing_function: qchem_tddft
-      transition_function: brightests_to_coupled_darks_and_closest
+      transition_function: brightests_to_coupled_darks
       rendering_function: chains_qoctra_render                
       job_scales:
         - 

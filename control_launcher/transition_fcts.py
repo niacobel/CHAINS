@@ -169,8 +169,8 @@ def closest_bright_to_dark(system:dict):
 
     return transitions_list
 
-def brightests_to_coupled_darks_and_closest(system:dict):
-    """Determines the transition files needed by QOCT-RA for transitions going from each of the two brightest states of the molecule to each of their two most coupled ('brightest') dark states. For good measure, the transition between the bright and dark states with the lowest transition energy is also added, if it does not correspond to one of the four transitions already considered.
+def brightests_to_coupled_darks(system:dict):
+    """Determines the transition files needed by QOCT-RA for transitions going from the brightest states of the molecule to their most coupled ('brightest') dark states.
 
     Parameters
     ----------
@@ -191,6 +191,9 @@ def brightests_to_coupled_darks_and_closest(system:dict):
           - ``target_file`` is the name of the target state file, minus the number at the end.
           - ``target_content`` is the content of the target state file.
     """
+
+    bmax = 2 # Maximum number of bright states to consider (e.g. if bmax = 3, then only the three brightest states will be considered)
+    dmax = 2 # Maximum number of coupled dark states to consider (e.g. if dmax = 3, then only the three most coupled dark states will be considered)
 
     # Initialize the dictionary that will be returned by the function
 
@@ -215,8 +218,8 @@ def brightests_to_coupled_darks_and_closest(system:dict):
     #                        Subfunction                        #
     # ========================================================= #
 
-    def brightest_to_most_coupled(bright_list:list,dark_list:list,system:dict):
-        """Determines the brightest state of the molecule and its most coupled dark state.
+    def brightest_to_most_coupled(bright_list:list,dark_list:list,momdip_mtx):
+        """Determines the brightest state of the molecule and its most coupled dark state for a given transition dipole moments matrix.
 
         Parameters
         ----------
@@ -224,8 +227,8 @@ def brightests_to_coupled_darks_and_closest(system:dict):
             List of the bright state numbers.
         dark_list : list
             List of the dark state numbers.
-        system : dict
-            Information extracted by the parsing function and derived from it.
+        momdip_mtx
+            Either a list or a NumPy array representing the transition dipole moments matrix.
 
         Returns
         -------
@@ -237,134 +240,222 @@ def brightests_to_coupled_darks_and_closest(system:dict):
 
         # Ensure we are working with lists and not numpy arrays
 
-        if isinstance(system['momdip_es_mtx'], numpy.ndarray):
-          momdip_es_mtx = system['momdip_es_mtx'].tolist()
-        if isinstance(system['momdip_es_mtx'], list):
-          momdip_es_mtx = system['momdip_es_mtx']
+        if isinstance(momdip_mtx, numpy.ndarray):
+          matrix = momdip_mtx.tolist()
+        if isinstance(momdip_mtx, list):
+          matrix = momdip_mtx
 
         # Identifying the brightest state
 
         brightest_mom = 0
 
-        for moment in momdip_es_mtx[0]:
-          if (momdip_es_mtx[0].index(moment) in bright_list) and (abs(moment) > abs(brightest_mom)):
+        for moment in matrix[0]:
+          if (matrix[0].index(moment) in bright_list) and (abs(moment) > abs(brightest_mom)):
             brightest_mom = moment
-            bright_number = momdip_es_mtx[0].index(moment)
+            bright_number = matrix[0].index(moment)
 
         # Identifying the most coupled dark state
 
         best_dark = 0
 
-        for moment in momdip_es_mtx[bright_number]:
-          if (momdip_es_mtx[bright_number].index(moment) in dark_list) and (abs(moment) > abs(best_dark)):
+        for moment in matrix[bright_number]:
+          if (matrix[bright_number].index(moment) in dark_list) and (abs(moment) > abs(best_dark)):
             best_dark = moment
-            dark_number = momdip_es_mtx[bright_number].index(moment)
+            dark_number = matrix[bright_number].index(moment)
         
         return bright_number,dark_number
 
     # ========================================================= #
-    #      Brightest state to its most coupled dark state       #
+    #                   Defining transitions                    #
     # ========================================================= #
 
-    bright_number,dark_number = brightest_to_most_coupled(bright_list,dark_list,system)
+    # We need to consider each transition dipole moments matrix separately
+    for key in system['momdip_es_mtx']:
 
-    bright_label = system['states_list'][bright_number]["label"]
-    dark_label = system['states_list'][dark_number]["label"]
+      # ========================================================= #
+      #          Defining the bright-dark pair of states          #
+      # ========================================================= #
 
-    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
-    transition.update({ "label": "1B1D_" + bright_label + "-" + dark_label }) 
+      # Sorting the bright states
+      # =========================
 
-    print("")
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Label: ", transition["label"]))
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
-    print(''.center(50, '-'))
+      # Consider the dipole moments for transition involving the ground state (and make sure it's a list and not a NumPy array)
+      gs_line = system['momdip_es_mtx'][key][0]
+      if isinstance(gs_line, numpy.ndarray):
+        gs_line = gs_line.tolist()
 
-    transitions_list.append(transition)
+      # Sort the number of the bright states by decreasing order of the absolute value of their transition dipole moments
+      # e.g. if gs_line = [0.0, 0.0, 0.0, 0.0, 0.0, -1.2, 0.8, 1.0, -0.4] and bright_list = [5, 6, 7, 8], then bright_max_numbers = [1, 3, 2, 4]
+      abs_gs_line = [abs(mom) for mom in gs_line]
+      bright_max_numbers = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line, reverse=True) if abs_gs_line.index(mom) in bright_list]
 
-    # ========================================================= #
-    #     Brightest state to its 2nd most coupled dark state    #
-    # ========================================================= #    
+      # Iterate over the bright states
+      # ==============================
 
-    copy_dark_list = dark_list[:]
+      # Start iterating over the first Nth brightest bright states, where N is the bmax argument (see https://stackoverflow.com/questions/36106712/how-can-i-limit-iterations-of-a-loop-in-python for details)
+      for iter_bright, bright_number in zip(range(bmax), bright_max_numbers):
 
-    copy_dark_list.remove(dark_number)
+      # iter_bright is the index of the current iteration of this loop, e.g if bmax = 3, then iter_bright will be 0, then 1, then 2.
+      # bright_number is the number of the bright state currently considered, e.g. if bright_max_numbers = [1, 3, 2, 4] and iter_bright = 1, then bright_number = 3.
 
-    bright_number,dark_number = brightest_to_most_coupled(bright_list,copy_dark_list,system)
+        # Sorting the dark states
+        # =======================
 
-    bright_label = system['states_list'][bright_number]["label"]
-    dark_label = system['states_list'][dark_number]["label"]
+        # Consider the dipole moments for transition involving the current bright state (and make sure it's a list and not a NumPy array)
+        bright_line = system['momdip_es_mtx'][key][bright_number]
+        if isinstance(bright_line, numpy.ndarray):
+          bright_line = bright_line.tolist()
 
-    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
-    transition.update({ "label": "1B2D_" + bright_label + "-" + dark_label }) 
+        # Sort the number of the dark states by decreasing order of the absolute value of their transition dipole moments with the current bright state
+        # e.g. if bright_line = [0.0, -0.2, -0.8, 1.1, -1.4, 0.0, 0.0, 0.0, 0.0, ] and dark_list = [1, 2, 3, 4], then dark_max_numbers = [4, 3, 2, 1]
+        abs_bright_line = [abs(mom) for mom in bright_line]
+        dark_max_numbers = [abs_bright_line.index(mom) for mom in sorted(abs_bright_line, reverse=True) if abs_bright_line.index(mom) in dark_list]
 
-    print("")
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Label: ", transition["label"]))
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
-    print(''.center(50, '-'))
+        # Iterate over the dark states
+        # ============================
 
-    transitions_list.append(transition)
+        # Start iterating over the first Nth most coupled dark states, where N is the dmax argument (see https://stackoverflow.com/questions/36106712/how-can-i-limit-iterations-of-a-loop-in-python for details)
+        for iter_dark, dark_number in zip(range(dmax), dark_max_numbers):
 
-    # ========================================================= #
-    #    2nd brightest state to its most coupled dark state     #
-    # ========================================================= #
+        # iter_dark is the index of the current iteration of this loop, e.g if dmax = 2, then iter_dark will be 0, then 1.
+        # dark_number is the number of the dark state currently considered, e.g. if dark_max_numbers = [4, 3, 2, 1] and iter_bright = 0, then dark_number = 4.
 
-    copy_bright_list = bright_list[:]
+          # ========================================================= #
+          #            Building the transition dictionary             #
+          # ========================================================= #
 
-    copy_bright_list.remove(bright_number)
+          bright_label = system['states_list'][bright_number]["label"]
+          dark_label = system['states_list'][dark_number]["label"]
 
-    bright_number,dark_number = brightest_to_most_coupled(copy_bright_list,dark_list,system)
+          # Call the build_transition function using the current information for this transition
 
-    bright_label = system['states_list'][bright_number]["label"]
-    dark_label = system['states_list'][dark_number]["label"]
+          transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
 
-    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
-    transition.update({ "label": "2B1D_" + bright_label + "-" + dark_label }) 
+          # Update the label to something less generic and more informative
+          # e.g. X_1B2D_S3-T2 indicates a transition based on the transition dipole moments matrix associated with the "X" key (X axis), involving the brightest bright state (1B) and its second most coupled dark state (2D), the labels of those states being S3 and T2, respectively.
 
-    print("")
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Label: ", transition["label"]))
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
-    print(''.center(50, '-'))
+          transition_label = key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label 
+          transition.update({ "label": transition_label}) 
 
-    transitions_list.append(transition)
+          # Pretty recap for the log file
 
-    # ========================================================= #
-    #   2nd brightest state to its 2nd most coupled dark state  #
-    # ========================================================= #    
+          print("")
+          print(''.center(50, '-'))
+          print("{:<20} {:<30}".format("Label: ", transition["label"]))
+          print(''.center(50, '-'))
+          print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+          print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
+          print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
+          print(''.center(50, '-'))
 
-    copy_dark_list = dark_list[:]
+          # Add the transition to the transitions list, before proceeding with the next most coupled dark state
 
-    copy_dark_list.remove(dark_number)
+          transitions_list.append(transition)
 
-    bright_number,dark_number = brightest_to_most_coupled(copy_bright_list,copy_dark_list,system)
+      """  
+      # ========================================================= #
+      #      Brightest state to its most coupled dark state       #
+      # ========================================================= #
 
-    bright_label = system['states_list'][bright_number]["label"]
-    dark_label = system['states_list'][dark_number]["label"]
+      bright_number,dark_number = brightest_to_most_coupled(bright_list,dark_list,system['momdip_es_mtx'][key])
 
-    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
-    transition.update({ "label": "2B2D_" + bright_label + "-" + dark_label }) 
+      bright_label = system['states_list'][bright_number]["label"]
+      dark_label = system['states_list'][dark_number]["label"]
 
-    print("")
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Label: ", transition["label"]))
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
-    print(''.center(50, '-'))
+      transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+      transition.update({ "label": key + "_1B1D_" + bright_label + "-" + dark_label }) 
 
-    transitions_list.append(transition)
+      print("")
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Label: ", transition["label"]))
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+      print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
+      print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
+      print(''.center(50, '-'))
+
+      transitions_list.append(transition)
+
+      # ========================================================= #
+      #     Brightest state to its 2nd most coupled dark state    #
+      # ========================================================= #    
+
+      copy_dark_list = dark_list[:]
+
+      copy_dark_list.remove(dark_number)
+
+      bright_number,dark_number = brightest_to_most_coupled(bright_list,copy_dark_list,system['momdip_es_mtx'][key])
+
+      bright_label = system['states_list'][bright_number]["label"]
+      dark_label = system['states_list'][dark_number]["label"]
+
+      transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+      transition.update({ "label": key + "_1B2D_" + bright_label + "-" + dark_label }) 
+
+      print("")
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Label: ", transition["label"]))
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+      print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
+      print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
+      print(''.center(50, '-'))
+
+      transitions_list.append(transition)
+
+      # ========================================================= #
+      #    2nd brightest state to its most coupled dark state     #
+      # ========================================================= #
+
+      copy_bright_list = bright_list[:]
+
+      copy_bright_list.remove(bright_number)
+
+      bright_number,dark_number = brightest_to_most_coupled(copy_bright_list,dark_list,system['momdip_es_mtx'][key])
+
+      bright_label = system['states_list'][bright_number]["label"]
+      dark_label = system['states_list'][dark_number]["label"]
+
+      transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+      transition.update({ "label": key + "_2B1D_" + bright_label + "-" + dark_label }) 
+
+      print("")
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Label: ", transition["label"]))
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+      print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
+      print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
+      print(''.center(50, '-'))
+
+      transitions_list.append(transition)
+
+      # ========================================================= #
+      #   2nd brightest state to its 2nd most coupled dark state  #
+      # ========================================================= #    
+
+      copy_dark_list = dark_list[:]
+
+      copy_dark_list.remove(dark_number)
+
+      bright_number,dark_number = brightest_to_most_coupled(copy_bright_list,copy_dark_list,system['momdip_es_mtx'][key])
+
+      bright_label = system['states_list'][bright_number]["label"]
+      dark_label = system['states_list'][dark_number]["label"]
+
+      transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+      transition.update({ "label": key + "_2B2D_" + bright_label + "-" + dark_label }) 
+
+      print("")
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Label: ", transition["label"]))
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+      print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
+      print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
+      print(''.center(50, '-'))
+
+      transitions_list.append(transition)
 
     # ========================================================= #
     #   Transition between the two closest bright-dark states   #
@@ -400,5 +491,6 @@ def brightests_to_coupled_darks_and_closest(system:dict):
 
     else:
       print("\nThe transition between the bright and dark pair with the lowest transition energy (%s) is already included so only four transitions will be considered." % fifth_transition[0]["label"])
+    """
 
     return transitions_list
