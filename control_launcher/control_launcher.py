@@ -423,13 +423,17 @@ def main():
         if key not in state:
           raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s state in the states list returned by the %s parsing function.' % (key, state_number, ("th" if not state_number in special_numbers else special_numbers[state_number]), parsing_fct))  
 
-    # Check the MIME and the dipole moments matrix
+    # Check the MIME and the dipole moments matrices
 
     if not isinstance(system["mime"], (list, numpy.ndarray)):
       raise control_errors.ControlError ('ERROR: The "mime" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % parsing_fct)
 
-    if not isinstance(system["momdip_mtx"], (list, numpy.ndarray)):
-      raise control_errors.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % parsing_fct)
+    if not isinstance(system["momdip_mtx"], dict):
+      raise control_errors.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s parsing function is not a dictionary.' % parsing_fct)
+
+    for key in system["momdip_mtx"]:
+      if not isinstance(system["momdip_mtx"][key], (list, numpy.ndarray)):
+        raise control_errors.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (key, parsing_fct))
 
     print("\nThe source file has been succesfully parsed.")
 
@@ -602,18 +606,25 @@ def main():
       print('')
 
     # ========================================================= #
-    # Dipole moment matrix in the eigenstates basis set         #
+    # Dipole moment matrices in the eigenstates basis set       #
     # ========================================================= #
 
-    # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
-    system['momdip_es_mtx'] = numpy.matmul(numpy.matmul(system['transpose'],system['momdip_mtx']),system['eigenvectors'])
+    # Intialize the momdip_es_mtx dictionary
+
+    system['momdip_es_mtx'] = {}
+
+    # Convert each matrix from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
+
+    for key in system["momdip_mtx"]:
+
+      system['momdip_es_mtx'][key] = numpy.matmul(numpy.matmul(system['transpose'],system['momdip_mtx'][key]),system['eigenvectors'])
         
-    print("\nDipole moments matrix in the eigenstates basis set (atomic units)")
-    print('')
-    for row in system['momdip_es_mtx']:
-      for val in row:
-        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
+      print("\nDipole moments matrix with the '%s' key in the eigenstates basis set (atomic units)" % key)
       print('')
+      for row in system['momdip_es_mtx'][key]:
+        for val in row:
+          print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
+        print('')
   
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
@@ -740,11 +751,13 @@ def main():
     numpy.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
     print("    ├── The MIME file ('%s') has been created into the directory" % mime_file)
 
-    # Dipole moments matrix
+    # Dipole moments matrices
 
-    momdip_mtx_file = "momdip_mtx"
-    numpy.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'],fmt='% 18.10e')
-    print("    ├── The transition dipole moment matrix file ('%s') has been created into the directory" % momdip_mtx_file)
+    for key in system['momdip_mtx']:
+
+      momdip_mtx_file = 'momdip_mtx_' + key
+      numpy.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][key],fmt='% 18.10e')
+      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (key, momdip_mtx_file))
 
     # Eigenvalues
 
@@ -762,11 +775,13 @@ def main():
     numpy.savetxt(os.path.join(data_dir,transpose_file),system['transpose'],fmt='% 18.10e')
     print("    ├── The transpose of the eigenvectors file ('%s') has been created into the directory" % transpose_file)
 
-    # Dipole moments matrix in the eigenstates basis set
+    # Dipole moments matrices in the eigenstates basis set
 
-    momdip_es_mtx_file = "momdip_es_mtx"
-    numpy.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'],fmt='% 18.10e')	
-    print("    ├── The transition dipole moment matrix file in the eigenstates basis set ('%s') has been created into the directory" % momdip_es_mtx_file)
+    for key in system['momdip_es_mtx']:
+
+      momdip_es_mtx_file = 'momdip_es_mtx_' + key
+      numpy.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'][key],fmt='% 18.10e')
+      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key in the eigenstates basis set ('%s') has been created into the directory" % (key, momdip_es_mtx_file))
 
     # Transitions list
 

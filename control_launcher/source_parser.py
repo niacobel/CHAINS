@@ -70,7 +70,7 @@ def energy_unit_conversion(value:float,init:str,target:str) -> float:
 # =================================================================== #
 
 def qchem_tddft(source_content:list):
-    """Parses the content of a Q-CHEM TD-DFT calculation output file, looking to build the MIME and the transition dipole moments matrix of the molecule. The ground state of the calculation must be a singlet, otherwise this function will need to be slightly modified.
+    """Parses the content of a Q-CHEM TD-DFT calculation output file, looking to build the MIME and the transition dipole moments matrices of the molecule. The ground state of the calculation must be a singlet, otherwise this function will need to be slightly modified.
 
     Parameters
     ----------
@@ -90,7 +90,12 @@ def qchem_tddft(source_content:list):
           - ``label`` is the label of the state, in the form of the first letter of its multiplicity + number of that state of this multiplicity (e.g. T1 for the first triplet, S3 for the third singlet, ...).
 
         - ``mime`` is a NumPy array, representing the Matrix Image of the MoleculE which acts as an effective Hamiltonian. It contains the excitation energies on the diagonal elements, and the spin-orbit couplings on the non-diagonal elements (in Hartree).
-        - ``momdip_mtx`` is a NumPy array representing the transition dipole moments (in atomic units).
+
+        - ``momdip_mtx`` is a dictionary containing three keys and their associated values:
+        
+          - ``X`` is a NumPy array representing the transition dipole moments matrix along the X axis (in atomic units).
+          - ``Y`` is a NumPy array representing the transition dipole moments matrix along the Y axis (in atomic units).
+          - ``Z`` is a NumPy array representing the transition dipole moments matrix along the Z axis (in atomic units).
 
     Raises
     ------
@@ -515,10 +520,10 @@ def qchem_tddft(source_content:list):
           value_x = float(matching_line.group('mom_x'))
           value_y = float(matching_line.group('mom_y'))
           value_z = float(matching_line.group('mom_z'))
-          mom_line = (state_1, state_2, value_x, value_y, value_z)
+          momdip = (state_1, state_2, value_x, value_y, value_z)
         
           # Add the new line to the momdip_list
-          momdip_list.append(mom_line)
+          momdip_list.append(momdip)
 
     # Raise an exception if the section has not been found
 
@@ -534,65 +539,43 @@ def qchem_tddft(source_content:list):
     print("[ DONE ]")
 
     # ========================================================= #
-    #                   Dipole Moments Matrix                   #
+    #                   Dipole Moments Matrices                 #
     # ========================================================= #
 
-    # Determining the best component
-    # ==============================
+    # Intialize the momdip_mtx dictionary
 
-    # Count the number of times each component is the dominating one
+    system['momdip_mtx'] = {}
 
-    count_max = [0,0,0]
+    # Initialize the matrices as zero-filled matrices
 
-    for momdip in momdip_list:
+    system['momdip_mtx']['X'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+    system['momdip_mtx']['Y'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+    system['momdip_mtx']['Z'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
 
-      vector = [abs(momdip[2]),abs(momdip[3]),abs(momdip[4])]
-
-      # Find the index of the maximum (indexes if there are more than one occurrence of this maximum, see https://moonbooks.org/Articles/Hot-to-find-the-largest-number-and-its-index-in-a-list-with-python-/)
-      if vector.count(max(vector)) > 1:
-        best_comp = [idx for idx, comp in enumerate(vector) if comp == max(vector)]
-      else:
-        best_comp = [vector.index(max(vector))]
-      
-      # Increase the relevant counters
-      for index in best_comp:
-        count_max[index] += 1
-
-    # Find the component offering the highest number of transitions. In case of a tie, use the total values of all the dipoles as a tie breaker
-
-    if count_max.count(max(count_max)) > 1:
-
-      components = [idx for idx, comp in enumerate(count_max) if comp == max(count_max)]
-      total_values = [0,0,0]
-      for index in components:
-        total_values[index] = sum([abs(momdip[index+2]) for momdip in momdip_list])
-      component = total_values.index(max(total_values))
-
-    else:
-      component = count_max.index(max(count_max))
-
-    # Build the matrix
-    # ================
-
-    # Initialize the matrix as a zero-filled matrix
-
-    system['momdip_mtx'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
-
-    # Filling the matrix
+    # Filling the matrices
 
     for momdip in momdip_list:
+
       k1 = int(momdip[0])
       k2 = int(momdip[1])
-      value = momdip[component+2]
-      system['momdip_mtx'][k1][k2] = value
-      system['momdip_mtx'][k2][k1] = value    # For symetry purposes
 
-    print("\nDipole moments matrix along the %s axis (atomic units)" % ["X","Y","Z"][component])
-    print('')
-    for row in system['momdip_mtx']:
-      for val in row:
-        print(numpy.format_float_positional(val,precision=6,unique=False,pad_left=2,trim="0",pad_right=6), end = " ")
+      system['momdip_mtx']['X'][k1][k2] = momdip[2]
+      system['momdip_mtx']['X'][k2][k1] = momdip[2]    # For symetry purposes
+
+      system['momdip_mtx']['Y'][k1][k2] = momdip[3]
+      system['momdip_mtx']['Y'][k2][k1] = momdip[3]    # For symetry purposes
+
+      system['momdip_mtx']['Z'][k1][k2] = momdip[4]
+      system['momdip_mtx']['Z'][k2][k1] = momdip[4]    # For symetry purposes
+
+    for key in system['momdip_mtx']:
+
+      print("\nDipole moments matrix along the '%s' axis (atomic units)" % key)
       print('')
+      for row in system['momdip_mtx'][key]:
+        for val in row:
+          print(numpy.format_float_positional(val,precision=6,unique=False,pad_left=2,trim="0",pad_right=6), end = " ")
+        print('')
 
     # End of the function, return the needed variables after having converted the states energy from cm-1 to Ha
 
