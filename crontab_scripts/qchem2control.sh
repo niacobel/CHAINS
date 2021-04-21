@@ -10,7 +10,7 @@
 
 # Load your Python distribution (including YAML and Jinja2)
 
-source /CECI/home/ulb/cqp/niacobel/CHAINS/load_modules.sh
+source "/CECI/home/ulb/cqp/niacobel/CHAINS/load_modules.sh"
 
 ####################################
 #         Preparation step         #
@@ -28,7 +28,7 @@ chains_path=$(dirname "$(readlink -f "${script_dir}")")
 
 # Define the path towards CHAINS' configuration file
 
-chains_config="${chains_path}/chains_config.yml"
+chains_config="${chains_path}/configs/chains_config.yml"
 
 # Create the function allowing us to read YAML files (this is done through Python, see https://stackoverflow.com/a/47791935/14608112)
 
@@ -43,10 +43,6 @@ WATCH_DIR=$(yaml "${chains_config}" "['output_qchem']")
 # Define the extension of the QCHEM output files
 
 OUT_FILEPATH="${WATCH_DIR}/*.out"
-
-# Define path towards the results directory (to get the program configuration file)
-
-results_path=$(yaml "${chains_config}" "['results_dir']")
 
 # Define the path towards the CONTROL LAUNCHER directory
 
@@ -77,7 +73,7 @@ else
     filename="$(basename -- "${filepath}")"
     MOL_NAME=${filename%.*}
     mkdir -p "${out_dir}"
-    python "${control_dir}/control_launcher.py" -s "${filepath}" -cf "${results_path}/${MOL_NAME}/config.yml" -o "${out_dir}" -cl "${cluster_name}" -p "qoctra" -ow -as > "${control_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log"
+    python "${control_dir}/control_launcher.py" -p qoctra -s "${filepath}" -cf "${chains_path}/configs/qoctra/opc.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -as > "${control_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}_OPC.log"
   done
 
   echo -e "$(date +"%Y-%m-%d %T")\tINFO - Successfully processed:\n${file_list}"

@@ -789,7 +789,7 @@ def main():
     with open(os.path.join(data_dir,transitions_file), "w") as f:
       print("Label;Initial state number;Target state number;Energy (Ha);Transition dipole moments matrix", file = f)
       for transition in transitions_list:
-        transition_line = ";".join((transition['label'],str(transition['init_state']),str(transition['target_state']),"{:.5e}".format(transition['energy'],transition['momdip_key'])))
+        transition_line = ";".join((transition['label'],str(transition['init_state']),str(transition['target_state']),"{:.5e}".format(transition['energy']),transition['momdip_key']))
         print(transition_line, file = f)
     print("    ├── The transitions list file ('%s') has been created into the directory" % transitions_file)
 

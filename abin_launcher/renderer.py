@@ -458,7 +458,7 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
 
     if copy_files:
 
-      chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+      chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
   
       print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
       with open(chains_config_file, 'r') as chains:

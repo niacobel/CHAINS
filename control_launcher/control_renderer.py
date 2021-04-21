@@ -327,7 +327,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     if copy_files:
 
       chains_path = os.path.dirname(misc['code_dir']) 
-      chains_config_file = control_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
+      chains_config_file = control_errors.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
   
       print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
       with open(chains_config_file, 'r') as chains:
