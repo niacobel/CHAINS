@@ -568,11 +568,11 @@ def qchem_tddft(source_content:list):
       system['momdip_mtx']['Z'][k1][k2] = momdip[4]
       system['momdip_mtx']['Z'][k2][k1] = momdip[4]    # For symetry purposes
 
-    for key in system['momdip_mtx']:
+    for momdip_key in system['momdip_mtx']:
 
-      print("\nDipole moments matrix along the '%s' axis (atomic units)" % key)
+      print("\nDipole moments matrix along the '%s' axis (atomic units)" % momdip_key)
       print('')
-      for row in system['momdip_mtx'][key]:
+      for row in system['momdip_mtx'][momdip_key]:
         for val in row:
           print(numpy.format_float_positional(val,precision=6,unique=False,pad_left=2,trim="0",pad_right=6), end = " ")
         print('')

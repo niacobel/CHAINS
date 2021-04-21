@@ -431,9 +431,9 @@ def main():
     if not isinstance(system["momdip_mtx"], dict):
       raise control_errors.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s parsing function is not a dictionary.' % parsing_fct)
 
-    for key in system["momdip_mtx"]:
-      if not isinstance(system["momdip_mtx"][key], (list, numpy.ndarray)):
-        raise control_errors.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (key, parsing_fct))
+    for momdip_key in system["momdip_mtx"]:
+      if not isinstance(system["momdip_mtx"][momdip_key], (list, numpy.ndarray)):
+        raise control_errors.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (momdip_key, parsing_fct))
 
     print("\nThe source file has been succesfully parsed.")
 
@@ -615,13 +615,13 @@ def main():
 
     # Convert each matrix from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
 
-    for key in system["momdip_mtx"]:
+    for momdip_key in system["momdip_mtx"]:
 
-      system['momdip_es_mtx'][key] = numpy.matmul(numpy.matmul(system['transpose'],system['momdip_mtx'][key]),system['eigenvectors'])
+      system['momdip_es_mtx'][momdip_key] = numpy.matmul(numpy.matmul(system['transpose'],system['momdip_mtx'][momdip_key]),system['eigenvectors'])
         
-      print("\nDipole moments matrix with the '%s' key in the eigenstates basis set (atomic units)" % key)
+      print("\nDipole moments matrix with the '%s' key in the eigenstates basis set (atomic units)" % momdip_key)
       print('')
-      for row in system['momdip_es_mtx'][key]:
+      for row in system['momdip_es_mtx'][momdip_key]:
         for val in row:
           print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
         print('')
@@ -663,7 +663,7 @@ def main():
 
     # Defined the required keys in the transitions_list dictionaries
 
-    required_keys = frozenset({"label","init_state","target_state","energy","init_file","init_content","target_file","target_content"})
+    required_keys = frozenset({"label","init_state","target_state","energy","init_file","init_content","target_file","target_content","momdip_key"})
 
     # Check the transitions list
 
@@ -753,11 +753,11 @@ def main():
 
     # Dipole moments matrices
 
-    for key in system['momdip_mtx']:
+    for momdip_key in system['momdip_mtx']:
 
-      momdip_mtx_file = 'momdip_mtx_' + key
-      numpy.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][key],fmt='% 18.10e')
-      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (key, momdip_mtx_file))
+      momdip_mtx_file = 'momdip_mtx_' + momdip_key
+      numpy.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][momdip_key],fmt='% 18.10e')
+      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (momdip_key, momdip_mtx_file))
 
     # Eigenvalues
 
@@ -777,19 +777,19 @@ def main():
 
     # Dipole moments matrices in the eigenstates basis set
 
-    for key in system['momdip_es_mtx']:
+    for momdip_key in system['momdip_es_mtx']:
 
-      momdip_es_mtx_file = 'momdip_es_mtx_' + key
-      numpy.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'][key],fmt='% 18.10e')
-      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key in the eigenstates basis set ('%s') has been created into the directory" % (key, momdip_es_mtx_file))
+      momdip_es_mtx_file = 'momdip_es_mtx_' + momdip_key
+      numpy.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'][momdip_key],fmt='% 18.10e')
+      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key in the eigenstates basis set ('%s') has been created into the directory" % (momdip_key, momdip_es_mtx_file))
 
     # Transitions list
 
     transitions_file = "transitions.csv"
     with open(os.path.join(data_dir,transitions_file), "w") as f:
-      print("Label;Initial state number;Target state number;Energy (Ha)", file = f)
+      print("Label;Initial state number;Target state number;Energy (Ha);Transition dipole moments matrix", file = f)
       for transition in transitions_list:
-        transition_line = ";".join((transition['label'],str(transition['init_state']),str(transition['target_state']),"{:.5e}".format(transition['energy'])))
+        transition_line = ";".join((transition['label'],str(transition['init_state']),str(transition['target_state']),"{:.5e}".format(transition['energy'],transition['momdip_key'])))
         print(transition_line, file = f)
     print("    ├── The transitions list file ('%s') has been created into the directory" % transitions_file)
 
@@ -1016,16 +1016,17 @@ def main():
         # Build a dictionary that will contain all information related to the data directory
 
         data = {
+          # Path of the generic data files
           "main_path" : data_dir,
           "mime_path" : os.path.join(data_dir,mime_file),
-          "momdip_mtx_path" : os.path.join(data_dir,momdip_mtx_file),
           "eigenvalues_path" : os.path.join(data_dir,eigenvalues_file),
           "eigenvectors_path" : os.path.join(data_dir,eigenvectors_file),
           "transpose_path" : os.path.join(data_dir,transpose_file),
-          "momdip_es_mtx_path" : os.path.join(data_dir,momdip_es_mtx_file),
+          # Path of the data files specific to this transition          
           "init_path" : os.path.join(data_dir,transition['init_file']),
           "target_path" : os.path.join(data_dir,transition['target_file']),
-          "transition" : transition
+          "momdip_mtx_path" : os.path.join(data_dir,'momdip_mtx_' + transition['momdip_key']), 
+          "momdip_es_mtx_path" : os.path.join(data_dir,'momdip_es_mtx_' + transition['momdip_key'])
         }
 
         # Build a dictionary that will contain all information related to the job
@@ -1052,6 +1053,7 @@ def main():
             "mol_dir" : mol_dir,
             "config_name" : config_name,
             "job_dirname" : job_dirname,
+            "transition" : transition,
             "transitions_list" : transitions_list
         }
 

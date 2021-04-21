@@ -127,8 +127,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     rendered_script = "qoctra_job.sh"
     rendered_pulse = "guess_pulse"
-    rendered_param = "param_" + data['transition']['label'] + ".nml"
-    rendered_param_pcp = "param_" + data['transition']['label'] + "_PCP.nml"
+    rendered_param = "param_" + misc['transition']['label'] + ".nml"
+    rendered_param_pcp = "param_" + misc['transition']['label'] + "_PCP.nml"
 
     # Initialize the dictionary that will be returned by the function
 
@@ -343,7 +343,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     script_render_vars = {
       "source_name" : misc['source_name'],
-      "transition" : data['transition']['label'],
+      "transition" : misc['transition']['label'],
       "config_name" : misc['config_name'],
       "job_walltime" : job_specs['walltime'],
       "job_memory" : job_specs['memory'], # in MB

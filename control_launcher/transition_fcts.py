@@ -13,8 +13,8 @@ import numpy
 import control_errors
 
 
-def build_transition(init_state:int,target_state:int,init_label:str,target_label:str,system:dict):
-    """Determines the transition dictionary and the transition files for the transition going from the first given state to the second one.
+def build_transition(init_state:int,target_state:int,init_label:str,target_label:str,momdip_key:str,system:dict):
+    """Build the transition dictionary and the transition files for the transition going from the first given state to the second one.
 
     Parameters
     ----------
@@ -26,13 +26,15 @@ def build_transition(init_state:int,target_state:int,init_label:str,target_label
         Label of the initial state.
     target_label : str
         Label of the target state.
+    momdip_key : str
+        Key of the transition dipole moments matrix used for this transition.
     system : dict
         Information extracted by the parsing function and derived from it.
 
     Returns
     -------
     transition : dict
-        Dictionary containing eight keys:
+        Dictionary containing nine keys:
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
           - ``init_state`` is the number of the initial state.
@@ -42,6 +44,7 @@ def build_transition(init_state:int,target_state:int,init_label:str,target_label
           - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
           - ``target_content`` is the content of the target state file.
+          - ``momdip_key`` is the key of the transition dipole moments matrix used for this transition.
     """
 
     # Defining the projector for the initial state
@@ -75,14 +78,15 @@ def build_transition(init_state:int,target_state:int,init_label:str,target_label
     # Building the transition dictionary
 
     transition = {
-      "label" : init_label + "-" + target_label,
+      "label" : momdip_key + "_" + init_label + "-" + target_label,
       "init_state" : init_state,
       "target_state" : target_state,
       "energy" : energy,
       "init_file" : init_file,
       "init_content" : init_content,
       "target_file" : target_file,
-      "target_content" : target_content
+      "target_content" : target_content,
+      "momdip_key" : momdip_key
       }
     
     return transition
@@ -104,7 +108,7 @@ def closest_bright_to_dark(system:dict):
     Returns
     -------
     transitions_list : list
-        List of dictionaries containing eight keys each: 
+        List of dictionaries containing nine keys each: 
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
           - ``init_state`` is the number of the initial state.
@@ -114,8 +118,7 @@ def closest_bright_to_dark(system:dict):
           - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
           - ``target_content`` is the content of the target state file.
-        
-        Note that in this case, this list only contains one dictionary as only one transition is considered.
+          - ``momdip_key`` is the key of the transition dipole moments matrix used for this transition.
     """
 
     # Initialize the dictionary that will be returned by the function
@@ -154,18 +157,21 @@ def closest_bright_to_dark(system:dict):
     bright_label = system['states_list'][bright_number]["label"]
     dark_label = system['states_list'][dark_number]["label"]
 
-    transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+    # We need to consider each transition dipole moments matrix separately
+    for momdip_key in system['momdip_es_mtx']:    
 
-    print("")
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Label: ", transition["label"]))
-    print(''.center(50, '-'))
-    print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
-    print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-    print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
-    print(''.center(50, '-'))
+      transition = build_transition(bright_number,dark_number,bright_label,dark_label,momdip_key,system)
 
-    transitions_list.append(transition)
+      print("")
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Label: ", transition["label"]))
+      print(''.center(50, '-'))
+      print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
+      print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
+      print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
+      print(''.center(50, '-'))
+
+      transitions_list.append(transition)
 
     return transitions_list
 
@@ -213,6 +219,13 @@ def brightests_to_coupled_darks(system:dict):
         dark_list.append(state['number'])
       elif state['type'].lower() == "bright":
         bright_list.append(state['number'])
+
+    # Adjust bmax and dmax if needed
+
+    if bmax > len(bright_list):
+      bmax = len(bright_list)
+    if dmax > len(dark_list):
+      dmax = len(dark_list)
 
     # ========================================================= #
     #                        Subfunction                        #
@@ -270,7 +283,7 @@ def brightests_to_coupled_darks(system:dict):
     # ========================================================= #
 
     # We need to consider each transition dipole moments matrix separately
-    for key in system['momdip_es_mtx']:
+    for momdip_key in system['momdip_es_mtx']:
 
       # ========================================================= #
       #          Defining the bright-dark pair of states          #
@@ -280,7 +293,7 @@ def brightests_to_coupled_darks(system:dict):
       # =========================
 
       # Consider the dipole moments for transition involving the ground state (and make sure it's a list and not a NumPy array)
-      gs_line = system['momdip_es_mtx'][key][0]
+      gs_line = system['momdip_es_mtx'][momdip_key][0]
       if isinstance(gs_line, numpy.ndarray):
         gs_line = gs_line.tolist()
 
@@ -302,7 +315,7 @@ def brightests_to_coupled_darks(system:dict):
         # =======================
 
         # Consider the dipole moments for transition involving the current bright state (and make sure it's a list and not a NumPy array)
-        bright_line = system['momdip_es_mtx'][key][bright_number]
+        bright_line = system['momdip_es_mtx'][momdip_key][bright_number]
         if isinstance(bright_line, numpy.ndarray):
           bright_line = bright_line.tolist()
 
@@ -329,12 +342,12 @@ def brightests_to_coupled_darks(system:dict):
 
           # Call the build_transition function using the current information for this transition
 
-          transition = build_transition(bright_number,dark_number,bright_label,dark_label,system)
+          transition = build_transition(bright_number,dark_number,bright_label,dark_label,momdip_key,system)
 
           # Update the label to something less generic and more informative
           # e.g. X_1B2D_S3-T2 indicates a transition based on the transition dipole moments matrix associated with the "X" key (X axis), involving the brightest bright state (1B) and its second most coupled dark state (2D), the labels of those states being S3 and T2, respectively.
 
-          transition_label = key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label 
+          transition_label = momdip_key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label 
           transition.update({ "label": transition_label}) 
 
           # Pretty recap for the log file
