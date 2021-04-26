@@ -478,7 +478,7 @@ def main():
 
     eigenvectors = eigenvectors.tolist()
     eigenvalues = eigenvalues.tolist()
-    system['eigenvalues'] = [0] * len(eigenvalues)
+    system['eigenstates_list'] = [{'number' : -1, 'label' : ' ', 'energy' : -1.0, 'main_cont' : ' '}] * len(eigenvalues)
     system['eigenvectors'] = [[] for x in range(len(eigenvalues))] # creates an empty list of lists, e.g. [[],[],[]]
 
     # Assign according to the major contributor amongst the zero order states
@@ -506,7 +506,10 @@ def main():
             # Write the eigenstate information on the same index than its main contributor, for easy handling later on
 
             system['eigenvectors'][max_index] = current_vector
-            system['eigenvalues'][max_index] = current_value
+            system['eigenstates_list'][max_index]['number'] = max_index
+            system['eigenstates_list'][max_index]['label'] = "E" + str(max_index)
+            system['eigenstates_list'][max_index]['energy'] = current_value
+            system['eigenstates_list'][max_index]['main_cont'] = system["states_list"][max_index]["label"]
 
             # Make a clear statement about it in the log file
 
@@ -546,10 +549,10 @@ def main():
               # We need to exchange places with the current resident
 
               temp_vector = system['eigenvectors'][max_index]
-              temp_value = system['eigenvalues'][max_index]
+              temp_value = system['eigenstates_list'][max_index]['energy']
 
               system['eigenvectors'][max_index] = current_vector              
-              system['eigenvalues'][max_index] = current_value
+              system['eigenstates_list'][max_index]['energy'] = current_value
 
               # We are done with this eigenvector, but we need to relocate the now homeless eigenvector
 
@@ -557,15 +560,6 @@ def main():
               current_value = temp_value
               break
 
-    # ========================================================= #
-    # Eigenvalues                                               #
-    # ========================================================= #
-
-    print("\nEigenvalues (Ha)")
-    print('')
-    for value in system['eigenvalues']:
-      print(value)
-    
     # ========================================================= #
     # Eigenvectors matrix                                       #
     # ========================================================= #
@@ -626,6 +620,68 @@ def main():
           print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
         print('')
   
+    # ========================================================= #
+    # Eigenstates list                                          #
+    # ========================================================= #
+
+    # Radiative lifetime of excited eigenstates
+    # =========================================
+
+    # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
+    # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
+
+    # Constants taken from the NIST website (https://physics.nist.gov/)
+
+    planck = 6.62607015e-34               # in J/Hz
+    light_speed = 299792458               # in m/s (in vacuum)
+    permittivity = 8.8541878128e-12       # in F/m (for vacuum)
+    dipole_au = 8.4783536255e-30          # in C.m 
+    debye = 3.335641e-30                  # in C.m
+    conv_ha_to_hz = 6.579683920502e+15    # Conversion factor from Hartree to Hertz
+
+    # Calculate the radiative lifetime of each excited state
+
+    for eigenstate in system['eigenstates_list']:
+
+      sum_einstein_coeffs = 0
+
+      for other_state in system['eigenstates_list']:
+
+        if other_state['energy'] < eigenstate['energy']:
+
+          # Convert the energy difference in Hz
+
+          energy_diff = (eigenstate['energy'] - other_state['energy']) * conv_ha_to_hz
+
+          # Convert the transition dipole moment to Debye and square it
+
+          square_dipole = 0
+          for momdip_key in system['momdip_es_mtx']:
+            square_dipole += (system['momdip_es_mtx'][key][eigenstate['number']][other_state['number']] * dipole_au / debye) ** 2
+
+          # Calculate the A Einstein Coefficient          
+
+          einstein_coeff = (2 * square_dipole * (energy_diff**3)) / (3 * permittivity * planck * (light_speed**3))
+          sum_einstein_coeffs += einstein_coeff
+
+      if sum_einstein_coeffs == 0:
+        eigenstate['lifetime'] = float('inf')
+      else:
+        eigenstate['lifetime'] = 1 / sum_einstein_coeffs
+
+    # Print the eigenstates list
+    # ==========================
+
+    print("")
+    print(''.center(58, '-'))
+    print('Eigenstates List'.center(58, ' '))
+    print(''.center(58, '-'))
+    print("{:<10} {:<10} {:<15} {:<18} {:<15}".format('Number','Label','Energy (Ha)','Main Contributor','Lifetime (s)'))
+    print(''.center(58, '-'))
+    for eigenstate in system['eigenstates_list']:
+      print("{:<10} {:<10} {:<15.3f} {:<18} {:<15.5e}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['main_cont'],eigenstate['lifetime']))
+    print(''.center(58, '-'))
+
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
     sys.stdout = original_stdout                                 
@@ -759,10 +815,22 @@ def main():
       numpy.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][momdip_key],fmt='% 18.10e')
       print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (momdip_key, momdip_mtx_file))
 
+    # Eigenstates list
+
+    eigenstate_file = "eigenstates.csv"
+    with open(os.path.join(data_dir,eigenstate_file), "w") as f:
+      print("Number;Label;Energy (Ha);Main Contributor;Lifetime (s)", file = f)
+      for eigenstate in system['eigenstates_list']:
+        eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:.5e}".format(eigenstate['energy']),eigenstate['main_cont'],"{:.5e}".format(eigenstate['lifetime'])))
+        print(eigenstate_line, file = f)
+    print("    ├── The eigenstates list file ('%s') has been created into the directory" % eigenstate_file)
+
     # Eigenvalues
 
     eigenvalues_file = "eigenvalues"
-    numpy.savetxt(os.path.join(data_dir,eigenvalues_file),system['eigenvalues'],fmt='%1.10e')
+    with open(os.path.join(data_dir,eigenvalues_file), "w") as f:
+      for eigenstate in system['eigenstates_list']:
+        print("{:1.10e}".format(eigenstate['energy']), file = f)
     print("    ├── The eigenvalues file ('%s') has been created into the directory" % eigenvalues_file)
 
     # Eigenvectors matrix and eigenvectors transpose matrix
@@ -873,7 +941,7 @@ def main():
 
     # Use the number of states to determine the job scale
 
-    scale_index = len(system['eigenvalues'])
+    scale_index = len(system['eigenstates_list'])
 
     print("")
     print(''.center(50, '-'))

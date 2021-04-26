@@ -272,7 +272,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       # Determining the number of subpulses (energy differences between the states, excluding the ground state)
 
-      nb_states = len(system['eigenvalues']) - 1 # Excluding the ground state
+      nb_states = len(system['eigenstates_list']) - 1 # Excluding the ground state
       nb_subpulses = int(nb_states * (nb_states - 1) / 2)
 
       # Determining the subpulses constituting the guess pulse

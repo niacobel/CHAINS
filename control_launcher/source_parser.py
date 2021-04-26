@@ -577,6 +577,49 @@ def qchem_tddft(source_content:list):
           print(numpy.format_float_positional(val,precision=6,unique=False,pad_left=2,trim="0",pad_right=6), end = " ")
         print('')
 
+    # ========================================================= #
+    #           Radiative lifetime of excited states            #
+    # ========================================================= #
+
+    # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
+    # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
+
+    # Constants taken from the NIST website (https://physics.nist.gov/)
+
+    planck = 6.62607015e-34  # in J/Hz
+    light_speed = 299792458 # in m/s (in vacuum)
+    permittivity = 8.8541878128e-12 # in F/m (for vacuum)
+    dipole_au = 8.4783536255e-30 # in C.m 
+    debye = 3.335641e-30 # in C.m
+
+    # Calculate the radiative lifetime of each excited state
+
+    for state in system['states_list']:
+
+      sum_einstein_coeffs = 0
+
+      for other_state in system['states_list']:
+
+        if other_state['energy'] < state['energy']:
+
+          # Convert the energy difference in Hz
+          energy_diff = energy_unit_conversion(state['energy'],"cm-1","Hz") - energy_unit_conversion(other_state['energy'],"cm-1","Hz")
+
+          # Convert the transition dipole moment to Debye and square it
+          momdip_x = system['momdip_mtx']['X'][state['number']][other_state['number']] * dipole_au / debye
+          momdip_y = system['momdip_mtx']['Y'][state['number']][other_state['number']] * dipole_au / debye
+          momdip_z = system['momdip_mtx']['Z'][state['number']][other_state['number']] * dipole_au / debye
+          square_dipole = (momdip_x**2) + (momdip_y**2) + (momdip_z**2)
+
+          # Calculate the A Einstein Coefficient          
+          einstein_coeff = (2 * square_dipole * (energy_diff**3)) / (3 * permittivity * planck * (light_speed**3))
+          sum_einstein_coeffs += einstein_coeff
+
+      if sum_einstein_coeffs == 0:
+        state['lifetime'] = float('inf')
+      else:
+        state['lifetime'] = 1 / sum_einstein_coeffs
+
     # End of the function, return the needed variables after having converted the states energy from cm-1 to Ha
 
     for state in system['states_list']:
