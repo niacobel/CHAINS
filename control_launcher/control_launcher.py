@@ -478,7 +478,9 @@ def main():
 
     eigenvectors = eigenvectors.tolist()
     eigenvalues = eigenvalues.tolist()
-    system['eigenstates_list'] = [{'number' : -1, 'label' : ' ', 'energy' : -1.0, 'main_cont' : ' '}] * len(eigenvalues)
+    system['eigenstates_list'] = []
+    for state in range(len(eigenvalues)):
+      system['eigenstates_list'].append({'number' : -1, 'label' : ' ', 'energy' : -1.0, 'main_cont' : ' '})
     system['eigenvectors'] = [[] for x in range(len(eigenvalues))] # creates an empty list of lists, e.g. [[],[],[]]
 
     # Assign according to the major contributor amongst the zero order states
@@ -494,7 +496,7 @@ def main():
       while looking_for_home:
 
         # Sort the indices by decreasing order of the square values of their corresponding coefficients in the vector
-        # e.g. if eigenvector = [-10, 50, -30, 40, 20] then max_indices = [1, 3, 2, 4, 0]
+        # e.g. if eigenvector = [-10, 50, -30, 40, 20], then contributions = [100, 2500, 900, 1600, 400] then max_indices = [1, 3, 2, 4, 0]
 
         contributions = [(coef**2) for coef in current_vector]
         max_indices = [contributions.index(x) for x in sorted(contributions, reverse=True)]
@@ -657,7 +659,7 @@ def main():
 
           square_dipole = 0
           for momdip_key in system['momdip_es_mtx']:
-            square_dipole += (system['momdip_es_mtx'][key][eigenstate['number']][other_state['number']] * dipole_au / debye) ** 2
+            square_dipole += (system['momdip_es_mtx'][momdip_key][eigenstate['number']][other_state['number']] * dipole_au / debye) ** 2
 
           # Calculate the A Einstein Coefficient          
 
