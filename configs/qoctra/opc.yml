@@ -16,18 +16,19 @@ general:
 qoctra:
   process: OPC                                    # Nature of the process: [OPC] Optimal control, [OPM] Optimal control with multiple constraints; [PCP] Post-control with pulse [PCL] Free post-control
   control:
-    time_step: 7.d0                               # Duration of a time step (a.u. of time)
+    time_step: 0.41d0                             # Duration of a time step (a.u. of time)
     max_iter: 3000                                # Maximum number of iterations
     threshold: 0.9999d0                           # Convergence threshold for the fidelity
   opc:
-    nb_steps: 20000                               # Number of time steps
+    nb_steps: 10000                               # Number of time steps
     alpha: 250.0d0                                # Constraint on the field amplitude
     write_freq: 30                                # Number of iterations between each writing of the field
   guess_pulse:
-    pulse_type: SIM                               # Type de champ initial
-    subpulse_type: sin                            # Type de sous-impulsion [sin], [pip] ou [gau]
-    amplitude: 1.9447d-5                          # Amplitude des sous-impulsions (1.9447d-12 = 1 V/m)
-    phase_change: 0.d0                            # Déphasage
-    sign: 1                                       # Signe
+    pulse_type: SIM                               # Type of starting guess pulse
+    subpulse_type: gau                            # Type of subpulses ([sin], [pip] ou [gau])
+    tbp: 0.44                                     # Time-bandwidth product of the pulse (Gaussian = 0.44)
+    amplitude: 1.9447d-5                          # Amplitude of the subpulses (in atomic units, 1.9447d-12 u.a. = 1 V/m)
+    phase_change: 0.d0                            # Dephasing
+    sign: 1                                       # Sign
   post_control:
     analy_freq: 1000                              # Number of steps between each analysis of the populations, phases, positions and energies

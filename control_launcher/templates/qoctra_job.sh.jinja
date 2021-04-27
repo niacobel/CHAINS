@@ -122,10 +122,7 @@ if [ $(cat {{ mol_dir }}/$finish_file | wc -l) -eq {{ nb_transitions }} ]; then
     echo -e "\tCopying and renaming pulse files to ${res_dir}/Pulse."
     mkdir -p $res_dir/Pulse
     cd $job_dir/Pulse/
-    cp Pixel_heat{{ max_iter }} Pulse_init Pulse_iter{{ max_iter }} Pulse_param_init Pulse_param_iter{{ max_iter }} $res_dir/Pulse
-    mv $res_dir/Pulse/Pixel_heat{{ max_iter }} $res_dir/Pulse/Pixel_heat_final
-    mv $res_dir/Pulse/Pulse_iter{{ max_iter }} $res_dir/Pulse/Pulse_final
-    mv $res_dir/Pulse/Pulse_param_iter{{ max_iter }} $res_dir/Pulse/Pulse_param_final
+    cp Pulse_init Pulse Pulse_param_init Pulse_param $res_dir/Pulse
 
     echo -e "\tCopying PCP files to ${res_dir}/PCP."
     mkdir -p $res_dir/PCP

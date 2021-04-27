@@ -73,7 +73,7 @@ def build_transition(init_state:int,target_state:int,init_label:str,target_label
 
     # Calculate the transition energy (in Ha)
 
-    energy = abs(system['mime'][init_state][init_state] - system['mime'][target_state][target_state]) #! Eigenstates or zero order states?
+    energy = abs(system['eigenstates_list'][init_state]['energy'] - system['eigenstates_list'][target_state]['energy']) #! Eigenstates or zero order states?
 
     # Building the transition dictionary
 

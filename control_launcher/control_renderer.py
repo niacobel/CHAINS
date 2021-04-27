@@ -11,7 +11,7 @@ import yaml
 from jinja2 import Environment, FileSystemLoader
 
 import control_errors
-
+import re
 
 def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
     """Renders a file based on its Jinja template.
@@ -165,13 +165,14 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     try:
       
-      max_iter = config['qoctra']['control']['max_iter'] # Stored into a variable since it will be reused
+      time_step = config['qoctra']['control']['time_step'] # Stored into a variable since it will be reused
+      time_step = re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', time_step) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python
 
       param_render_vars.update({
         # CONTROL
-        "max_iter" : max_iter,
+        "max_iter" : config['qoctra']['control']['max_iter'],
         "threshold" : config['qoctra']['control']['threshold'],
-        "time_step" : config['qoctra']['control']['time_step'],
+        "time_step" : time_step,
         "start_pulse" : " ",
         "guess_pulse" : rendered_pulse
       })
@@ -192,9 +193,12 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       # Variables associated with the "opc" block of the "qoctra" block in the config file
 
       try:
+
+        nb_steps = config['qoctra']['opc']['nb_steps'] # Stored into a variable since it will be reused
+
         param_render_vars.update({
           # OPC
-          "nb_steps" : config['qoctra']['opc']['nb_steps'],
+          "nb_steps" : nb_steps,
           "alpha" : config['qoctra']['opc']['alpha'],
           "write_freq" : config['qoctra']['opc']['write_freq']
         })
@@ -231,7 +235,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       # GENERAL
       "process" : "PCP",
       # CONTROL
-      "start_pulse" : "../Pulse/Pulse_iter" + str(max_iter),
+      "start_pulse" : "../Pulse/Pulse",
       # POST CONTROL
       "mat_et0_path" : data['eigenvectors_path']
     })
@@ -270,27 +274,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     if process == 'OPC':
 
-      # Determining the number of subpulses (energy differences between the states, excluding the ground state)
-
-      nb_states = len(system['eigenstates_list']) - 1 # Excluding the ground state
-      nb_subpulses = int(nb_states * (nb_states - 1) / 2)
-
-      # Determining the subpulses constituting the guess pulse
-
-      subpulses = []
-
-      for i in range(nb_states):
-        for j in range(i, nb_states):
-            if i != j:
-              subpulses.append(str(i+1) + " \t " + str(j+1))
-
-      # Variables not associated with the config file
-
-      pulse_render_vars = {
-        "basis" : data['eigenvalues_path'],
-        "nb_subpulses" : nb_subpulses,
-        "subpulses" : subpulses
-      }
+      # Set the variables associated with the config file
+      # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
       # Check if a "guess_pulse" block has been defined in the "qoctra" block of the config file
 
@@ -300,16 +285,59 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       # Variables associated with the "guess_pulse" block of the "qoctra" block in the config file
 
       try:
-        pulse_render_vars.update({
+
+        tbp = config['qoctra']['guess_pulse']['tbp']
+
+        pulse_render_vars = {
           "pulse_type" : config['qoctra']['guess_pulse']['pulse_type'],
           "subpulse_type" : config['qoctra']['guess_pulse']['subpulse_type'],
           "amplitude" : config['qoctra']['guess_pulse']['amplitude'],
           "phase_change" : config['qoctra']['guess_pulse']['phase_change'],
           "sign" : config['qoctra']['guess_pulse']['sign']       
-        })
+        }
 
       except KeyError as error:
         raise control_errors.ControlError ('ERROR: The "%s" key is missing in the "guess_pulse" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+      # Determine the subpulses constituting the guess pulse
+      # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      # Determine the spectral bandwidth of the pulse
+
+      duration = int(nb_steps) * float(time_step) 
+      duration_fwhm = duration / 6 * 2.35 # Using 2.35 as the standard deviation for a Gaussian
+      bandwidth_fwhm = float(tbp) / duration_fwhm
+      bandwidth = bandwidth_fwhm * 6 / 2.35
+
+      # Determine the frequency range of subpulses (delimited by the spectral bandwidth, centered around the transition energy)
+
+      upper_limit = misc['transition']['energy'] + bandwidth/2
+      lower_limit = misc['transition']['energy'] - bandwidth/2
+
+      # Initialize the list of subpulses
+
+      subpulses = []
+
+      # Consider each pair of excited states
+
+      for state_1 in range(1, len(system['eigenstates_list'])): # Starting at 1 to exclude the ground state
+        for state_2 in range(state_1 + 1, len(system['eigenstates_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
+
+          # If the transition energy of this pair is comprised in our frequency range, add it to the subpulses list
+         
+          energy_diff = abs(system['eigenstates_list'][state_1]['energy'] - system['eigenstates_list'][state_2]['energy'])
+
+          if lower_limit <= energy_diff <= upper_limit:
+            subpulses.append(str(state_1 + 1) + " \t " + str(state_2 + 1)) # +1 because Fortran starts numbering at 1 while Python starts at 0.
+
+      # Set the variables not associated with the config file
+      # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      pulse_render_vars.update({
+        "basis" : data['eigenvalues_path'],
+        "nb_subpulses" : len(subpulses),
+        "subpulses" : subpulses
+      })
 
     # Rendering the file
     # ==================
@@ -388,8 +416,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
         "mol_dir" : misc['mol_dir'],
         "nb_transitions" : len(misc['transitions_list']),
         "data_dir" : data['main_path'],
-        "job_script" : rendered_script,
-        "max_iter" : max_iter # Associated with the config file, but it has already been verified
+        "job_script" : rendered_script
       })
 
       # Variables associated with the CHAINS configuration file
