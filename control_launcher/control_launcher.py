@@ -631,15 +631,12 @@ def main():
 
     # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
     # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
+    # Note that this calculation is performed using atomic units, which means the Planck constant equals 2*pi and the vacuum permittivity equals 1/(4*pi)
 
     # Constants taken from the NIST website (https://physics.nist.gov/)
 
-    planck = 6.62607015e-34               # in J/Hz
-    light_speed = 299792458               # in m/s (in vacuum)
-    permittivity = 8.8541878128e-12       # in F/m (for vacuum)
-    dipole_au = 8.4783536255e-30          # in C.m 
-    debye = 3.335641e-30                  # in C.m
-    conv_ha_to_hz = 6.579683920502e+15    # Conversion factor from Hartree to Hertz
+    light_speed = 299792458         # in m/s (in vacuum)
+    au_velocity = 2.18769126364e6   # in m/s
 
     # Calculate the radiative lifetime of each excited state
 
@@ -651,19 +648,19 @@ def main():
 
         if other_state['energy'] < eigenstate['energy']:
 
-          # Convert the energy difference in Hz
+          # Compute the energy difference
 
-          energy_diff = (eigenstate['energy'] - other_state['energy']) * conv_ha_to_hz
+          energy_diff = eigenstate['energy'] - other_state['energy']
 
-          # Convert the transition dipole moment to Debye and square it
+          # Compute the square of the transition dipole moment
 
           square_dipole = 0
           for momdip_key in system['momdip_es_mtx']:
-            square_dipole += (system['momdip_es_mtx'][momdip_key][eigenstate['number']][other_state['number']] * dipole_au / debye) ** 2
+            square_dipole += system['momdip_es_mtx'][momdip_key][eigenstate['number']][other_state['number']] ** 2
 
           # Calculate the A Einstein Coefficient          
 
-          einstein_coeff = (2 * square_dipole * (energy_diff**3)) / (3 * permittivity * planck * (light_speed**3))
+          einstein_coeff = (4/3) * square_dipole * (energy_diff**3) / ((light_speed/au_velocity)**3)
           sum_einstein_coeffs += einstein_coeff
 
       if sum_einstein_coeffs == 0:
@@ -675,14 +672,14 @@ def main():
     # ==========================
 
     print("")
-    print(''.center(58, '-'))
-    print('Eigenstates List'.center(58, ' '))
-    print(''.center(58, '-'))
-    print("{:<10} {:<10} {:<15} {:<18} {:<15}".format('Number','Label','Energy (Ha)','Main Contributor','Lifetime (s)'))
-    print(''.center(58, '-'))
+    print(''.center(75, '-'))
+    print('Eigenstates List'.center(75, ' '))
+    print(''.center(75, '-'))
+    print("{:<10} {:<10} {:<15} {:<18} {:<15}".format('Number','Label','Energy (Ha)','Main Contributor','Lifetime (a.u.)'))
+    print(''.center(75, '-'))
     for eigenstate in system['eigenstates_list']:
-      print("{:<10} {:<10} {:<15.3f} {:<18} {:<15.5e}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['main_cont'],eigenstate['lifetime']))
-    print(''.center(58, '-'))
+      print("{:<10} {:<10} {:<15.5e} {:<18} {:<15.5e}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['main_cont'],eigenstate['lifetime']))
+    print(''.center(75, '-'))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
@@ -821,7 +818,7 @@ def main():
 
     eigenstate_file = "eigenstates.csv"
     with open(os.path.join(data_dir,eigenstate_file), "w") as f:
-      print("Number;Label;Energy (Ha);Main Contributor;Lifetime (s)", file = f)
+      print("Number;Label;Energy (Ha);Main Contributor;Lifetime (a.u.)", file = f)
       for eigenstate in system['eigenstates_list']:
         eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:.5e}".format(eigenstate['energy']),eigenstate['main_cont'],"{:.5e}".format(eigenstate['lifetime'])))
         print(eigenstate_line, file = f)

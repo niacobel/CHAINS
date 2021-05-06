@@ -293,14 +293,14 @@ def qchem_tddft(source_content:list):
     # Print the states list
 
     print("")
-    print(''.center(50, '-'))
-    print('States List'.center(50, ' '))
-    print(''.center(50, '-'))
+    print(''.center(55, '-'))
+    print('States List'.center(55, ' '))
+    print(''.center(55, '-'))
     print("{:<10} {:<15} {:<10} {:<15}".format('Number','Type','Label','Energy (cm-1)'))
-    print(''.center(50, '-'))
+    print(''.center(55, '-'))
     for state in system['states_list']:
       print("{:<10} {:<15} {:<10} {:<15.3f}".format(state['number'],state['type'],state['label'],state['energy']))
-    print(''.center(50, '-'))
+    print(''.center(55, '-'))
 
     # ========================================================= #
     #                          SOC List                         #
@@ -583,14 +583,17 @@ def qchem_tddft(source_content:list):
 
     # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
     # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
+    # Note that this calculation is performed using atomic units, which means the Planck constant equals 2*pi and the vacuum permittivity equals 1/(4*pi)
 
     # Constants taken from the NIST website (https://physics.nist.gov/)
 
-    planck = 6.62607015e-34  # in J/Hz
-    light_speed = 299792458 # in m/s (in vacuum)
-    permittivity = 8.8541878128e-12 # in F/m (for vacuum)
-    dipole_au = 8.4783536255e-30 # in C.m 
-    debye = 3.335641e-30 # in C.m
+    light_speed = 299792458         # in m/s (in vacuum)
+    au_velocity = 2.18769126364e6   # in m/s
+
+    # Converting the states energy from cm-1 to Ha
+
+    for state in system['states_list']:
+      state['energy'] = energy_unit_conversion(state['energy'],"cm-1","ha")
 
     # Calculate the radiative lifetime of each excited state
 
@@ -602,17 +605,19 @@ def qchem_tddft(source_content:list):
 
         if other_state['energy'] < state['energy']:
 
-          # Convert the energy difference in Hz
-          energy_diff = energy_unit_conversion(state['energy'],"cm-1","Hz") - energy_unit_conversion(other_state['energy'],"cm-1","Hz")
+          # Convert the energy difference
 
-          # Convert the transition dipole moment to Debye and square it
-          momdip_x = system['momdip_mtx']['X'][state['number']][other_state['number']] * dipole_au / debye
-          momdip_y = system['momdip_mtx']['Y'][state['number']][other_state['number']] * dipole_au / debye
-          momdip_z = system['momdip_mtx']['Z'][state['number']][other_state['number']] * dipole_au / debye
-          square_dipole = (momdip_x**2) + (momdip_y**2) + (momdip_z**2)
+          energy_diff = state['energy'] - other_state['energy']
 
-          # Calculate the A Einstein Coefficient          
-          einstein_coeff = (2 * square_dipole * (energy_diff**3)) / (3 * permittivity * planck * (light_speed**3))
+          # Compute the square of the transition dipole moment
+
+          square_dipole = 0
+          for momdip_key in system['momdip_mtx']:
+            square_dipole += system['momdip_mtx'][momdip_key][state['number']][other_state['number']] ** 2
+
+          # Calculate the A Einstein Coefficient   
+         
+          einstein_coeff = (4/3) * square_dipole * (energy_diff**3) / ((light_speed/au_velocity)**3)
           sum_einstein_coeffs += einstein_coeff
 
       if sum_einstein_coeffs == 0:
@@ -620,9 +625,14 @@ def qchem_tddft(source_content:list):
       else:
         state['lifetime'] = 1 / sum_einstein_coeffs
 
-    # End of the function, return the needed variables after having converted the states energy from cm-1 to Ha
-
+    print("")
+    print(''.center(70, '-'))
+    print('States List with radiative lifetimes'.center(70, ' '))
+    print(''.center(70, '-'))
+    print("{:<10} {:<15} {:<10} {:<15} {:<15}".format('Number','Type','Label','Energy (cm-1)','Lifetime (a.u.)'))
+    print(''.center(70, '-'))
     for state in system['states_list']:
-      state['energy'] = energy_unit_conversion(state['energy'],"cm-1","ha")
-    
+      print("{:<10} {:<15} {:<10} {:<15.5e} {:<15.5e}".format(state['number'],state['type'],state['label'],state['energy'],state['lifetime']))
+    print(''.center(70, '-'))
+
     return system
