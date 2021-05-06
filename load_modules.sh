@@ -18,7 +18,8 @@
 module --force purge
 
 if   [ "${CLUSTER_NAME}" = "dragon1" ]; then
-    module load python/3.5.4-GCC-4.9.2
+    module load releases/2018b
+    module load Python/3.7.0-foss-2018b
 	
 elif [ "${CLUSTER_NAME}" = "dragon2" ]; then
     module load releases/2019a
