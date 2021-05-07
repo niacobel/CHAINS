@@ -9,4 +9,17 @@ Geometry Optimization of {{ mol_name }}
 {% for coordinate_line in coordinates -%}
 {{ coordinate_line }}
 {% endfor -%}
+
+{% if cation_opt is sameas true %}
+--Link1--
+%oldchk={{ mol_name }}.chk
+%chk={{ mol_name }}_cation.chk
+%NProcShared={{ job_cores }}
+%mem={{ mem_total }}MB
+# {{ method }}/{{ basis_set }} {{ other }} Opt Geom=Checkpoint
+
+Geometry Optimization of {{ mol_name }} in cation form
+
+{{ charge_cation }} {{ multiplicity_cation }}
+{%- endif %}
 {{ " " }} {# Make sure the input ends by a blank line #}

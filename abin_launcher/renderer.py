@@ -94,7 +94,12 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
 
     # Check the options defined in the config file
 
-    copy_files = config['gaussian'].get('copy_files',True)
+    cation_opt = config['gaussian'].get('cation_opt',False)
+
+    if not isinstance(cation_opt, bool):
+      raise abin_errors.AbinError ('ERROR: The "cation_opt" value given in the "gaussian" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    copy_files = config['gaussian'].get('copy_files',False)
 
     if not isinstance(copy_files, bool):
       raise abin_errors.AbinError ('ERROR: The "copy_files" value given in the "gaussian" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
@@ -136,8 +141,8 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
   
     print("{:<80}".format("\nRendering the jinja template for the gaussian input file ...  "), end="")
 
-    # Defining the Jinja variables
-    # ============================
+    # Defining the mandatory Jinja variables
+    # ======================================
 
     # Variables not associated with the config file
 
@@ -145,7 +150,8 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
       "mol_name" : misc['mol_name'],
       "mem_total" : job_specs['cores'] * job_specs['mem_per_cpu'],
       "job_cores" : job_specs['cores'],
-      "coordinates" : file_data['atomic_coordinates']
+      "coordinates" : file_data['atomic_coordinates'],
+      "cation_opt" : cation_opt # Associated with the config file, but it has already been verified
     }
 
     # Variables associated with the "general" block of the config file
@@ -176,6 +182,29 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
     except KeyError as error:
       raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "keywords" block of the "gaussian" block in the "%s" configuration file.' % (error,misc['config_name']))
 
+    # Defining the specific Jinja variables
+    # =====================================
+
+    # Variables specific to the cation_opt portion of the template
+
+    if cation_opt:
+
+      # Determine the new charge and multiplicity of the cation
+
+      charge_cation = int(config['general']['charge']) + 1
+
+      if int(config['general']['multiplicity']) == 1: # In the case of a singlet ground state, we break a pair of electrons and thus "create" a new unpaired electron
+        multiplicity_cation = 2
+      else:
+        multiplicity_cation = int(config['general']['multiplicity']) - 1 # We removed one unpaired electron
+
+      # Variables associated with the config file but they have already been verified
+
+      input_render_vars.update({
+        "charge_cation" : charge_cation,
+        "multiplicity_cation" : multiplicity_cation
+      })
+
     # Rendering the file
     # ==================
      
@@ -192,9 +221,9 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
     chains_path = os.path.dirname(misc['code_dir'])  
     check_script_path = os.path.join(chains_path,"check_scripts")
 
-    # If we need to copy the output files to their respective results directory, load the CHAINS configuration file to get the necessary information
+    # If we need to copy the output files to their respective results directory (or compute the ionization potentials through the cation), load the CHAINS configuration file to get the necessary information
 
-    if copy_files:
+    if copy_files or cation_opt:
 
       chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"chains_config.yml"),"CHAINS configuration YAML file","file")
   
@@ -219,6 +248,7 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
       "partition" : job_specs['partition'],     
       "chains_dir" : chains_path,
       "check_dir" : check_script_path,
+      "cation_opt" : cation_opt, # Associated with the config file, but it has already been verified
       "copy_files" : copy_files, # Associated with the config file, but it has already been verified
       "benchmark" : benchmark    # Associated with the config file, but it has already been verified
     }
@@ -247,6 +277,20 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
 
     # Defining the specific Jinja variables
     # =====================================
+
+    # Variables specific to the cation_opt portion of the template
+
+    if cation_opt:
+
+      # Variables associated with the CHAINS configuration file
+
+      try:
+        script_render_vars.update({
+          "results_dir" : chains_config['results_dir']
+        })
+
+      except KeyError as error:
+        raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the CHAINS configuration file (chains_config.yml).' % error)
 
     # Variables specific to the copy_files portion of the template
 
@@ -349,7 +393,7 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
 
     # Check the options defined in the config file
 
-    copy_files = config['qchem'].get('copy_files',True)
+    copy_files = config['qchem'].get('copy_files',False)
 
     if not isinstance(copy_files, bool):
       raise abin_errors.AbinError ('ERROR: The "copy_files" value given in the "qchem" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])

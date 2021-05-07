@@ -78,6 +78,13 @@ formchk {{ mol_name }}.chk {{ mol_name }}.fchk # Convert the checkpoint file fro
 bzip2 {{ mol_name }}.fchk
 rm {{ mol_name }}.chk
 
+{% if cation_opt is sameas true -%}
+# Execute the Python script computing the ionization potential (IP) of the molecule.
+echo -e "\nComputing the ionization potential (IP) of the molecule."
+source {{ chains_dir }}/load_modules.sh
+python {{ chains_dir }}/IP_calc.py -s {{ mol_name }}.log -o {{ results_dir }}/IPs.csv
+{%- endif %}
+
 {% if copy_files is sameas true -%}
 # Copy the various output files to their respective results directory
 
