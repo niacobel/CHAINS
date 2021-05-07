@@ -402,7 +402,7 @@ def main():
     required_keys = frozenset({"states_list", "mime", "momdip_mtx"})
 
     if not isinstance(system, dict):
-      raise control_errors.ControlError ('ERROR: The "system" returned by the %s parsing function is not a dictionary.' % parsing_fct) 
+      raise control_errors.ControlError ('ERROR: The "system" variable returned by the %s parsing function is not a dictionary.' % parsing_fct) 
 
     for key in required_keys:
       if key not in system:

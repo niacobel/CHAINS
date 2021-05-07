@@ -148,7 +148,7 @@ def slurm_time_to_seconds(time:str) -> int:
 
 # Define the arguments needed for the script (here they are defined as named arguments rather than positional arguments, check https://stackoverflow.com/questions/24180527/argparse-required-arguments-listed-under-optional-arguments for more info).
 
-parser = argparse.ArgumentParser(add_help=False, description="")
+parser = argparse.ArgumentParser(add_help=False, description="Use it in conjunction with the jinja template 'benchmark.jinja' as it will complete the lines from the CSV file created by that jinja template")
 
 required = parser.add_argument_group('Required arguments')
 required.add_argument("-t", "--tmp", type=str, help="Path towards the temporary CSV file that contains the lines you want to enrich.", required=True)
