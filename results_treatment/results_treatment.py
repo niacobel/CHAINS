@@ -299,7 +299,7 @@ def main():
       # Check the optimized geometry file
 
       gaussian_dir = os.path.join(mol_dir, "GAUSSIAN")
-      opt_geom_file = results_errors.check_abspath(os.path.join(gaussian_dir, mol_name + ".xyz"),"Optimized geometry file","file",True)
+      opt_geom_file = results_errors.check_abspath(os.path.join(gaussian_dir, mol_name + ".xyz"),"Optimized geometry file","file")
 
       # Load the XYZ geometry file
 
@@ -380,17 +380,17 @@ def main():
       # Check the data directory and its files                    #
       # ========================================================= #
 
-      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory",True)
+      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
 
-      states_file = results_errors.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file",True)
-      mime_file = results_errors.check_abspath(os.path.join(data_dir, "mime"),"MIME file","file",True)
-      momdip_file = results_errors.check_abspath(os.path.join(data_dir, "momdip_mtx"),"Transition dipole moments matrix file","file",True)
-      transitions_file = results_errors.check_abspath(os.path.join(data_dir, "transitions.csv"),"Transitions file","file",True)
+      states_file = results_errors.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file")
+      mime_file = results_errors.check_abspath(os.path.join(data_dir, "mime"),"MIME file","file")
+      momdip_file = results_errors.check_abspath(os.path.join(data_dir, "momdip_mtx"),"Transition dipole moments matrix file","file")
+      transitions_file = results_errors.check_abspath(os.path.join(data_dir, "transitions.csv"),"Transitions file","file")
 
-      eigenvalues_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file",True)
-      eigenvectors_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvectors"),"Eigenvectors file","file",True)
-      transpose_file = results_errors.check_abspath(os.path.join(data_dir, "transpose"),"Transpose of the eigenvectors file","file",True)
-      momdip_es_file = results_errors.check_abspath(os.path.join(data_dir, "momdip_es_mtx"),"Transition dipole moments matrix file, in the eigenstates basis set","file",True)
+      eigenvalues_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file")
+      eigenvectors_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvectors"),"Eigenvectors file","file")
+      transpose_file = results_errors.check_abspath(os.path.join(data_dir, "transpose"),"Transpose of the eigenvectors file","file")
+      momdip_es_file = results_errors.check_abspath(os.path.join(data_dir, "momdip_es_mtx"),"Transition dipole moments matrix file, in the eigenstates basis set","file")
 
       # ========================================================= #
       # Load the files                                            #

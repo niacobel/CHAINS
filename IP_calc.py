@@ -51,8 +51,8 @@ def check_abspath(path:str,context:str,type="either"):
     context : str
         Message to show on screen to give more information in case of an exception (e.g. the role of the directory or file that was checked, where the checked path was given, etc.).
     type : str, optional
-        The type of element for which you would like to test the path (file, directory or either).
-        By default, checks if the path leads to either a file or a directory (type = either).
+        The type of element for which you would like to test the path ('file', 'directory' or 'either').
+        By default, checks if the path leads to either a file or a directory (type = 'either').
     
     Returns
     -------
@@ -62,7 +62,7 @@ def check_abspath(path:str,context:str,type="either"):
     Raises
     ------
     ValueError
-        If the specified type when calling the function is not "file", "directory" or "either".
+        If the specified type when calling the function is not 'file', 'directory' or 'either'.
     IP_Error
         If the type does not match what is given in the path, or if the path does not exist.
     """
