@@ -41,7 +41,7 @@ class IP_Error(Error):
 # =================================================================== #
 # =================================================================== #
 
-def check_abspath(path:str,context:str,type="either",SkipError=False):
+def check_abspath(path:str,context:str,type="either"):
     """Checks if a path towards a file or directory exists and is of the correct type. If it is, the function returns its absolute version.
 
     Parameters
@@ -53,9 +53,6 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
     type : str, optional
         The type of element for which you would like to test the path (file, directory or either).
         By default, checks if the path leads to either a file or a directory (type = either).
-    SkipError : bool, optional
-        By default, IP_Error exceptions will be caught and will cause the function to exit the script.
-        Specify True to skip the error treatment and simply raise the exception.
     
     Returns
     -------
@@ -70,32 +67,28 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
         If the type does not match what is given in the path, or if the path does not exist.
     """
 
-    # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-    try:
+    # Check "type" argument
 
-      if type not in ["file","directory","either"]:
-        raise ValueError ("The specified type for which the check_abspath function has been called is not one of 'file', 'directory' or 'either'")
-      if not os.path.exists(path):
-        raise IP_Error ("ERROR: %s does not seem to exist." % path)
-      elif type == "file":
-        if not os.path.isfile(path):
-          raise IP_Error ("ERROR: %s is not a file" % path)
-      elif type == "directory":
-        if not os.path.isdir(path):
-          raise IP_Error ("ERROR: %s is not a directory" % path)
-      elif type == "either":
-        if not os.path.isdir(path) and not os.path.isfile(path):
-          raise IP_Error ("ERROR: %s is neither a file nor a directory" % path)
+    if type not in ["file","directory","either"]:
+      raise ValueError ("The specified type for which the check_abspath function has been called is not one of 'file', 'directory' or 'either'")
 
-    except IP_Error as error:
+    # Prepare to print a helpful error message in case of problem with the given path
 
-        print("Something went wrong when checking the path ", path)
-        print("Context: ",context)
-        if not SkipError:
-          print(error)
-          exit(1)
-        else:
-          raise
+    msg = "\nSomething went wrong when checking the path " + path + "\nContext: " + context + "\n"
+
+    # Check path
+    
+    if not os.path.exists(path):
+      raise IP_Error (msg + "ERROR: %s does not seem to exist." % path)
+    elif type == "file":
+      if not os.path.isfile(path):
+        raise IP_Error (msg + "ERROR: %s is not a file" % path)
+    elif type == "directory":
+      if not os.path.isdir(path):
+        raise IP_Error (msg + "ERROR: %s is not a directory" % path)
+    elif type == "either":
+      if not os.path.isdir(path) and not os.path.isfile(path):
+        raise IP_Error (msg + "ERROR: %s is neither a file nor a directory" % path)
 
     # If everything went well, get the normalized absolute version of the path
     
@@ -104,8 +97,7 @@ def check_abspath(path:str,context:str,type="either",SkipError=False):
     return abspath
 
 def gaussian_dft(source_content:list):
-    """Parses the content of a Gaussian DFT calculation log file, looking to extract the HOMO energy and the SCF energy of the neutral molecule, as well as the SCF energy of the cation. The calculation must have performed a geometry optimization or a single point calculation of the neutral molecule first, followed by a a geometry optimization or a single point calculation of the cation. If a geometry optimization of the cation was performed, both the initial and final SCF energies of the cation will be extracted.
-    Those values will be used by the main function to compute the ionization potentials of the molecule in three different ways: via Koopmans' theorem, in a vertical way (no changes in geometry) and in an adiabatic way (after having optimized the geometry of the cation)
+    """Parses the content of a Gaussian DFT calculation log file, looking to extract the HOMO energy and the SCF energy of the molecule. If a cation single point calculation was performed, the function also extracts the SCF energy of the cation. If a cation geometry optimization was performed, the function extracts both the initial and final SCF energies of the cation. The calculation of the cation must directly follow the calculation of the neutral molecule in the log file. The charge of the cation must be equal to the neutral charge plus one.
 
     Parameters
     ----------
@@ -115,13 +107,12 @@ def gaussian_dft(source_content:list):
     Returns
     -------
     energies : dict
-        The extracted information of the source file. It contains three keys and their associated values: ``homo``, ``neutral`` and ``cation`` where
+        The extracted information of the source file. It contains two mandatory keys and two optional keys with their associated values: ``homo``, ``neutral``, ``cation`` and ``cation_opt`` where
         
         - ``homo`` is the energy of the HOMO (in Hartree)
         - ``neutral`` is the energy of the neutral molecule (in Hartree)
-        - ``cation`` is the energy of the cation (in Hartree)
-
-        If a geometry calculation of the cation was performed, an additionnal ``cation_opt`` key will be added, with a value corresponding to the energy of the cation in its optimized geometry (in Hartree)
+        - ``cation`` is the energy of the cation in the neutral geometry (in Hartree) - only if a cation calculation was performed (single point or geometry optimization)
+        - ``cation_opt``is the energy of the cation in its optimized geometry (in Hartree) - only if a cation geometry optimization was performed
 
     Raises
     ------
@@ -131,89 +122,58 @@ def gaussian_dft(source_content:list):
     """
 
     # ========================================================= #
-    #                        HOMO energy                        #
+    #                     Neutral molecule                      #
     # ========================================================= #
 
     homo = False
+    neutral = False
 
-    # Define the expression patterns for the lines containing information about the HOMO energy.
+    # Define the expression patterns for the lines containing information about the neutral molecule.
 
-    homo_rx = {
+    neutral_rx = {
 
       # Look for the "Alpha  occ. eigenvalues --   -0.35890  -0.35890  -0.35890  -0.28056  -0.28056" type of line (and store the last value of the line)
-      'value': re.compile(r'^\s*Alpha  occ\. eigenvalues -- \s*(?:-?\d+\.\d+\s*)*\s*(?<value>-?\d+\.\d+)$'),
+      'homo_value': re.compile(r'^\s*Alpha  occ\. eigenvalues -- \s*(?:-?\d+\.\d+\s*)*\s*(?P<value>-?\d+\.\d+)$'),
+
+      # Look for the "SCF Done:  E(RB3LYP) =  -1454.81079575     A.U. after   11 cycles" type of line (and store the energy value)
+      'scf_value': re.compile(r'^\s*SCF Done:\s*E\(\w*\)\s*=\s*(?P<value>-?\d+\.\d+)\s*A\.U\. after\s*\d+\s*cycles$'),
+
+      # Look for the "Charge =  0 Multiplicity = 1" type of line (and store the charge value)
+      'charge': re.compile(r'^\s*Charge\s*=\s*(?P<charge>\d+)\s*Multiplicity\s*=\s*\d+\s*$'),
 
       # No need to go further than the "Normal termination of Gaussian" line (which signals the end of the neutral calculation)
-      'end': re.compile(r'^\s*Normal termination of Gaussian')
+      'end': re.compile(r'^\s*Normal termination of Gaussian.*$')
 
     }
 
     # Parse the source file to get the information
 
     for line in source_content:
-        
-        # Compare each line to all the homo_rx expressions
 
-        for key, rx in homo_rx.items():
+      # Define when the section ends
 
-          matching_line = rx.match(line)
+      if neutral_rx['end'].match(line):
+        break  
 
-          # If the line matches one of the rx patterns, act accordingly
+      # Store the charge of the neutral molecule to compare it with the cation charge later
 
-          if matching_line is not None:
+      elif neutral_rx['charge'].match(line):
+        neutral_charge = int(neutral_rx['charge'].match(line).group('charge'))
 
-            if key == 'value':
-              # Store the last numerical value of the line (this value will be overwritten everytime a new line of this type is encountered)
-              homo = float(matching_line.group('value'))
-    
-            elif key == 'end':
-              # Exit the loop once we reach the end of the neutral calculation, the last "homo" value stored in memory is the one corresponding to the HOMO.
-              break         
+      # If the line matches our orbitals energy pattern, store the last energy value of the line (this value will be overwritten everytime a new line of this type is encountered)
+
+      elif neutral_rx['homo_value'].match(line):
+        homo = float(neutral_rx['homo_value'].match(line).group('value'))
+
+      # If the line matches our SCF energy pattern, store the energy value of the line (this value will be overwritten everytime a new line of this type is encountered)
+
+      elif neutral_rx['scf_value'].match(line):
+        neutral = float(neutral_rx['scf_value'].match(line).group('value'))
 
     # Raise an exception if the HOMO energy has not been found
 
     if not homo:
       raise IP_Error ("ERROR: Unable to find the HOMO energy in the source file")
-
-    # ========================================================= #
-    #            SCF energy of the neutral molecule             #
-    # ========================================================= #
-
-    neutral = False
-
-    # Define the expression patterns for the lines containing information about the SCF energy.
-
-    neutral_rx = {
-
-      # Look for the "SCF Done:  E(RB3LYP) =  -1454.81079575     A.U. after   11 cycles" type of line (and store the energy value)
-      'value': re.compile(r'^\s*SCF Done:\s*E\(\w*\)\s*=\s*(?<value>-?\d+\.\d+)\s*A\.U\. after\s*\d+\s*cycles$'),
-
-      # No need to go further than the "Normal termination of Gaussian" line (which signals the end of the neutral calculation)
-      'end': re.compile(r'^\s*Normal termination of Gaussian')
-
-    }
-
-    # Parse the source file to get the information
-
-    for line in source_content:
-        
-        # Compare each line to all the neutral_rx expressions
-
-        for key, rx in neutral_rx.items():
-
-          matching_line = rx.match(line)
-
-          # If the line matches one of the rx patterns, act accordingly
-
-          if matching_line is not None:
-
-            if key == 'value':
-              # Store the energy value of the line (this value will be overwritten everytime a new line of this type is encountered)
-              neutral = float(matching_line.group('value'))
-    
-            elif key == 'end':
-              # Exit the loop once we reach the end of the neutral calculation, the last "neutral" value stored in memory is the one corresponding to the SCF energy of the optimized geometry (for a single point calculation, only one value will be encountered).
-              break         
 
     # Raise an exception if the SCF energy of the neutral molecule has not been found
 
@@ -235,8 +195,11 @@ def gaussian_dft(source_content:list):
       # Look for the "Normal termination of Gaussian" line (which signals the end of the neutral calculation but also the end of the cation calculation)
       'limit': re.compile(r'^\s*Normal termination of Gaussian'),
 
+      # Look for the "Charge =  1 Multiplicity = 2" type of line (and store the charge value)
+      'charge': re.compile(r'^\s*Charge\s*=\s*(?P<charge>\d+)\s*Multiplicity\s*=\s*\d+\s*$'),
+
       # Look for the "SCF Done:  E(RB3LYP) =  -1454.81079575     A.U. after   11 cycles" type of line (and store the energy value)
-      'value': re.compile(r'^\s*SCF Done:\s*E\(\w*\)\s*=\s*(?<value>-?\d+\.\d+)\s*A\.U\. after\s*\d+\s*cycles$')
+      'value': re.compile(r'^\s*SCF Done:\s*E\(\w*\)\s*=\s*(?P<value>-?\d+\.\d+)\s*A\.U\. after\s*\d+\s*cycles$')
 
     }
 
@@ -249,32 +212,28 @@ def gaussian_dft(source_content:list):
       if not section_found:
         if cation_rx['limit'].match(line): # The line matches the limit pattern
           section_found = True
-          continue
 
       elif section_found and cation_rx['limit'].match(line):
         # If the section was already found and a second occurrence of the limit pattern is found, it is time to leave
         break
 
-      # Process the section lines
-  
-      else:
-  
-        matching_line = cation_rx['value'].match(line)
+      # Check the charge of the cation
 
-        # If the line matches our pattern, store the energy value of the line 
+      elif cation_rx['charge'].match(line):
 
-        if matching_line is not None:
+        cation_charge = int(cation_rx['charge'].match(line).group('charge'))
+        if cation_charge and (cation_charge - neutral_charge != 1):
+          raise IP_Error("ERROR: The cation charge (%s) does not correspond to the charge of the neutral molecule (%s) plus one. Ionization potentials cannot be defined." % (cation_charge,neutral_charge))
 
-          if first:
-            cation = float(matching_line.group('value')) # Only store the first occurrence of SCF energy in the cation variable
-            first = False
-        
-          cation_opt = float(matching_line.group('value')) # This value will be overwritten everytime a new line of this type is encountered
+      # If the line matches our SCF energy pattern, store the energy value of the line 
 
-    # Raise an exception if the section has not been found
+      elif cation_rx['value'].match(line):
 
-    if not cation_opt:
-      raise IP_Error ("ERROR: Unable to find the SCF energy of the cation in the source file")
+        if first:
+          cation = float(cation_rx['value'].match(line).group('value'))     # Only store the first occurrence of SCF energy in the cation variable
+          first = False
+        else:        
+          cation_opt = float(cation_rx['value'].match(line).group('value')) # This value will be overwritten everytime a new line of this type is encountered (except the first value)
 
     # ========================================================= #
     #                     Return the values                     #
@@ -282,23 +241,25 @@ def gaussian_dft(source_content:list):
 
     energies = {
         "homo": homo,
-        "neutral": neutral,
-        "cation": cation
+        "neutral": neutral
     }
 
-    if cation != cation_opt:
+    if cation:
+      energies.update({
+          "cation": cation
+      })
 
-        energies.update({
-            "cation_opt": cation_opt
-        })
+    if cation_opt:
+      energies.update({
+          "cation_opt": cation_opt
+      })
 
     print("")
     print(''.center(50, '-'))
-    print("{:<30} {:<20}".format("HOMO energy: ", "{:.5e}".format(homo)))
-    print("{:<30} {:<20}".format("Neutral molecule energy: ", "{:.5e}".format(neutral)))
-    print("{:<30} {:<20}".format("Cation energy: ", "{:.5e}".format(cation)))
-    if cation != cation_opt:
-        print("{:<30} {:<20}".format("Cation energy (optimized): ", "{:.5e}".format(cation_opt)))
+    print("{:>30} {:<20}".format("HOMO energy: ", "{:.5f}".format(homo)))
+    print("{:>30} {:<20}".format("Neutral molecule energy: ", "{:.5f}".format(neutral)))
+    print("{:>30} {:<20}".format("Cation energy: ", "{:.5f}".format(cation) if cation else "N/A"))
+    print("{:>30} {:<20}".format("Cation energy (optimized): ", "{:.5f}".format(cation_opt) if cation_opt else "N/A"))
     print(''.center(50, '-'))
 
     return energies
@@ -377,10 +338,10 @@ def main():
     source_filename = os.path.basename(source)
     source_name = str(source_filename.split('.')[0]) # Getting rid of the format extension to get the name of the source
 
-    # Check the existence of the parsing function that will fetch the relevant information from the source file
+    #!TODO Check the existence of the parsing function that will fetch the relevant information from the source file
 
-    if (parsing_fct) not in dir() or not callable(parsing_fct):
-      raise IP_Error ("ERROR: There is no parsing function named %s defined in this script." % parsing_fct)
+#    if not callable(parsing_fct):
+#      raise IP_Error ("ERROR: There is no parsing function named %s defined in this script." % parsing_fct)
 
     print ("{:<40} {:<100}".format('\nParsing function:',parsing_fct))
 
@@ -406,7 +367,7 @@ def main():
     # Load the source file                                      #
     # ========================================================= #
 
-    print ("{:<80}".format('\nLoading the source file ...'), end="")
+    print ("{:<40}".format('\nLoading the source file ...'), end="")
     with open(source, 'r') as source_file:
       source_content = source_file.read().splitlines()
     print("[ DONE ]")
@@ -420,8 +381,6 @@ def main():
     # Call the parsing function                                 #
     # ========================================================= #
 
-    print ("{:<50} {:<100}".format('\nParsing function:',parsing_fct))
-
     print ("\nParsing the source file ...")
 
     # Call the parsing function (fixed for now, but might change in the future)
@@ -430,7 +389,7 @@ def main():
 
     # Check the energies dictionary
 
-    required_keys = frozenset({"homo", "neutral", "cation"})
+    required_keys = frozenset({"homo", "neutral"})
 
     if not isinstance(energies, dict):
       raise IP_Error ('ERROR: The "energies" variable returned by the %s parsing function is not a dictionary.' % parsing_fct) 
@@ -460,13 +419,18 @@ def main():
   # Compute the ionization potentials (IP)                    #
   # ========================================================= #
 
+  print ("{:<40}".format('\nComputing ionization potentials ...'), end="")
+
   # Compute the IP value according to Koopmans' theorem (opposite of the HOMO energy)
 
   ip_koopmans = - float(energies['homo'])
 
-  # Compute the vertical IP value
+  # If cation was available, compute the vertical IP value
 
-  ip_vertical =  float(energies['cation']) - float(energies['neutral'])
+  if energies.get('cation'):
+      ip_vertical = float(energies['cation']) - float(energies['neutral'])
+  else:
+      ip_vertical = "N/A"
 
   # If cation_opt was available, compute the adiabatic IP value
 
@@ -475,9 +439,20 @@ def main():
   else:
       ip_adiabatic = "N/A"
 
+  print("[ DONE ]")
+
+  print("")
+  print(''.center(50, '-'))
+  print("{:>30} {:<20}".format("Koopmans' approx. (-HOMO): ", "{:.5f}".format(ip_koopmans)))
+  print("{:>30} {:<20}".format("Vertical: ", "{:.5f}".format(ip_vertical) if ip_vertical != "N/A" else ip_vertical))
+  print("{:>30} {:<20}".format("Adiabatic: ", "{:.5f}".format(ip_adiabatic) if ip_adiabatic != "N/A" else ip_adiabatic))
+  print(''.center(50, '-'))
+
   # ========================================================= #
   # Add information to output CSV file                        #
   # ========================================================= #
+
+  print ("{:<40}".format('\nWriting line to output CSV file ...'), end="")
 
   # Define line
 
@@ -485,7 +460,7 @@ def main():
       "Molecule" : source_name,
       "HOMO energy" : energies['homo'],
       "Neutral molecule energy" : energies['neutral'],
-      "Cation energy" : energies['cation'],
+      "Cation energy" : energies.get('cation'),
       "Cation energy (optimized)" : energies.get('cation_opt'),
       "IP (Koopmans)" : ip_koopmans,
       "IP (vertical)" : ip_vertical,
@@ -511,6 +486,8 @@ def main():
       csv_writer.writeheader()
 
     csv_writer.writerow(ip_line)    
+
+  print("[ DONE ]")
 
   print("")
   print("".center(columns,"*"))

@@ -41,7 +41,7 @@ echo -e "\n================= GAUSSIAN execution begins now =================="
 {% for set_env_line in set_env -%}
 {{ set_env_line }}
 {% endfor -%}
-{{ command }} {{ mol_name }}.com || (rm -rf $SCRATCH ; exit $?)
+{{ command }} {{ mol_name }}.com || (cp {{ mol_name }}.log && rm -rf $SCRATCH ; exit $?)
 
 echo -e "\n=================  GAUSSIAN execution ends now  =================="
 
@@ -78,17 +78,20 @@ formchk {{ mol_name }}.chk {{ mol_name }}.fchk # Convert the checkpoint file fro
 bzip2 {{ mol_name }}.fchk
 rm {{ mol_name }}.chk
 
-{% if cation_opt is sameas true -%}
+{% if copy_files is sameas true -%}
+
 # Execute the Python script computing the ionization potential (IP) of the molecule.
-echo -e "\nComputing the ionization potential (IP) of the molecule."
+
+echo -e "\nComputing the ionization potential (IP) of the molecule ...\n\n"
 source {{ chains_dir }}/load_modules.sh
 python {{ chains_dir }}/IP_calc.py -s {{ mol_name }}.log -o {{ results_dir }}/IPs.csv
+{% if (cation_energy == "sp" or cation_energy == "opt") -%}
+rm {{ mol_name }}_cation.chk
 {%- endif %}
 
-{% if copy_files is sameas true -%}
 # Copy the various output files to their respective results directory
 
-echo -e "\nCopying optimized geometry to {{ output_dir }}."
+echo -e "\n\nCopying optimized geometry to {{ output_dir }}."
 mkdir -p {{ output_dir }}
 cp {{ mol_name }}.xyz {{ output_dir }}/
 

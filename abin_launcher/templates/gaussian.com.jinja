@@ -10,16 +10,21 @@ Geometry Optimization of {{ mol_name }}
 {{ coordinate_line }}
 {% endfor -%}
 
-{% if cation_opt is sameas true %}
+{% if (cation_energy == "sp" or cation_energy == "opt") %}
 --Link1--
 %oldchk={{ mol_name }}.chk
 %chk={{ mol_name }}_cation.chk
 %NProcShared={{ job_cores }}
 %mem={{ mem_total }}MB
-# {{ method }}/{{ basis_set }} {{ other }} Opt Geom=Checkpoint
+{% if cation_energy == "sp" -%}
+# {{ method }}/{{ basis_set }} Geom=Checkpoint
+
+Single point energy calculation of {{ mol_name }} in cation form
+{% elif cation_energy == "opt" -%}
+# {{ method }}/{{ basis_set }} Opt(MaxCycles=250) Geom=Checkpoint
 
 Geometry Optimization of {{ mol_name }} in cation form
-
+{% endif %}
 {{ charge_cation }} {{ multiplicity_cation }}
 {%- endif %}
 {{ " " }} {# Make sure the input ends by a blank line #}
