@@ -674,12 +674,12 @@ def main():
         # If your rendering function needs anything else, you can add it in this dictionary
 
         misc = {  
-            "code_dir" : code_dir,
-            "templates_dir" : templates_dir,
-            "mol_name" : mol_name,
-            "mol_content" : mol_content,
-            "config_name" : config_name
-            }
+          "code_dir" : code_dir,
+          "templates_dir" : templates_dir,
+          "mol_name" : mol_name,
+          "mol_content" : mol_content,
+          "config_name" : config_name
+        }
 
         # Call the rendering function (defined in renderer.py, see the documentation for more information)
 
@@ -883,4 +883,4 @@ def main():
 # If this script is executed through the command line, call the main function (see https://realpython.com/python-main-function/ for details)
 
 if __name__ == "__main__":
-    main()     
+  main()     

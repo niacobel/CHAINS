@@ -139,27 +139,27 @@ def qchem_tddft(source_content:list):
 
     for line in source_content:
         
-        # Compare each line to all the nb_roots_rx expressions
+      # Compare each line to all the nb_roots_rx expressions
 
-        for key, rx in nb_roots_rx.items():
+      for key, rx in nb_roots_rx.items():
 
-          matching_line = rx.match(line)
+        matching_line = rx.match(line)
 
-          # If the line matches the rx pattern
+        # If the line matches the rx pattern
 
-          if matching_line is not None:
+        if matching_line is not None:
 
-            # Get the info corresponding to the pattern
+          # Get the info corresponding to the pattern
 
-            if key == 'normal':
-              nb_roots = int(matching_line.group('n_roots'))
+          if key == 'normal':
+            nb_roots = int(matching_line.group('n_roots'))
 
-            elif key == 'altered':
-              nb_roots = int(matching_line.group('new_n_roots'))
-              break          
+          elif key == 'altered':
+            nb_roots = int(matching_line.group('new_n_roots'))
+            break          
 
-            elif key == 'end':
-              break         
+          elif key == 'end':
+            break         
 
     # Raise an exception if the number of roots has not been found
 
@@ -477,18 +477,18 @@ def qchem_tddft(source_content:list):
     # Define the START and END expression patterns of the "STATE-TO-STATE TRANSITION MOMENTS" section of the output file
 
     section_rx = {
-        'section_start': re.compile(
-            r'^STATE-TO-STATE TRANSITION MOMENTS$'),
-        'section_end': re.compile(
-            r'^END OF TRANSITION MOMENT CALCULATION$')
+      'section_start': re.compile(
+        r'^STATE-TO-STATE TRANSITION MOMENTS$'),
+      'section_end': re.compile(
+        r'^END OF TRANSITION MOMENT CALCULATION$')
     }
 
     # Define the expression patterns for the lines containing information about the dipole moments
 
     moment_rx = {
-        # Pattern for finding lines looking like '    1    2   0.001414  -0.001456   0.004860   1.240659E-10'
-        'moment': re.compile(
-            r'^\s*(?P<mom_key1>\d+)\s+(?P<mom_key2>\d+)\s+(?P<mom_x>-?\d+\.\d+)\s+(?P<mom_y>-?\d+\.\d+)\s+(?P<mom_z>-?\d+\.\d+)\s+(?P<strength>\d|\d\.\d+|\d\.\d+E[-+]\d+)$')
+      # Pattern for finding lines looking like '    1    2   0.001414  -0.001456   0.004860   1.240659E-10'
+      'moment': re.compile(
+        r'^\s*(?P<mom_key1>\d+)\s+(?P<mom_key2>\d+)\s+(?P<mom_x>-?\d+\.\d+)\s+(?P<mom_y>-?\d+\.\d+)\s+(?P<mom_z>-?\d+\.\d+)\s+(?P<strength>\d|\d\.\d+|\d\.\d+E[-+]\d+)$')
     }
 
     # Parse the source file to get the information and build the dipole moments list

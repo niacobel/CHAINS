@@ -240,18 +240,18 @@ def gaussian_dft(source_content:list):
     # ========================================================= #   
 
     energies = {
-        "homo": homo,
-        "neutral": neutral
+      "homo": homo,
+      "neutral": neutral
     }
 
     if cation:
       energies.update({
-          "cation": cation
+        "cation": cation
       })
 
     if cation_opt:
       energies.update({
-          "cation_opt": cation_opt
+        "cation_opt": cation_opt
       })
 
     print("")
@@ -428,16 +428,16 @@ def main():
   # If cation was available, compute the vertical IP value
 
   if energies.get('cation'):
-      ip_vertical = float(energies['cation']) - float(energies['neutral'])
+    ip_vertical = float(energies['cation']) - float(energies['neutral'])
   else:
-      ip_vertical = "N/A"
+    ip_vertical = "N/A"
 
   # If cation_opt was available, compute the adiabatic IP value
 
   if energies.get('cation_opt'):
-      ip_adiabatic = float(energies['cation_opt']) - float(energies['neutral'])
+    ip_adiabatic = float(energies['cation_opt']) - float(energies['neutral'])
   else:
-      ip_adiabatic = "N/A"
+    ip_adiabatic = "N/A"
 
   print("[ DONE ]")
 
@@ -457,14 +457,14 @@ def main():
   # Define line
 
   ip_line = {
-      "Molecule" : source_name,
-      "HOMO energy" : energies['homo'],
-      "Neutral molecule energy" : energies['neutral'],
-      "Cation energy" : energies.get('cation'),
-      "Cation energy (optimized)" : energies.get('cation_opt'),
-      "IP (Koopmans)" : ip_koopmans,
-      "IP (vertical)" : ip_vertical,
-      "IP (adiabatic)" : ip_adiabatic
+    "Molecule" : source_name,
+    "HOMO energy" : energies['homo'],
+    "Neutral molecule energy" : energies['neutral'],
+    "Cation energy" : energies.get('cation'),
+    "Cation energy (optimized)" : energies.get('cation_opt'),
+    "IP (Koopmans)" : ip_koopmans,
+    "IP (vertical)" : ip_vertical,
+    "IP (adiabatic)" : ip_adiabatic
   }
 
   # Define if we have to write the header or not (only write it if the file does not exist or is empty)
@@ -505,4 +505,4 @@ def main():
 # If this script is executed through the command line, call the main function (see https://realpython.com/python-main-function/ for details)
 
 if __name__ == "__main__":
-    main()     
+  main()     
