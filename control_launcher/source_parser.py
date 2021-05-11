@@ -122,49 +122,42 @@ def qchem_tddft(source_content:list):
 
     nb_roots_rx = {
 
-      # Look for the "CIS_N_ROOTS          4" type of line
-      'normal': re.compile(
-          r'^\s*CIS_N_ROOTS\s*(?P<n_roots>\d+)\s*$'),
+      # Pattern for finding lines looking like "CIS_N_ROOTS          4"
+      'normal': re.compile(r'^\s*CIS_N_ROOTS\s*(?P<n_roots>\d+)\s*$'),
 
-      # Look for the "NRoots was altered as:  4 --> 12" type of line
-      'altered': re.compile(
-          r'^\s*NRoots was altered as:\s*\d+\s*-->\s*(?P<new_n_roots>\d+)\s*$'),
+      # Pattern for finding lines looking like "NRoots was altered as:  4 --> 12"
+      'altered': re.compile(r'^\s*NRoots was altered as:\s*\d+\s*-->\s*(?P<new_n_roots>\d+)\s*$'),
 
-      # No need to go further than the "TDDFT/TDA Excitation Energies" line
-        'end': re.compile(
-          r'TDDFT/TDA Excitation Energies')
+      # Pattern for finding the "TDDFT/TDA Excitation Energies" line (which marks the end of the section)
+      'end': re.compile(r'TDDFT/TDA Excitation Energies')
+
     }
-
+  
     # Parse the source file to get the information
 
     for line in source_content:
-        
-      # Compare each line to all the nb_roots_rx expressions
 
-      for key, rx in nb_roots_rx.items():
+      # Define when the section ends
 
-        matching_line = rx.match(line)
+      if nb_roots_rx['end'].match(line): # The line matches the 'end' pattern
+        break  
 
-        # If the line matches the rx pattern
+      # Get the normal number of roots
 
-        if matching_line is not None:
+      elif nb_roots_rx['normal'].match(line):
+        nb_roots = int(nb_roots_rx['normal'].match(line).group('n_roots'))
 
-          # Get the info corresponding to the pattern
+      # Get the altered number of roots
 
-          if key == 'normal':
-            nb_roots = int(matching_line.group('n_roots'))
-
-          elif key == 'altered':
-            nb_roots = int(matching_line.group('new_n_roots'))
-            break          
-
-          elif key == 'end':
-            break         
+      elif nb_roots_rx['altered'].match(line):
+        nb_roots = int(nb_roots_rx['altered'].match(line).group('new_n_roots'))
 
     # Raise an exception if the number of roots has not been found
 
     if not nb_roots:
       raise control_errors.ControlError ("ERROR: Unable to find the number of roots in the source file")
+
+    print("{:<50} {:<10}".format("\nNumber of roots: ",nb_roots))
 
     # ========================================================= #
     #                        States List                        #
@@ -175,35 +168,30 @@ def qchem_tddft(source_content:list):
     # Initialization of the variables
 
     section_found = False
-    search_energy = True
-
+    cnt_state = 0
     cnt_triplet = 0
     cnt_singlet = 0
 
-    # Define the ground state of our molecule (which is the first state and has a null energy)
+    # Define the ground state of our molecule (which is the first state and has a zero energy)
     
     system['states_list'] = [{'number': 0, 'type': '-', 'label': 'S0', 'energy' : 0.0}]
-
-    # Define the START and END expression patterns of the "TDDFT/TDA Excitation Energies" section of the output file
-
-    section_rx = {
-      'section_start': re.compile(
-          r'TDDFT/TDA Excitation Energies'),
-      'section_end': re.compile(
-          r'SETman timing summary')
-    }
 
     # Define the expression patterns for the lines containing information about the states
 
     states_rx = {
 
+      # Pattern for finding the "TDDFT/TDA Excitation Energies" line (which marks the start of the section)
+      'start': re.compile(r'TDDFT/TDA Excitation Energies'),
+      
       # Pattern for finding lines looking like 'Excited state   1: excitation energy (eV) =    4.6445'
-      'state_energy': re.compile(
-          r'^\s*Excited state\s+(?P<state>\d+): excitation energy \(eV\) =\s+(?P<energy>[+]?\d*\.\d+|\d+)$'),
+      'state_energy': re.compile(r'^\s*Excited state\s+(?P<state>\d+): excitation energy \(eV\) =\s+(?P<energy>[+]?\d*\.\d+|\d+)$'),
 
       # Pattern for finding lines looking like '    Multiplicity: Triplet'
-      'state_mp': re.compile(
-          r'^\s*Multiplicity: (?P<mplicity>\w+)$')
+      'state_mp': re.compile(r'^\s*Multiplicity: (?P<mp>\w+)$'),
+
+      # Pattern for finding the "SETman timing summary" line (which marks the end of the section)
+      'end': re.compile(r'SETman timing summary')
+
     }
 
     # Parse the source file to get the information and build the states list
@@ -213,69 +201,48 @@ def qchem_tddft(source_content:list):
       # Define when the section begins and ends
 
       if not section_found:
-        if section_rx['section_start'].match(line): # The line matches the section_start pattern
+        if states_rx['start'].match(line):
           section_found = True
-          continue
     
-      if section_found and section_rx['section_end'].match(line):
+      elif section_found and states_rx['end'].match(line):
         break
         
-      # Process the section lines
+      # Get the state number and its associated excitation energy
 
-      else:
+      elif states_rx['state_energy'].match(line):
 
-        # First, look for the excited energy of the state
-
-        if search_energy:
-
-          matching_line = states_rx['state_energy'].match(line)
-
-          # If the line matches our pattern, get the state number and its associad excitation energy
-
-          if matching_line is not None:
-
-            exc_state = int(matching_line.group("state"))
-            exc_energy = float(matching_line.group("energy"))
-            search_energy = False
-
-            continue
+        exc_state = int(states_rx['state_energy'].match(line).group("state"))
+        exc_energy = float(states_rx['state_energy'].match(line).group("energy"))
+        cnt_state += 1
             
-        # Second, look for the corresponding state multiplicity
+      # Get the corresponding state multiplicity and add the data to the states_list
+
+      elif states_rx['state_mp'].match(line):
+
+        multiplicity = states_rx['state_mp'].match(line).group("mp")
+
+        # Check the multiplicity and increase the counter (cnt) for that multiplicity (needed for the state label)
+
+        cnt = -1
+
+        if multiplicity == "Triplet":
+          state_type = "Dark"
+          first_letter = "T"
+          cnt_triplet += 1
+          cnt = cnt_triplet
+
+        elif multiplicity == "Singlet":
+          state_type = "Bright"
+          first_letter = "S"
+          cnt_singlet += 1
+          cnt = cnt_singlet
 
         else:
+          raise control_errors.ControlError ("ERROR: Multiplicity of the %s%s state is of unknown value (%s)" % (exc_state, ("th" if not exc_state in special_numbers else special_numbers[exc_state]),multiplicity))
 
-          matching_line = states_rx['state_mp'].match(line)
+        # Append information about the current state to the states_list variable
 
-          # If the line matches our pattern, get the mutiplicity and increase the counter (cnt) for that multiplicity (needed for the state label)
-
-          if matching_line is not None:
-
-            multiplicity = matching_line.group("mplicity")
-
-            cnt = -1
-
-            if multiplicity == "Triplet":
-              state_type = "Dark"
-              first_letter = "T"
-              cnt_triplet += 1
-              cnt = cnt_triplet
-
-            elif multiplicity == "Singlet":
-              state_type = "Bright"
-              first_letter = "S"
-              cnt_singlet += 1
-              cnt = cnt_singlet
-
-            else:
-              raise control_errors.ControlError ("ERROR: Multiplicity of the %s%s state is of unknown value (%s)" % (exc_state, ("th" if not exc_state in special_numbers else special_numbers[exc_state]),multiplicity))
-
-            search_energy = True # Resume searching for the energy of the next state
-
-            # Append information about the current state to the states_list variable
-
-            system['states_list'].append({'number': exc_state, 'type': state_type, 'label': (first_letter + str(cnt)), 'energy': energy_unit_conversion(exc_energy,"ev","cm-1")})
-
-            continue
+        system['states_list'].append({'number': exc_state, 'type': state_type, 'label': (first_letter + str(cnt)), 'energy': energy_unit_conversion(exc_energy,"ev","cm-1")})
 
     # Raise an exception if the section has not been found
 
@@ -284,23 +251,14 @@ def qchem_tddft(source_content:list):
 
     # Raise an exception if not all the values have been found
 
-    nb_states = (2 * nb_roots) + 1  # Ground state (1) + Triplet states (nb_roots) + Singlet states (nb_roots)
-    if len(system['states_list']) != nb_states:
-      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of excited states in the source file (%s of the %s expected states have been found)" % (len(system['states_list']),nb_states))
+    if cnt_state != 2*nb_roots:
+      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of excited states in the source file (%s of the %s expected states have been found)" % (cnt_state,2*nb_roots))
+    if cnt_triplet != nb_roots:
+      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of excited triplet states in the source file (%s of the %s expected triplet states have been found)" % (cnt_triplet,nb_roots))
+    if cnt_singlet != nb_roots:
+      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of excited singlet states in the source file (%s of the %s expected singlet states have been found)" % (cnt_singlet,nb_roots))
 
     print("[ DONE ]")
-
-    # Print the states list
-
-    print("")
-    print(''.center(55, '-'))
-    print('States List'.center(55, ' '))
-    print(''.center(55, '-'))
-    print("{:<10} {:<15} {:<10} {:<15}".format('Number','Type','Label','Energy (cm-1)'))
-    print(''.center(55, '-'))
-    for state in system['states_list']:
-      print("{:<10} {:<15} {:<10} {:<15.3f}".format(state['number'],state['type'],state['label'],state['energy']))
-    print(''.center(55, '-'))
 
     # ========================================================= #
     #                          SOC List                         #
@@ -313,30 +271,25 @@ def qchem_tddft(source_content:list):
     section_found = False
     soc_list = []
     
-    # Define the START and END expression patterns of the "SPIN-ORBIT COUPLING" section of the output file
-
-    section_rx = {
-      'section_start': re.compile(
-        r'^\*+SPIN-ORBIT COUPLING JOB BEGINS HERE\*+$'),
-      'section_end': re.compile(
-        r'^\*+SOC CODE ENDS HERE\*+$')
-    }
-
     # Define the expression patterns for the lines containing information about the SOC
     
     soc_rx = {
 
+      # Pattern for finding the "SPIN-ORBIT COUPLING JOB BEGINS HERE" line (which marks the start of the section)
+      'start': re.compile(r'^\*+SPIN-ORBIT COUPLING JOB BEGINS HERE\*+$'),
+
       # Pattern for finding lines looking like 'Total SOC between the singlet ground state and excited triplet states:'
-      'ground_to_triplets': re.compile(
-        r'^\s*Total SOC between the singlet ground state and excited triplet states:$'),
+      'ground_to_triplets': re.compile(r'^\s*Total SOC between the singlet ground state and excited triplet states:$'),
 
       # Pattern for finding lines looking like 'Total SOC between the S1 state and excited triplet states:'
-      'between_excited_states': re.compile(
-        r'^\s*Total SOC between the (?P<s_key>[A-Z]\d+) state and excited triplet states:$'),
+      'between_excited_states': re.compile(r'^\s*Total SOC between the (?P<state_1>[A-Z]\d+) state and excited triplet states:$'),
 
       # Pattern for finding lines looking like 'T2      76.018382    cm-1'
-      'soc_value': re.compile(
-        r'^\s*(?P<soc_key>[A-Z]\d+)\s+(?P<soc_value>\d+\.?\d*)\s+cm-1$')
+      'soc_value': re.compile(r'^\s*(?P<state_2>[A-Z]\d+)\s+(?P<soc_value>\d+\.?\d*)\s+cm-1$'),
+
+      # Pattern for finding the "SOC CODE ENDS HERE" line (which marks the end of the section)
+      'end': re.compile(r'^\*+SOC CODE ENDS HERE\*+$')
+
     }
 
     # Parse the source file to get the information and build the SOC list
@@ -346,65 +299,53 @@ def qchem_tddft(source_content:list):
       # Define when the section begins and ends
 
       if not section_found:
-        if section_rx['section_start'].match(line): # The line matches the section_start pattern
+        if soc_rx['start'].match(line):
           section_found = True
-          continue
     
-      if section_found and section_rx['section_end'].match(line):
+      elif section_found and soc_rx['end'].match(line):
         break
 
-      # Process the section lines
+      # Get the number and label of the first state
 
-      else:
+      elif soc_rx['ground_to_triplets'].match(line):
+        state_1 = 0
+        label_1 = "S0"
 
-        # Compare each line to all the soc_rx expressions
-        
-        for key, rx in soc_rx.items():
+      elif soc_rx['between_excited_states'].match(line):
 
-          matching_line = rx.match(line)
+        label_1 = soc_rx['between_excited_states'].match(line).group('state_1')
 
-          # If the line matches the rx pattern
+        # Convert the label to the state number
 
-          if matching_line is not None:
+        state_1 = False
+        for state in system['states_list']:
+          if label_1 == state['label']:
+            state_1 = state['number']
+            break
+        if not state_1:
+          raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % label_1)
 
-            # Get the info corresponding to the pattern
+      # Get the number and label of the second state and the corresponding SOC value, before adding the data to the soc_list
 
-            if key == 'ground_to_triplets':
-              state_1 = 0
+      elif soc_rx['soc_value'].match(line):
 
-            elif key == 'between_excited_states':
-              state_1 = matching_line.group('s_key')
+        label_2 = soc_rx['soc_value'].match(line).group('state_2')
+        value = float(soc_rx['soc_value'].match(line).group('soc_value'))
 
-              # state_1 is the state label, we need to convert it to the state number
-              match = False
-              for state in system['states_list']:
-                if state_1 == state['label']:
-                  state_1 = state['number']
-                  match = True
-                  break
-              if not match:
-                raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % state_1)
+        # Convert the label to the state number
 
-            elif key == 'soc_value':
+        state_2 = False
+        for state in system['states_list']:
+          if label_2 == state['label']:
+            state_2 = state['number']
+            break
+        if not state_2:
+          raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % label_2)
 
-              state_2 = matching_line.group('soc_key')
+        # Add the information to the soc_list
 
-              # state_2 is the state label, we need to convert it to the state number
-              match = False
-              for state in system['states_list']:
-                if state_2 == state['label']:
-                  state_2 = state['number']
-                  match = True
-                  break
-              if not match:
-                raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % state_2)
-
-              value = float(matching_line.group('soc_value'))
-
-              soc_line = (state_1, state_2, value)
-        
-              # Add the new line to the soc_list
-              soc_list.append(soc_line)
+        soc_line = (state_1, label_1, state_2, label_2, value)
+        soc_list.append(soc_line)
 
     # Raise an exception if the section has not been found
 
@@ -433,8 +374,8 @@ def qchem_tddft(source_content:list):
 
     for soc in soc_list:
       k1 = soc[0]
-      k2 = soc[1]
-      val = soc[2]
+      k2 = soc[2]
+      val = soc[4]
       system['mime'][k1][k2] = val
       system['mime'][k2][k1] = val    # For symetry purposes
 
@@ -443,25 +384,11 @@ def qchem_tddft(source_content:list):
     for state in system['states_list']:
       system['mime'][state['number']][state['number']] = state['energy']
 
-    print("[ DONE ]")
-
-    print("\nMIME (cm-1)")
-    print('')
-    for row in system['mime']:
-      for val in row:
-        print(numpy.format_float_positional(val,precision=3,unique=False,pad_left=8,trim="0",pad_right=3), end = " ")
-      print('')
-
     # Convert the MIME to Hartree units
 
     system['mime'] = system['mime'] * energy_unit_conversion(1,"cm-1","ha")
 
-    print("\nMIME (Ha)")
-    print('')
-    for row in system['mime']:
-      for val in row:
-        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
-      print('')    
+    print("[ DONE ]")
 
     # ========================================================= #
     #                    Dipole Moments List                    #
@@ -474,21 +401,19 @@ def qchem_tddft(source_content:list):
     section_found = False
     momdip_list = []
 
-    # Define the START and END expression patterns of the "STATE-TO-STATE TRANSITION MOMENTS" section of the output file
-
-    section_rx = {
-      'section_start': re.compile(
-        r'^STATE-TO-STATE TRANSITION MOMENTS$'),
-      'section_end': re.compile(
-        r'^END OF TRANSITION MOMENT CALCULATION$')
-    }
-
     # Define the expression patterns for the lines containing information about the dipole moments
 
     moment_rx = {
+
+      # Pattern for finding the "STATE-TO-STATE TRANSITION MOMENTS" line (which marks the start of the section)
+      'start': re.compile(r'^STATE-TO-STATE TRANSITION MOMENTS$'),
+
       # Pattern for finding lines looking like '    1    2   0.001414  -0.001456   0.004860   1.240659E-10'
-      'moment': re.compile(
-        r'^\s*(?P<mom_key1>\d+)\s+(?P<mom_key2>\d+)\s+(?P<mom_x>-?\d+\.\d+)\s+(?P<mom_y>-?\d+\.\d+)\s+(?P<mom_z>-?\d+\.\d+)\s+(?P<strength>\d|\d\.\d+|\d\.\d+E[-+]\d+)$')
+      'moment': re.compile(r'^\s*(?P<state_1>\d+)\s+(?P<state_2>\d+)\s+(?P<mom_x>-?\d+\.\d+)\s+(?P<mom_y>-?\d+\.\d+)\s+(?P<mom_z>-?\d+\.\d+)\s+(?P<strength>\d|\d\.\d+|\d\.\d+E[-+]\d+)$'),
+
+      # Pattern for finding the "END OF TRANSITION MOMENT CALCULATION" line (which marks the end of the section)
+      'end': re.compile(r'^END OF TRANSITION MOMENT CALCULATION$')
+
     }
 
     # Parse the source file to get the information and build the dipole moments list
@@ -498,32 +423,27 @@ def qchem_tddft(source_content:list):
       # Define when the section begins and ends
 
       if not section_found:
-        if section_rx['section_start'].match(line): # The line matches the section_start pattern
+        if moment_rx['start'].match(line):
           section_found = True
-          continue
     
-      if section_found and section_rx['section_end'].match(line):
+      elif section_found and moment_rx['end'].match(line):
         break
 
-      # Process the section lines
+      # Extract the relevant information and add it to the momdip_list
   
-      else:
+      elif moment_rx['moment'].match(line):
   
         matching_line = moment_rx['moment'].match(line)
 
-        # If the line matches our pattern, get the two states number and their associated vector
-  
-        if matching_line is not None:
-
-          state_1 = matching_line.group('mom_key1')
-          state_2 = matching_line.group('mom_key2')
-          value_x = float(matching_line.group('mom_x'))
-          value_y = float(matching_line.group('mom_y'))
-          value_z = float(matching_line.group('mom_z'))
-          momdip = (state_1, state_2, value_x, value_y, value_z)
-        
-          # Add the new line to the momdip_list
-          momdip_list.append(momdip)
+        state_1 = int(matching_line.group('state_1'))
+        state_2 = int(matching_line.group('state_2'))
+        value_x = float(matching_line.group('mom_x'))
+        value_y = float(matching_line.group('mom_y'))
+        value_z = float(matching_line.group('mom_z'))
+        momdip = (state_1, state_2, value_x, value_y, value_z)
+      
+        # Add the new line to the momdip_list
+        momdip_list.append(momdip)
 
     # Raise an exception if the section has not been found
 
@@ -541,6 +461,8 @@ def qchem_tddft(source_content:list):
     # ========================================================= #
     #                   Dipole Moments Matrices                 #
     # ========================================================= #
+
+    print("{:<50}".format("\nBuilding transition dipole moments matrices ... "), end="")
 
     # Intialize the momdip_mtx dictionary
 
@@ -568,18 +490,13 @@ def qchem_tddft(source_content:list):
       system['momdip_mtx']['Z'][k1][k2] = momdip[4]
       system['momdip_mtx']['Z'][k2][k1] = momdip[4]    # For symetry purposes
 
-    for momdip_key in system['momdip_mtx']:
-
-      print("\nDipole moments matrix along the '%s' axis (atomic units)" % momdip_key)
-      print('')
-      for row in system['momdip_mtx'][momdip_key]:
-        for val in row:
-          print(numpy.format_float_positional(val,precision=6,unique=False,pad_left=2,trim="0",pad_right=6), end = " ")
-        print('')
+    print("[ DONE ]")
 
     # ========================================================= #
     #           Radiative lifetime of excited states            #
     # ========================================================= #
+
+    print("{:<50}".format("\nComputing radiative lifetimes ... "), end="")
 
     # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
     # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
@@ -625,14 +542,54 @@ def qchem_tddft(source_content:list):
       else:
         state['lifetime'] = 1 / sum_einstein_coeffs
 
+    print("[ DONE ]")
+
+    # ========================================================= #
+    #              Printing values in the log file              #
+    # ========================================================= #
+
+    # Printing the states list
+    # ========================
+
     print("")
     print(''.center(70, '-'))
-    print('States List with radiative lifetimes'.center(70, ' '))
+    print('States List'.center(70, ' '))
     print(''.center(70, '-'))
     print("{:<10} {:<15} {:<10} {:<15} {:<15}".format('Number','Type','Label','Energy (cm-1)','Lifetime (a.u.)'))
     print(''.center(70, '-'))
     for state in system['states_list']:
       print("{:<10} {:<15} {:<10} {:<15.5e} {:<15.5e}".format(state['number'],state['type'],state['label'],state['energy'],state['lifetime']))
     print(''.center(70, '-'))
+
+    # Printing the SOC list
+    # =====================
+
+    print("")
+    print(''.center(40, '-'))
+    print('Spin-orbit couplings'.center(40, ' '))
+    print(''.center(40, '-'))
+    print("{:<10} {:<10} {:<20}".format('State 1','State 2','Value (cm-1)'))
+    print(''.center(40, '-'))
+    for soc in soc_list:
+      column_1 = soc[1] + " (" + str(soc[0]) + ")"
+      column_2 = soc[3] + " (" + str(soc[2]) + ")"
+      print("{:<10} {:<10} {:<.6g}".format(column_1,column_2,soc[4]))
+    print(''.center(40, '-'))    
+
+    # Printing the momdip list
+    # ========================
+
+    print("")
+    print(''.center(105, '-'))
+    print('Transition dipole moments'.center(105, ' '))
+    print(''.center(105, '-'))
+    print("{:<10} {:<10} {:<20} {:<20} {:<20} {:<20}".format('State 1','State 2','X value (a.u.)','Y value (a.u.)','Z value (a.u.)','Tot value (a.u.)'))
+    print(''.center(105, '-'))
+    for momdip in momdip_list:
+      column_1 = system['states_list'][momdip[0]]["label"] + " (" + str(momdip[0]) + ")"
+      column_2 = system['states_list'][momdip[1]]["label"] + " (" + str(momdip[1]) + ")"
+      column_6 = math.sqrt(momdip[2]**2 + momdip[3]**2 + momdip[4]**2)
+      print("{:<10} {:<10} {:<20} {:<20} {:<20} {:<.6g}".format(column_1,column_2,momdip[2],momdip[3],momdip[4],column_6))
+    print(''.center(105, '-'))    
 
     return system
