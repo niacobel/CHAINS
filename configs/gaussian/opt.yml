@@ -13,7 +13,7 @@ general:
 # ========================================================= #
 
 gaussian:
-  cation_energy : Opt                              # "No" - doesn't compute the cation SCF energy ; "SP" - compute the energy with the neutral optimized geometry ; "Opt" - geometry optimization of the cation (default is "No")
+  cation_energy : Opt                              # "None" - doesn't compute the cation SCF energy ; "SP" - compute the energy with the neutral optimized geometry ; "Opt" - geometry optimization of the cation (default is "None")
   copy_files: True                                 # False if you don't want to copy the output files to their respective results directory, to proceed to the next step in CHAINS (default is False)
   benchmark: True                                  # True if you want to activate ABIN LAUNCHER's benchmarking option (default is False)
   keywords:                                        # The keywords will be used "as-is" in the keyword line of the GAUSSIAN input file, be sure that GAUSSIAN knows them! (see GAUSSIAN's manual for more information)

@@ -104,10 +104,10 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
     if not isinstance(copy_files, bool):
       raise abin_errors.AbinError ('ERROR: The "copy_files" value given in the "gaussian" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
 
-    cation_energy = config['gaussian'].get('cation_energy',"No").lower()
+    cation_energy = str(config['gaussian'].get('cation_energy')).lower()
 
-    if cation_energy not in ["no","sp","opt"]:
-      raise abin_errors.AbinError ('ERROR: The "cation_energy" value given in the "gaussian" block of the "%s" configuration file is neither "No", "SP" nor "Opt" (This is not case sensitive).' % misc['config_name'])
+    if cation_energy not in ["none","sp","opt"]:
+      raise abin_errors.AbinError ('ERROR: The "cation_energy" value given in the "gaussian" block of the "%s" configuration file is neither "None", "SP" nor "Opt" (This is not case sensitive).' % misc['config_name'])
 
     # Define the templates
     # ====================
@@ -187,7 +187,7 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
 
     # Variables specific to the cation_energy portion of the template
 
-    if cation_energy != "no":
+    if cation_energy != "none":
 
       # Determine the new charge and multiplicity of the cation
 

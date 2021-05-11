@@ -184,6 +184,7 @@ def gaussian_dft(source_content:list):
     #               SCF energy(ies) of the cation               #
     # ========================================================= #
 
+    cation = False
     cation_opt = False
     section_found = False
     first = True
@@ -460,8 +461,8 @@ def main():
     "Molecule" : source_name,
     "HOMO energy" : energies['homo'],
     "Neutral molecule energy" : energies['neutral'],
-    "Cation energy" : energies.get('cation'),
-    "Cation energy (optimized)" : energies.get('cation_opt'),
+    "Cation energy" : energies.get('cation',"N/A"),
+    "Cation energy (optimized)" : energies.get('cation_opt',"N/A"),
     "IP (Koopmans)" : ip_koopmans,
     "IP (vertical)" : ip_vertical,
     "IP (adiabatic)" : ip_adiabatic
