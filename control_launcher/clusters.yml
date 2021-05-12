@@ -54,3 +54,14 @@ nic4:
         - module --force purge
         - module load EasyBuild
         - module load OpenBLAS/0.3.7-GCC-8.3.0
+
+nic5:
+# address nic5.uliege.be
+  submit_command: sbatch
+  profiles:
+    qoctra:
+      <<: *qoctra
+      set_env:
+        - module --force purge
+        - module load releases/2019b
+        - module load OpenBLAS/0.3.7-GCC-8.3.0
