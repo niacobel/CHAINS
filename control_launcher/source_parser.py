@@ -507,11 +507,6 @@ def qchem_tddft(source_content:list):
     light_speed = 299792458         # in m/s (in vacuum)
     au_velocity = 2.18769126364e6   # in m/s
 
-    # Converting the states energy from cm-1 to Ha
-
-    for state in system['states_list']:
-      state['energy'] = energy_unit_conversion(state['energy'],"cm-1","ha")
-
     # Calculate the radiative lifetime of each excited state
 
     for state in system['states_list']:
@@ -522,9 +517,9 @@ def qchem_tddft(source_content:list):
 
         if other_state['energy'] < state['energy']:
 
-          # Convert the energy difference
+          # Compute and convert the energy difference
 
-          energy_diff = state['energy'] - other_state['energy']
+          energy_diff = energy_unit_conversion(state['energy'],"cm-1","ha") - energy_unit_conversion(other_state['energy'],"cm-1","ha")
 
           # Compute the square of the transition dipole moment
 
@@ -552,14 +547,14 @@ def qchem_tddft(source_content:list):
     # ========================
 
     print("")
-    print(''.center(70, '-'))
-    print('States List'.center(70, ' '))
-    print(''.center(70, '-'))
-    print("{:<10} {:<15} {:<10} {:<15} {:<15}".format('Number','Type','Label','Energy (cm-1)','Lifetime (a.u.)'))
-    print(''.center(70, '-'))
+    print(''.center(85, '-'))
+    print('States List'.center(85, ' '))
+    print(''.center(85, '-'))
+    print("{:<10} {:<15} {:<10} {:<15} {:<15} {:<15}".format('Number','Type','Label','Energy (cm-1)','Energy (Ha)','Lifetime (a.u.)'))
+    print(''.center(85, '-'))
     for state in system['states_list']:
-      print("{:<10} {:<15} {:<10} {:<15.5e} {:<15.5e}".format(state['number'],state['type'],state['label'],state['energy'],state['lifetime']))
-    print(''.center(70, '-'))
+      print("{:<10} {:<15} {:<10} {:<15.2f} {:<15.5f} {:<15.5e}".format(state['number'],state['type'],state['label'],state['energy'],energy_unit_conversion(state['energy'],"cm-1","ha"),state['lifetime']))
+    print(''.center(85, '-'))
 
     # Printing the SOC list
     # =====================
@@ -591,5 +586,14 @@ def qchem_tddft(source_content:list):
       column_6 = math.sqrt(momdip[2]**2 + momdip[3]**2 + momdip[4]**2)
       print("{:<10} {:<10} {:<20} {:<20} {:<20} {:<.6g}".format(column_1,column_2,momdip[2],momdip[3],momdip[4],column_6))
     print(''.center(105, '-'))    
+
+    # ========================================================= #
+    #                    End of the function                    #
+    # ========================================================= #
+
+    # Converting the states energy from cm-1 to Ha
+
+    for state in system['states_list']:
+      state['energy'] = energy_unit_conversion(state['energy'],"cm-1","ha")
 
     return system

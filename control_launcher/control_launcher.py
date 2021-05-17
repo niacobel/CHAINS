@@ -72,6 +72,10 @@ def main():
   # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
   try:
 
+    # Define an array for correct English spelling during printing
+
+    special_numbers = {1:"st", 2:"nd", 3:"rd"}
+
     # Save a reference to the original standard output as it will be modified later on (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
 
     original_stdout = sys.stdout
@@ -204,10 +208,6 @@ def main():
     # Defined the required keys in our job scales
 
     required_keys = frozenset({"label", "scale_limit", "time", "memory" })
-
-    # Define an array for correct English spelling during printing
-
-    special_numbers = {1:"st", 2:"nd", 3:"rd"}
 
     # Initialize the final dictionary where the job scales will be sorted by their upper limit
 
@@ -416,8 +416,8 @@ def main():
       raise control_errors.ControlError ('ERROR: The "states_list" value in the system dictionary returned by the %s parsing function is not a list.' % parsing_fct)
 
     for state in system["states_list"]:
+      state_number = system["states_list"].index(state) + 1
       if not isinstance(state, dict):
-        state_number = system["states_list"].index(state) + 1
         raise control_errors.ControlError ('ERROR: The %s%s state in the states list returned by the %s parsing function is not a dictionary.' % (state_number, ("th" if not state_number in special_numbers else special_numbers[state_number]), parsing_fct)) 
       for key in states_keys:
         if key not in state:
@@ -471,8 +471,8 @@ def main():
     eigenvalues, eigenvectors = numpy.linalg.eig(system['mime'])
     print("[ DONE ]")
 
-    # Assigning the eigenstates to the zero order states
-    # ==================================================
+    # Assign the eigenstates to the zero order states
+    # ===============================================
 
     # Initialize the variables
 
@@ -482,6 +482,10 @@ def main():
     for state in range(len(eigenvalues)):
       system['eigenstates_list'].append({'number' : -1, 'label' : ' ', 'energy' : -1.0, 'main_cont' : ' '})
     system['eigenvectors'] = [[] for x in range(len(eigenvalues))] # creates an empty list of lists, e.g. [[],[],[]]
+
+    # Sort the eigenvalues by increasing order (used to number and label the eigenstates)
+
+    sorted_eig = sorted(eigenvalues)
 
     # Assign according to the major contributor amongst the zero order states
 
@@ -503,103 +507,101 @@ def main():
 
         for max_index in max_indices: # Start working with first maximum, then second maximum, etc.
 
+          # First case: no conflict, just write the value in the corresponding spot
+
           if system['eigenvectors'][max_index] == []:
 
             # Write the eigenstate information on the same index than its main contributor, for easy handling later on
 
             system['eigenvectors'][max_index] = current_vector
-            system['eigenstates_list'][max_index]['number'] = max_index
-            system['eigenstates_list'][max_index]['label'] = "E" + str(max_index)
             system['eigenstates_list'][max_index]['energy'] = current_value
             system['eigenstates_list'][max_index]['main_cont'] = system["states_list"][max_index]["label"]
-
-            # Make a clear statement about it in the log file
-
-            eigen_number = eigenvectors.index(current_vector)
-            eigen_suffix = "th" if not eigen_number in special_numbers else special_numbers[eigen_number]
-            zero_label = system["states_list"][max_index]["label"]
-            print("\nThe %s%s eigenstate has been succesfully assigned to the '%s' zero order state." % (eigen_number, eigen_suffix, zero_label))
+            system['eigenstates_list'][max_index]['number'] = sorted_eig.index(current_value) # The number of the states is defined by increasing order of energy
+            system['eigenstates_list'][max_index]['label'] = "E" + str(system['eigenstates_list'][max_index]['number'])
 
             # Proceed to the next eigenvector
 
             looking_for_home = False
             break
 
-          else: # We are facing a conflict
+          # Second case: conflict (spot already taken), but the maximum of the newcomer is equal or lower than the one of the current resident
 
-            # Make a clear statement about it in the log file
+          elif (current_vector[max_index]**2) <= (system['eigenvectors'][max_index][max_index]**2):
+         
+            continue
 
-            new_number = eigenvectors.index(current_vector)
-            new_suffix = "th" if not new_number in special_numbers else special_numbers[new_number]
-            old_number = eigenvectors.index(system['eigenvectors'][max_index])
-            old_suffix = "th" if not old_number in special_numbers else special_numbers[old_number]
-            zero_label = system["states_list"][max_index]["label"] 
+          # Third case: conflict (spot already taken), but the maximum of the newcomer is greater than the one of the current resident
 
-            print("\nConflict between the %s%s and %s%s eigenstates over the '%s' zero order state has emerged." % (new_number, new_suffix, old_number, old_suffix, zero_label))
+          else:
 
-            # Resolve the conflict
+            # Exchange places with the current resident
 
-            if (current_vector[max_index]**2) <= (system['eigenvectors'][max_index][max_index]**2):
+            temp_vector = system['eigenvectors'][max_index]
+            temp_value = system['eigenstates_list'][max_index]['energy']
 
-              print("\tThe %s%s eigenstate stays in place, the next maximum for the %s%s eigenstate will now be considered." % (old_number, old_suffix, new_number, new_suffix))
-              continue
+            system['eigenvectors'][max_index] = current_vector              
+            system['eigenstates_list'][max_index]['energy'] = current_value
+            system['eigenstates_list'][max_index]['number'] = sorted_eig.index(current_value) # The number of the states is defined by increasing order of energy
+            system['eigenstates_list'][max_index]['label'] = "E" + str(system['eigenstates_list'][max_index]['number'])
 
-            else:
+            # Prepare to relocate the now homeless eigenvector
 
-              print("\tThe %s%s eigenstate will be replaced by the %s%s eigenstate and will be assigned to another zero order state." % (old_number, old_suffix, new_number, new_suffix))
+            current_vector = temp_vector
+            current_value = temp_value
+            break
 
-              # We need to exchange places with the current resident
+    # Comment on the conflicts that have been encountered and resolved along the way to keep trace of it in the log file (printed later on in the script)
 
-              temp_vector = system['eigenvectors'][max_index]
-              temp_value = system['eigenstates_list'][max_index]['energy']
+    for eigenstate in system['eigenstates_list']:
 
-              system['eigenvectors'][max_index] = current_vector              
-              system['eigenstates_list'][max_index]['energy'] = current_value
+      comment = ""
 
-              # We are done with this eigenvector, but we need to relocate the now homeless eigenvector
+      # See if the position assigned to this eigenstate corresponds to its major contributor (check if its index matches the index of its major contributor)
 
-              current_vector = temp_vector
-              current_value = temp_value
-              break
+      list_index = system['eigenstates_list'].index(eigenstate)
+      contributions = [(coef**2) for coef in system['eigenvectors'][list_index]]
+      max_indices = [contributions.index(x) for x in sorted(contributions, reverse=True)]
 
-    # ========================================================= #
-    # Eigenvectors matrix                                       #
-    # ========================================================= #
+      if list_index != max_indices[0]:
 
-    print("\nEigenvectors matrix")
-    print('')
-    for vector in system['eigenvectors']:
-      for val in vector:
-        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
-      print('')
+        # Since it was not the first maximum, check which maximum was used (second, third, ...) and leave a comment describing which major(s) contributor(s) had to be ignored
 
-    # ========================================================= #
-    # Eigenvectors transpose matrix                             #
-    # ========================================================= #
+        spot = max_indices.index(list_index)
+        
+        for max_number in range(1,spot+1):
+
+          suffix = "th" if not max_number in special_numbers else special_numbers[max_number]
+          zero_label = system["states_list"][max_indices[max_number-1]]["label"]
+
+          if comment == "":
+            comment += str(max_number) + suffix + " max is " + zero_label + " "
+          else:
+            comment += "- " + str(max_number) + suffix + " max is " + zero_label + " "
+          
+      eigenstate['comment'] = comment
+
+    # Transpose the eigenvectors matrix
+    # =================================
 
     # Using NumPy to transpose the eigenvectors matrix (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference)
     system['transpose'] = numpy.transpose(system['eigenvectors'])
 
-    print("\nEigenvectors transpose matrix")
-    print('')
-    for vector in system['transpose']:
-      for val in vector:
-        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
-      print('')
-
-    # ========================================================= #
-    # Diagonalized MIME                                         #
-    # ========================================================= #
+    # Evaluate the diagonalization
+    # ============================
 
     # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
     system['mime_diag'] = numpy.matmul(numpy.matmul(system['transpose'],system['mime']),system['eigenvectors'])
+
+    # Average the diagonal elements
+    diag_mean = numpy.trace(system['mime_diag']) / len(system['eigenvectors'])
+
+    # Average the non-diagonal elements (sum everything minus the trace and divide by n*(n-1), where n is the number of states)
+    nondiag_mean = (numpy.sum(system['mime_diag']) - numpy.trace(system['mime_diag'])) / (len(system['eigenvectors']) * (len(system['eigenvectors']) - 1))
+
+    # Evaluate the ratio of the diagonalization
+    ratio = nondiag_mean / diag_mean
         
-    print("\nMIME in the eigenstates basis set (Ha)")
-    print('')
-    for row in system['mime_diag']:
-      for val in row:
-        print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
-      print('')
+    print ("{:<50} {:<.2e}".format('\nDiagonalization ratio (non-diag/diag): ',ratio))
 
     # ========================================================= #
     # Dipole moment matrices in the eigenstates basis set       #
@@ -672,14 +674,15 @@ def main():
     # ==========================
 
     print("")
-    print(''.center(75, '-'))
-    print('Eigenstates List'.center(75, ' '))
-    print(''.center(75, '-'))
-    print("{:<10} {:<10} {:<15} {:<18} {:<15}".format('Number','Label','Energy (Ha)','Main Contributor','Lifetime (a.u.)'))
-    print(''.center(75, '-'))
-    for eigenstate in system['eigenstates_list']:
-      print("{:<10} {:<10} {:<15.5e} {:<18} {:<15.5e}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['main_cont'],eigenstate['lifetime']))
-    print(''.center(75, '-'))
+    print(''.center(105, '-'))
+    print('Eigenstates List'.center(105, ' '))
+    print(''.center(105, '-'))
+    print("{:<10} {:<10} {:<15} {:<18} {:<15} {:<30}".format('Number','Label','Energy (Ha)','Main Contributor','Lifetime (a.u.)','Comment'))
+    print(''.center(105, '-'))
+    # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
+    for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['number']):
+      print("{:<10} {:<10} {:<15.5e} {:<18} {:<15.5e} {:<30}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['main_cont'],eigenstate['lifetime'],eigenstate['comment']))
+    print(''.center(105, '-'))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
@@ -819,7 +822,8 @@ def main():
     eigenstate_file = "eigenstates.csv"
     with open(os.path.join(data_dir,eigenstate_file), "w") as f:
       print("Number;Label;Energy (Ha);Main Contributor;Lifetime (a.u.)", file = f)
-      for eigenstate in system['eigenstates_list']:
+      # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
+      for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['number']):
         eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:.5e}".format(eigenstate['energy']),eigenstate['main_cont'],"{:.5e}".format(eigenstate['lifetime'])))
         print(eigenstate_line, file = f)
     print("    ├── The eigenstates list file ('%s') has been created into the directory" % eigenstate_file)
@@ -1293,4 +1297,4 @@ def main():
 # If this script is executed through the command line, call the main function (see https://realpython.com/python-main-function/ for details)
 
 if __name__ == "__main__":
-    main()
+  main()
