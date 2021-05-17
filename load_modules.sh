@@ -6,11 +6,11 @@
 
 # Global requirements:
 #   - Python    3.5 and later
-#	- Jinja2	2 and later		(in case of required upgrade, load python 3 module then issue in cmdline: python -m pip install --user -U Jinja2)
-#	- PyYaml	5.1 and later	(in case of required upgrade, load python 3 module then issue in cmdline: python -m pip install --user -U pyyaml)
+#	- Jinja2	2 and later		(in case of required upgrade, load python 3 module then issue in command line: python -m pip install --user -U Jinja2)
+#	- PyYaml	5.1 and later	(in case of required upgrade, load python 3 module then issue in command line: python -m pip install --user -U pyyaml)
 
-# Specifically for control_launcher
-#   - Numpy     1.14 and later  (in case of required upgrade, load python 3 module then issue in cmdline: python -m pip install --user -U numpy)
+# Specifically for control_launcher and results_treatment
+#   - Numpy     1.14 and later  (in case of required upgrade, load python 3 module then issue in command line: python -m pip install --user -U numpy)
 
 # Specifically for results_treatment
 #   - Gnuplot   5 .0 and later    
