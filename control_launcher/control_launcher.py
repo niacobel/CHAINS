@@ -672,12 +672,80 @@ def main():
           if not added:
               deg_list.append([eigenstate['number'],other_state['number']])
 
-    # Merge degenerated states
+    # Update the transition dipole moments matrices
+    # =============================================
+
+    # Build a version of the list of degeneracies that uses the indices of the states rather than their number (to locate them in the matrices)
+
+    deg_list_ind = []
 
     for group in deg_list:
 
-      # Update the eigenstates list
-      # ===========================
+      group_ind = []
+
+      for number in group:
+
+        # Fetch the index corresponding to a particular eigenstate through its number and add it to the group_ind
+        index = system['eigenstates_list'].index(next(eigenstate for eigenstate in system['eigenstates_list'] if eigenstate['number'] == number))
+        group_ind.append(index)
+      
+      deg_list_ind.append(group_ind)
+
+    # Iterate over each matrix separately
+
+    for momdip_key in system["momdip_es_mtx"]:
+
+      # Initialize the new matrix that will replace the old one
+
+      new_mtx = []
+
+      # Convert the original matrix from a NumPy array to a list of lists for easy handling
+
+      system["momdip_es_mtx"][momdip_key] = system["momdip_es_mtx"][momdip_key].tolist()
+
+      # Update the columns, line by line
+
+      for row in system["momdip_es_mtx"][momdip_key]:
+
+        new_row = row.copy()
+
+        for group_ind in deg_list_ind:
+
+          # Determine where the new value will be placed
+
+          spot = min([eigenstate['number'] for eigenstate in system['eigenstates_list'] if system['eigenstates_list'].index(eigenstate) in group_ind])
+
+          # Determine the new value
+
+          value = max([momdip for momdip in row if row.index(momdip) in group_ind])
+
+          # Insert the new value and prepare to remove the old ones (do not remove them immediately to not mess with the other groups)
+
+          for index in group_ind:
+            if index == spot:
+              new_row[spot] = value
+            else:
+              new_row[index] = "To remove"
+
+        # Append the new line to the new matrix
+
+        new_row = [momdip for momdip in new_row if momdip != "To remove"]
+        new_mtx.append(new_row)
+
+      # Update the lines
+          
+
+
+
+
+      # Replace the old matrix with the new one
+
+      system["momdip_es_mtx"][momdip_key] = new_mtx
+
+    # Update the eigenstates list
+    # ===========================
+
+    for group in deg_list:
 
       # Initialize the new state resulting from the combination
 
@@ -708,11 +776,6 @@ def main():
       # Add the new state to the list at the position occupied by the state that had the same number
 
       system['eigenstates_list'].insert(index,new_state)
-
-      # Update the transition dipole moments matrices
-      # =============================================
-
-
 
     # ========================================================= #
     # Eigenstates list                                          #
@@ -748,7 +811,9 @@ def main():
 
         square_dipole = 0
         for momdip_key in system['momdip_es_mtx']:
-          square_dipole += system['momdip_es_mtx'][momdip_key][eigenstate['number']][other_state['number']] ** 2
+          eigen_idx = system['eigenstates_list'].index(eigenstate)
+          other_idx = system['eigenstates_list'].index(other_state)
+          square_dipole += system['momdip_es_mtx'][momdip_key][eigen_idx][other_idx] ** 2
 
         # Calculate the A Einstein Coefficient          
 
