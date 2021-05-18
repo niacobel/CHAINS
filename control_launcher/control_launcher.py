@@ -474,6 +474,8 @@ def main():
     # Assign the eigenstates to the zero order states
     # ===============================================
 
+    print("{:<50}".format("\nAssigning eigenstates to zero order states ..."), end="")
+
     # Initialize the variables
 
     eigenvectors = eigenvectors.tolist()
@@ -580,20 +582,25 @@ def main():
           
       eigenstate['comment'] = comment
 
+    print("[ DONE ]")
+
     # Transpose the eigenvectors matrix
     # =================================
 
     # Using NumPy to transpose the eigenvectors matrix (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference)
+
+    print("{:<50}".format("\nTransposing eigenvectors matrix ..."), end="")
     system['transpose'] = numpy.transpose(system['eigenvectors'])
+    print("[ DONE ]")
 
     # Evaluate the diagonalization
     # ============================
 
-    # Using NumPy to convert from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
+    # Using NumPy to convert the MIME from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
     system['mime_diag'] = numpy.matmul(numpy.matmul(system['transpose'],system['mime']),system['eigenvectors'])
 
     # Average the diagonal elements
-    diag_mean = numpy.trace(system['mime_diag']) / len(system['eigenvectors'])
+    diag_mean = numpy.mean(numpy.trace(system['mime_diag']))
 
     # Average the non-diagonal elements (sum everything minus the trace and divide by n*(n-1), where n is the number of states)
     nondiag_mean = (numpy.sum(system['mime_diag']) - numpy.trace(system['mime_diag'])) / (len(system['eigenvectors']) * (len(system['eigenvectors']) - 1))
@@ -625,6 +632,89 @@ def main():
         print('')
   
     # ========================================================= #
+    # Handling eigenstates degeneracies                         #
+    # ========================================================= #
+
+    # Define the energy difference below which states are considered degenerated (in Ha).
+
+    deg_threshold = 1e-5
+    print ("{:<50} {:<.2e}".format('\nDegeneracy threshold: ',deg_threshold))
+
+    # Initialize the list of degeneracies (each item of this list will be a group of degenerated states)
+
+    deg_list = []
+
+    # Look for every group of degenerated states
+
+    for eigenstate in system['eigenstates_list']:
+
+      for other_state in [other_state for other_state in system['eigenstates_list'] if other_state['number'] < eigenstate['number']]:
+
+        if abs(eigenstate['energy'] - other_state['energy']) < deg_threshold:
+
+          # Define if and how to add this pair of degenerated states to the list of degeneracies
+
+          added = False
+
+          for group in deg_list:
+
+            if other_state['number'] in group and eigenstate['number'] not in group:
+              group.append(eigenstate['number'])
+              added = True
+
+            elif eigenstate['number'] in group and other_state['number'] not in group:
+              group.append(other_state['number'])
+              added = True
+              
+            elif other_state['number'] in group and eigenstate['number'] in group:
+              added = True
+
+          if not added:
+              deg_list.append([eigenstate['number'],other_state['number']])
+
+    # Merge degenerated states
+
+    for group in deg_list:
+
+      # Update the eigenstates list
+      # ===========================
+
+      # Initialize the new state resulting from the combination
+
+      new_state = {}
+
+      # Determine the new values for the new degenerated state
+
+      new_state['number'] = min(group)
+      new_state['label'] = "E" + "-".join(map(str,sorted(group))) # e.g. for a group including the states number 2, 3 and 4, its label will be E2-3-4
+      new_state['energy'] = numpy.mean([eigenstate['energy'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
+
+      # Regroup the information about main contributors, e.g. for a group including the states E2 and E3 with main contributors S2 and S3 respectively, the new value will be "E2:S2 - E3:S3"
+
+      new_state['main_cont'] = " - ".join([eigenstate['label'] + ":" + eigenstate['main_cont'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
+
+      # Regroup the comments in the same way, adding a comment about degeneracy, e.g "2x degenerated (E2:1st max is S3)"
+
+      new_state['comment'] = str(len(group)) + "x degenerated " + "(" + " - ".join([eigenstate['label'] + ":" + eigenstate['comment'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group and eigenstate['comment'] != ""]) + ")"
+
+      # Get the index of the state that has the same number as the new one
+
+      index = system['eigenstates_list'].index(next(eigenstate for eigenstate in system['eigenstates_list'] if eigenstate['number'] == new_state['number']))
+
+      # Remove the degenerated states from the eigenstates_list (by keeping only the states not included in the group)
+
+      system['eigenstates_list'] = [eigenstate for eigenstate in system['eigenstates_list'] if eigenstate['number'] not in group]
+
+      # Add the new state to the list at the position occupied by the state that had the same number
+
+      system['eigenstates_list'].insert(index,new_state)
+
+      # Update the transition dipole moments matrices
+      # =============================================
+
+
+
+    # ========================================================= #
     # Eigenstates list                                          #
     # ========================================================= #
 
@@ -640,30 +730,32 @@ def main():
     light_speed = 299792458         # in m/s (in vacuum)
     au_velocity = 2.18769126364e6   # in m/s
 
-    # Calculate the radiative lifetime of each excited state
+    # Iterate over each excited state
 
     for eigenstate in system['eigenstates_list']:
 
       sum_einstein_coeffs = 0
 
-      for other_state in system['eigenstates_list']:
+      # Iterate over each state with an energy lower than the current one
 
-        if other_state['energy'] < eigenstate['energy']:
+      for other_state in [other_state for other_state in system['eigenstates_list'] if other_state['energy'] < eigenstate['energy']]:
 
-          # Compute the energy difference
+        # Compute the energy difference
 
-          energy_diff = eigenstate['energy'] - other_state['energy']
+        energy_diff = eigenstate['energy'] - other_state['energy']
 
-          # Compute the square of the transition dipole moment
+        # Compute the square of the transition dipole moment
 
-          square_dipole = 0
-          for momdip_key in system['momdip_es_mtx']:
-            square_dipole += system['momdip_es_mtx'][momdip_key][eigenstate['number']][other_state['number']] ** 2
+        square_dipole = 0
+        for momdip_key in system['momdip_es_mtx']:
+          square_dipole += system['momdip_es_mtx'][momdip_key][eigenstate['number']][other_state['number']] ** 2
 
-          # Calculate the A Einstein Coefficient          
+        # Calculate the A Einstein Coefficient          
 
-          einstein_coeff = (4/3) * square_dipole * (energy_diff**3) / ((light_speed/au_velocity)**3)
-          sum_einstein_coeffs += einstein_coeff
+        einstein_coeff = (4/3) * square_dipole * (energy_diff**3) / ((light_speed/au_velocity)**3)
+        sum_einstein_coeffs += einstein_coeff
+
+      # Compute the radiative lifetime
 
       if sum_einstein_coeffs == 0:
         eigenstate['lifetime'] = float('inf')
@@ -674,15 +766,15 @@ def main():
     # ==========================
 
     print("")
-    print(''.center(105, '-'))
-    print('Eigenstates List'.center(105, ' '))
-    print(''.center(105, '-'))
-    print("{:<10} {:<10} {:<15} {:<18} {:<15} {:<30}".format('Number','Label','Energy (Ha)','Main Contributor','Lifetime (a.u.)','Comment'))
-    print(''.center(105, '-'))
+    print(''.center(120, '-'))
+    print('Eigenstates List'.center(120, ' '))
+    print(''.center(120, '-'))
+    print("{:<10} {:<10} {:<15} {:<30} {:<15} {:<30}".format('Number','Label','Energy (Ha)','Main Contributor','Lifetime (a.u.)','Comment'))
+    print(''.center(120, '-'))
     # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
     for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['number']):
-      print("{:<10} {:<10} {:<15.5e} {:<18} {:<15.5e} {:<30}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['main_cont'],eigenstate['lifetime'],eigenstate['comment']))
-    print(''.center(105, '-'))
+      print("{:<10} {:<10} {:<15.5e} {:<30} {:<15.5e} {:<30}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['main_cont'],eigenstate['lifetime'],eigenstate['comment']))
+    print(''.center(120, '-'))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
