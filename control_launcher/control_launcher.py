@@ -20,7 +20,7 @@ from collections import OrderedDict
 from inspect import getsourcefile
 
 import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
-import numpy
+import numpy as np
 import yaml
 
 # Subscripts (files that end with .py and must be placed in the same directory as this script)
@@ -53,6 +53,7 @@ optional.add_argument("-ow","--overwrite",action="store_true",help="If a data di
 optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files and directories.")
 optional.add_argument("-as","--arch_src",action="store_true",help="Archive the source file after it has been processed.")
 optional.add_argument("-ac","--arch_cf",action="store_true",help="Archive the configuration files after they have been processed.")
+optional.add_argument('-dt','--degen_tresh',type=float,default=1e-5,help="Energy difference below which states are considered degenerated (in Hartree). A negative value will turn off the handling of degenerated states and leave them as is.")
 
 # =================================================================== #
 # =================================================================== #
@@ -114,6 +115,8 @@ def main():
 
     arch_src = args.arch_src                 # Flag for archiving the source file after it has been processed
     arch_cf = args.arch_cf                   # Flag for archiving the configuration files after they have been processed
+
+    deg_threshold = args.degen_tresh         # Energy difference below which states are considered degenerated (in Ha).
 
     # ========================================================= #
     # Define codes directory                                    #
@@ -425,14 +428,14 @@ def main():
 
     # Check the MIME and the dipole moments matrices
 
-    if not isinstance(system["mime"], (list, numpy.ndarray)):
+    if not isinstance(system["mime"], (list, np.ndarray)):
       raise control_errors.ControlError ('ERROR: The "mime" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % parsing_fct)
 
     if not isinstance(system["momdip_mtx"], dict):
       raise control_errors.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s parsing function is not a dictionary.' % parsing_fct)
 
     for momdip_key in system["momdip_mtx"]:
-      if not isinstance(system["momdip_mtx"][momdip_key], (list, numpy.ndarray)):
+      if not isinstance(system["momdip_mtx"][momdip_key], (list, np.ndarray)):
         raise control_errors.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (momdip_key, parsing_fct))
 
     print("\nThe source file has been succesfully parsed.")
@@ -468,7 +471,7 @@ def main():
     # Use NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)  
      
     print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
-    eigenvalues, eigenvectors = numpy.linalg.eig(system['mime'])
+    eigenvalues, eigenvectors = np.linalg.eig(system['mime'])
     print("[ DONE ]")
 
     # Assign the eigenstates to the zero order states
@@ -576,9 +579,9 @@ def main():
           zero_label = system["states_list"][max_indices[max_number-1]]["label"]
 
           if comment == "":
-            comment += str(max_number) + suffix + " max is " + zero_label + " "
+            comment += str(max_number) + suffix + " max is " + zero_label
           else:
-            comment += "- " + str(max_number) + suffix + " max is " + zero_label + " "
+            comment += " - " + str(max_number) + suffix + " max is " + zero_label
           
       eigenstate['comment'] = comment
 
@@ -590,20 +593,20 @@ def main():
     # Using NumPy to transpose the eigenvectors matrix (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference)
 
     print("{:<50}".format("\nTransposing eigenvectors matrix ..."), end="")
-    system['transpose'] = numpy.transpose(system['eigenvectors'])
+    system['transpose'] = np.transpose(system['eigenvectors'])
     print("[ DONE ]")
 
     # Evaluate the diagonalization
     # ============================
 
     # Using NumPy to convert the MIME from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
-    system['mime_diag'] = numpy.matmul(numpy.matmul(system['transpose'],system['mime']),system['eigenvectors'])
+    system['mime_diag'] = np.matmul(np.matmul(system['transpose'],system['mime']),system['eigenvectors'])
 
     # Average the diagonal elements
-    diag_mean = numpy.mean(numpy.trace(system['mime_diag']))
+    diag_mean = np.mean(np.trace(system['mime_diag']))
 
     # Average the non-diagonal elements (sum everything minus the trace and divide by n*(n-1), where n is the number of states)
-    nondiag_mean = (numpy.sum(system['mime_diag']) - numpy.trace(system['mime_diag'])) / (len(system['eigenvectors']) * (len(system['eigenvectors']) - 1))
+    nondiag_mean = (np.sum(system['mime_diag']) - np.trace(system['mime_diag'])) / (len(system['eigenvectors']) * (len(system['eigenvectors']) - 1))
 
     # Evaluate the ratio of the diagonalization
     ratio = nondiag_mean / diag_mean
@@ -622,22 +625,19 @@ def main():
 
     for momdip_key in system["momdip_mtx"]:
 
-      system['momdip_es_mtx'][momdip_key] = numpy.matmul(numpy.matmul(system['transpose'],system['momdip_mtx'][momdip_key]),system['eigenvectors'])
+      system['momdip_es_mtx'][momdip_key] = np.matmul(np.matmul(system['transpose'],system['momdip_mtx'][momdip_key]),system['eigenvectors'])
         
       print("\nDipole moments matrix with the '%s' key in the eigenstates basis set (atomic units)" % momdip_key)
       print('')
       for row in system['momdip_es_mtx'][momdip_key]:
         for val in row:
-          print(numpy.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
+          print(np.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
         print('')
   
     # ========================================================= #
     # Handling eigenstates degeneracies                         #
     # ========================================================= #
 
-    # Define the energy difference below which states are considered degenerated (in Ha).
-
-    deg_threshold = 1e-5
     print ("{:<50} {:<.2e}".format('\nDegeneracy threshold: ',deg_threshold))
 
     # Initialize the list of degeneracies (each item of this list will be a group of degenerated states)
@@ -697,46 +697,41 @@ def main():
 
       # Initialize the new matrix that will replace the old one
 
-      new_mtx = []
+      new_mtx = np.copy(system["momdip_es_mtx"][momdip_key])
 
-      # Convert the original matrix from a NumPy array to a list of lists for easy handling
+      # Intialize the list that will contain the indices of the lines that need to be removed
 
-      system["momdip_es_mtx"][momdip_key] = system["momdip_es_mtx"][momdip_key].tolist()
+      to_remove = []
 
-      # Update the columns, line by line
+      # Iterate over each group separately
 
-      for row in system["momdip_es_mtx"][momdip_key]:
+      for group_ind in deg_list_ind:
 
-        new_row = row.copy()
+        # Determine where the new line will be placed
 
-        for group_ind in deg_list_ind:
+        spot = min([eigenstate['number'] for eigenstate in system['eigenstates_list'] if system['eigenstates_list'].index(eigenstate) in group_ind])
 
-          # Determine where the new value will be placed
+        # Determine the new line by taking the maximum (disregarding the sign) of each dipole moments from each line of the group
+        # See https://stackoverflow.com/questions/51209928/get-maximum-of-absolute-along-axis for details
 
-          spot = min([eigenstate['number'] for eigenstate in system['eigenstates_list'] if system['eigenstates_list'].index(eigenstate) in group_ind])
+        max_idx = np.argmax(np.absolute(new_mtx[group_ind]), axis=0)
+        values = new_mtx[group_ind][tuple([max_idx,np.arange(new_mtx[group_ind].shape[1])])]
 
-          # Determine the new value
+        #! Other possibility: determine the new line by summing the dipole moments from each line of the group using the reduce method from NumPy (see https://numpy.org/doc/stable/reference/generated/numpy.ufunc.reduce.html)
+        #! values = np.sum.reduce(new_mtx[group_ind])
 
-          value = max([momdip for momdip in row if row.index(momdip) in group_ind])
+        # Insert the new line and prepare to remove the old ones (do not remove them immediately to not mess with the other groups)
 
-          # Insert the new value and prepare to remove the old ones (do not remove them immediately to not mess with the other groups)
+        for index in group_ind:
+          if index == spot:
+            new_mtx[spot] = values
+            new_mtx[:,spot] = values
+          else:
+            to_remove.append(index)
 
-          for index in group_ind:
-            if index == spot:
-              new_row[spot] = value
-            else:
-              new_row[index] = "To remove"
+      # Remove the now useless lines and columns
 
-        # Append the new line to the new matrix
-
-        new_row = [momdip for momdip in new_row if momdip != "To remove"]
-        new_mtx.append(new_row)
-
-      # Update the lines
-          
-
-
-
+      new_mtx = np.delete(np.delete(new_mtx,to_remove,0), to_remove, 1)
 
       # Replace the old matrix with the new one
 
@@ -755,7 +750,7 @@ def main():
 
       new_state['number'] = min(group)
       new_state['label'] = "E" + "-".join(map(str,sorted(group))) # e.g. for a group including the states number 2, 3 and 4, its label will be E2-3-4
-      new_state['energy'] = numpy.mean([eigenstate['energy'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
+      new_state['energy'] = np.mean([eigenstate['energy'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
 
       # Regroup the information about main contributors, e.g. for a group including the states E2 and E3 with main contributors S2 and S3 respectively, the new value will be "E2:S2 - E3:S3"
 
@@ -963,7 +958,7 @@ def main():
     # MIME
 
     mime_file = "mime"
-    numpy.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
+    np.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
     print("    ├── The MIME file ('%s') has been created into the directory" % mime_file)
 
     # Dipole moments matrices
@@ -971,7 +966,7 @@ def main():
     for momdip_key in system['momdip_mtx']:
 
       momdip_mtx_file = 'momdip_mtx_' + momdip_key
-      numpy.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][momdip_key],fmt='% 18.10e')
+      np.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][momdip_key],fmt='% 18.10e')
       print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (momdip_key, momdip_mtx_file))
 
     # Eigenstates list
@@ -996,11 +991,11 @@ def main():
     # Eigenvectors matrix and eigenvectors transpose matrix
 
     eigenvectors_file = "eigenvectors"
-    numpy.savetxt(os.path.join(data_dir,eigenvectors_file),system['eigenvectors'],fmt='% 18.10e')
+    np.savetxt(os.path.join(data_dir,eigenvectors_file),system['eigenvectors'],fmt='% 18.10e')
     print("    ├── The eigenvectors file ('%s') has been created into the directory" % eigenvectors_file)
 
     transpose_file = "transpose"
-    numpy.savetxt(os.path.join(data_dir,transpose_file),system['transpose'],fmt='% 18.10e')
+    np.savetxt(os.path.join(data_dir,transpose_file),system['transpose'],fmt='% 18.10e')
     print("    ├── The transpose of the eigenvectors file ('%s') has been created into the directory" % transpose_file)
 
     # Dipole moments matrices in the eigenstates basis set
@@ -1008,7 +1003,7 @@ def main():
     for momdip_key in system['momdip_es_mtx']:
 
       momdip_es_mtx_file = 'momdip_es_mtx_' + momdip_key
-      numpy.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'][momdip_key],fmt='% 18.10e')
+      np.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'][momdip_key],fmt='% 18.10e')
       print("    ├── The transition dipole moment matrix file corresponding to the '%s' key in the eigenstates basis set ('%s') has been created into the directory" % (momdip_key, momdip_es_mtx_file))
 
     # Transitions list
