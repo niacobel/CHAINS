@@ -11,7 +11,7 @@ shared:
   profiles:
     qoctra: &qoctra
       parsing_function: qchem_tddft
-      transition_function: brightests_to_coupled_darks
+      transition_function: brightests_to_darkests
       rendering_function: chains_qoctra_render                
       job_scales:
         - 
@@ -43,17 +43,6 @@ lemaitre3:
 # ========================================================= #
 #                      ULiège Clusters                      #
 # ========================================================= #
-
-nic4:
-# address nic4.segi.ulg.ac.be
-  submit_command: sbatch
-  profiles:
-    qoctra:
-      <<: *qoctra
-      set_env:
-        - module --force purge
-        - module load EasyBuild
-        - module load OpenBLAS/0.3.7-GCC-8.3.0
 
 nic5:
 # address nic5.uliege.be
