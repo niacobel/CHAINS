@@ -8,7 +8,7 @@
 import math
 import re
 
-import numpy
+import numpy as np
 
 import control_errors
 
@@ -368,7 +368,7 @@ def qchem_tddft(source_content:list):
 
     # Initialize the MIME as a zero-filled matrix
 
-    system['mime'] = numpy.zeros((len(system['states_list']), len(system['states_list'])))
+    system['mime'] = np.zeros((len(system['states_list']), len(system['states_list'])))
 
     # Creation of the MIME - Non-diagonal values (SOC)
 
@@ -470,9 +470,9 @@ def qchem_tddft(source_content:list):
 
     # Initialize the matrices as zero-filled matrices
 
-    system['momdip_mtx']['X'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
-    system['momdip_mtx']['Y'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
-    system['momdip_mtx']['Z'] = numpy.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+    system['momdip_mtx']['X'] = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+    system['momdip_mtx']['Y'] = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+    system['momdip_mtx']['Z'] = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
 
     # Filling the matrices
 

@@ -20,7 +20,7 @@ import sys
 from inspect import getsourcefile
 
 import jinja2  # Only needed in the ind_results subscript, it is loaded here to check if your python installation does support jinja2
-import numpy
+import numpy as np
 import yaml
 
 import results_errors
@@ -412,12 +412,12 @@ def main():
 
       # Matrices (load with numpy then convert to list for easier handling)
 
-      mime = numpy.loadtxt(mime_file).tolist()
-      momdip = numpy.loadtxt(momdip_file).tolist()
-      eigenvalues = numpy.loadtxt(eigenvalues_file).tolist()
-      eigenvectors = numpy.loadtxt(eigenvectors_file).tolist()
-      transpose = numpy.loadtxt(transpose_file).tolist()
-      momdip_es = numpy.loadtxt(momdip_es_file).tolist()
+      mime = np.loadtxt(mime_file).tolist()
+      momdip = np.loadtxt(momdip_file).tolist()
+      eigenvalues = np.loadtxt(eigenvalues_file).tolist()
+      eigenvectors = np.loadtxt(eigenvectors_file).tolist()
+      transpose = np.loadtxt(transpose_file).tolist()
+      momdip_es = np.loadtxt(momdip_es_file).tolist()
 
       # Convert from strings to integer or floats when necessary
 
@@ -466,8 +466,8 @@ def main():
 
       # Calculate the mean and standard deviation
 
-      shift_mean = numpy.mean([shift["Shift (%)"] for shift in shifts])
-      shift_std = numpy.std([shift["Shift (%)"] for shift in shifts])
+      shift_mean = np.mean([shift["Shift (%)"] for shift in shifts])
+      shift_std = np.std([shift["Shift (%)"] for shift in shifts])
 
       # Brightest transition dipole moment
       # ==================================
@@ -502,8 +502,8 @@ def main():
 
       # Calculate the mean and standard deviation
 
-      st_momdip_mean = numpy.mean(st_momdip_list)
-      st_momdip_std = numpy.std(st_momdip_list)
+      st_momdip_mean = np.mean(st_momdip_list)
+      st_momdip_std = np.std(st_momdip_list)
 
       # Singlet-triplet transition energy
       # =================================
@@ -519,8 +519,8 @@ def main():
 
       # Calculate the mean and standard deviation
 
-      st_energies_mean = numpy.mean(st_energies)
-      st_energies_std = numpy.std(st_energies)
+      st_energies_mean = np.mean(st_energies)
+      st_energies_std = np.std(st_energies)
 
       # ========================================================= #
       # Writing values in the corresponding CSV file              #

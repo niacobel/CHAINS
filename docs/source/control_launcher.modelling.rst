@@ -199,7 +199,7 @@ Once the MIME and the transition dipole moments matrix have been recovered from 
 
 .. code-block:: python
 
-   system['eigenvalues'], system['eigenvectors'] = numpy.linalg.eig(system['mime'])
+   system['eigenvalues'], system['eigenvectors'] = np.linalg.eig(system['mime'])
 
 This gives us the eigenvalues, which are the eigenstates energies, and the associated eigenvectors, which are regrouped into a 2D-array. Those values are then sorted by ascending order of eigenvalues, so that the states are organized in ascending order of energies.
 
@@ -207,19 +207,19 @@ The last step is to compute the transpose of the eigenvectors matrix, with the t
 
 .. code-block:: python
 
-   system['transpose'] = numpy.transpose(system['eigenvectors'])
+   system['transpose'] = np.transpose(system['eigenvectors'])
 
 With the eigenvectors matrix and its transpose, we can now convert the transition dipole moments matrix to the eigenstates basis set, using the matmul_ function from NumPy_:
 
 .. code-block:: python
 
-   system['momdip_es_mtx'] = numpy.matmul(numpy.matmul(system['transpose'],system['momdip_mtx']),system['eigenvectors'])
+   system['momdip_es_mtx'] = np.matmul(np.matmul(system['transpose'],system['momdip_mtx']),system['eigenvectors'])
 
 Even though it's not needed, the diagonalized MIME is also recomputed, so that the diagonalization efficiency can be evaluated:
 
 .. code-block:: python
 
-   system['mime_diag'] = numpy.matmul(numpy.matmul(system['transpose'],system['mime']),system['eigenvectors'])
+   system['mime_diag'] = np.matmul(np.matmul(system['transpose'],system['mime']),system['eigenvectors'])
 
 Note that all those computed variables have been added to the ``system`` dictionary, for ease of access by the other parts of ``CONTROL LAUNCHER``.
 

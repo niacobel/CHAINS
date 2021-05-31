@@ -806,9 +806,9 @@ def main():
 
         square_dipole = 0
         for momdip_key in system['momdip_es_mtx']:
-          eigen_idx = system['eigenstates_list'].index(eigenstate)
-          other_idx = system['eigenstates_list'].index(other_state)
-          square_dipole += system['momdip_es_mtx'][momdip_key][eigen_idx][other_idx] ** 2
+          eigen_index = system['eigenstates_list'].index(eigenstate)
+          other_index = system['eigenstates_list'].index(other_state)
+          square_dipole += system['momdip_es_mtx'][momdip_key][eigen_index][other_index] ** 2
 
         # Calculate the A Einstein Coefficient          
 
