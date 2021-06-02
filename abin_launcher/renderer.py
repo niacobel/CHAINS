@@ -293,6 +293,7 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
 
       try:
         script_render_vars.update({
+          "ip_file" : chains_config['ip_file'],
           "output_dir" : chains_config['output_gaussian'],
           "results_dir" : chains_config['results_dir']
         })

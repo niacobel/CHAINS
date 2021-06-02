@@ -84,7 +84,7 @@ rm {{ mol_name }}.chk
 
 echo -e "\nComputing the ionization potential (IP) of the molecule ...\n\n"
 source {{ chains_dir }}/load_modules.sh
-python {{ chains_dir }}/IP_calc.py -s {{ mol_name }}.log -o {{ results_dir }}/IPs.csv
+python {{ chains_dir }}/IP_calc.py -s {{ mol_name }}.log -o {{ ip_file }}
 {% if (cation_energy == "sp" or cation_energy == "opt") -%}
 rm {{ mol_name }}_cation.chk
 {%- endif %}

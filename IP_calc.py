@@ -12,6 +12,7 @@ import csv
 import os
 import re
 import shutil
+from tempfile import NamedTemporaryFile
 
 # =================================================================== #
 # =================================================================== #
@@ -277,7 +278,7 @@ parser = argparse.ArgumentParser(add_help=False, description="This script comput
 
 required = parser.add_argument_group('Required arguments')
 required.add_argument("-s","--source", type=str, help="Path to the source file containing all the necessary information that needs to be processed.", required=True)
-required.add_argument("-o", "--output", type=str, help="Path towards the CSV file that will contain the resulting values.", required=True)
+required.add_argument("-o", "--output", type=str, help="Path towards the CSV file that will contain the resulting values, extension must be .csv.", required=True)
 #required.add_argument("-p", "--parsing", type=str, help="Name of the parsing function that will extract the necessary information from the source file.", required=True)
 
 optional = parser.add_argument_group('Optional arguments')
@@ -324,9 +325,7 @@ def main():
     source = args.source                     # Source file containing all the necessary information
     output = args.output                     # CSV file that will contain the resulting values
     parsing_fct = "gaussian_dft"             # Parsing function that will extract the necessary information from the source file (if you decide to add it as a command line argument, replace "gaussian_dft" by args.parsing)
-
-    print ("{:<40} {:<100}".format('\nOutput CSV file:',output))
-
+  
     # ========================================================= #
     # Check arguments                                           #
     # ========================================================= #
@@ -338,6 +337,18 @@ def main():
 
     source_filename = os.path.basename(source)
     source_name = str(source_filename.split('.')[0]) # Getting rid of the format extension to get the name of the source
+
+    # If the output file already exists, make sure it's a file with the .csv extension
+
+    if os.path.exists(output):
+
+      if not os.path.isfile(output):
+        raise IP_Error ("ERROR: The command line argument -o / --output (%s) points towards a nonfile object." % output)
+
+      if os.path.isfile(output) and os.path.splitext(output)[-1].lower() != (".csv"):
+        raise IP_Error ("ERROR: %s is probably not a CSV file (the extension must be '.csv')." % output)
+
+    print ("{:<40} {:<100}".format('\nOutput CSV file:',output))
 
     #!TODO Check the existence of the parsing function that will fetch the relevant information from the source file
 
@@ -453,8 +464,6 @@ def main():
   # Add information to output CSV file                        #
   # ========================================================= #
 
-  print ("{:<40}".format('\nWriting line to output CSV file ...'), end="")
-
   # Define line
 
   ip_line = {
@@ -468,27 +477,59 @@ def main():
     "IP (adiabatic)" : ip_adiabatic
   }
 
-  # Define if we have to write the header or not (only write it if the file does not exist or is empty)
+  # Define the CSV header
 
   csv_header = list(ip_line.keys())
-  write_header = True
 
-  if (os.path.exists(output) and os.path.isfile(output)):
-    with open(output, 'r', encoding='utf-8') as f:
-      write_header = (not f.readline()) # If the file is empty, write_header = True. Otherwise, write_header = False
+  # If the output CSV file does not exist, create it and add the new line
 
-  # Open the CSV file in 'Append' mode and add the new line (+ write header if required)
+  if not os.path.exists(output):
 
-  with open(output, 'a', newline='', encoding='utf-8') as final_f:
+    print ("{:<40}".format('\nCreating the output CSV file ...'), end="")
 
-    csv_writer = csv.DictWriter(final_f, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+    with open(output, 'w', newline='', encoding='utf-8') as csvfile:
 
-    if write_header:
+      csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
       csv_writer.writeheader()
+      csv_writer.writerow(ip_line) 
 
-    csv_writer.writerow(ip_line)    
+    print("[ DONE ]")
 
-  print("[ DONE ]")
+  # If the output CSV file already exists, just add the new line or update the file, using a temporary file as intermediary (see https://stackoverflow.com/questions/46126082/how-to-update-rows-in-a-csv-file for reference)
+
+  else:
+
+    tempfile = NamedTemporaryFile(mode='w', delete=False, encoding='utf-8')
+
+    with open(output, 'r', encoding='utf-8') as csvfile, tempfile:
+
+      csv_reader = csv.DictReader(csvfile, fieldnames=csv_header, delimiter=';')
+      csv_writer = csv.DictWriter(tempfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+
+      # Rewrite each line of our initial CSV file into the temp file, and update the values if our molecule was already present
+
+      found = False
+
+      for line in csv_reader:
+      
+        if line['Molecule'] == source_name:
+          print("{:<40}".format("\nUpdating values for %s ..." % source_name), end ='')
+          found = True
+          line = ip_line
+      
+        csv_writer.writerow(line)
+      
+      # If our molecule was not already mentioned, add the new line
+
+      if not found:
+        print("{:<40}".format("\nAdding new line to output file ..."), end ='')
+        csv_writer.writerow(ip_line)
+
+    # Replace the initial CSV file by the temp file
+
+    shutil.move(tempfile.name, output)
+
+    print("[ DONE ]")
 
   print("")
   print("".center(columns,"*"))

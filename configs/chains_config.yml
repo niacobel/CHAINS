@@ -18,6 +18,10 @@ output_qoctra: /CECI/home/ulb/cqp/niacobel/CONTROL_q-SVP_OUT
 
 results_dir: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP
 
+# Path towards the file containing the ionization potentials of the molecule (created by IP_calc.py and read by the rendering function in CONTROL LAUNCHER)
+
+ip_file: /CECI/home/ulb/cqp/niacobel/RESULTS/q-SVP/IPs.csv
+
 # Alternate directories specific to the qchem TZVP branching
 
 output_qchem_tzvp: /CECI/home/ulb/cqp/niacobel/QCHEM_TZVP_OUT
