@@ -134,6 +134,17 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     rendered_content = {}
 
+    # Load CHAINS configuration file
+    # ==============================
+
+    chains_path = os.path.dirname(misc['code_dir']) 
+    chains_config_file = control_errors.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
+
+    print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+    with open(chains_config_file, 'r') as chains:
+      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
     # ========================================================= #
     #           Rendering the control parameters file           #
     # ========================================================= #
@@ -314,21 +325,49 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       upper_limit = misc['transition']['energy'] + bandwidth/2
       lower_limit = misc['transition']['energy'] - bandwidth/2
 
-      # Initialize the list of subpulses
+      # Initialize the variables 
 
       subpulses = []
+      max_energy_diff = 0
 
       # Consider each pair of excited states
 
       for state_1 in range(1, len(system['eigenstates_list'])): # Starting at 1 to exclude the ground state
         for state_2 in range(state_1 + 1, len(system['eigenstates_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
 
-          # If the transition energy of this pair is comprised in our frequency range, add it to the subpulses list
-         
+          # Compute the energy difference and compare it to our frequency range
+
           energy_diff = abs(system['eigenstates_list'][state_1]['energy'] - system['eigenstates_list'][state_2]['energy'])
 
           if lower_limit <= energy_diff <= upper_limit:
+
+            # Add it to the subpulses list
+
             subpulses.append(str(state_1 + 1) + " \t " + str(state_2 + 1)) # +1 because Fortran starts numbering at 1 while Python starts at 0.
+
+            # Store the maximum transition energy to apply Nyquist–Shannon sampling theorem
+
+            if energy_diff > max_energy_diff:
+              max_energy_diff = energy_diff
+
+      # Check the duration and time step
+      # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      # Nyquist–Shannon sampling theorem: check if the sampling rate is bigger than the double of the highest frequency
+
+      sampling_freq = 1 / (float(time_step) * 2.4188843265857e-17) # Convert the time step from a.u. to seconds then invert it to get the sampling frequency in Hz (value taken from NIST)
+      max_freq = max_energy_diff * 6.579683920502e15 # Convert the energy difference from Hartree to Hz (value taken from NIST)
+      
+      if not sampling_freq > 2*max_freq:
+        raise control_errors.ControlError ('ERROR: The time step value (%s a.u.) is too big for this transition. The sampling rate (%e Hz) is not bigger than the double of the highest frequency of the signal (%e Hz).' % (time_step,sampling_freq, max_freq))
+
+      # Check if the total duration of the pulse is not too long compared to the lifetime of our target state
+
+      target_index = misc['transition']['target_state']
+      time_limit = 0.01 * system['eigenstates_list'][target_index]['lifetime']
+
+      if duration > time_limit:
+        raise control_errors.ControlError ('ERROR: The duration of the pulse (%s a.u.) is too long compared to the radiative lifetime of this excited state (%s a.u.).' % (duration,system['eigenstates_list'][target_index]['lifetime']))
 
       # Set the variables not associated with the config file
       # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -349,18 +388,6 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     # ========================================================= #
     #                  Rendering the job script                 #
     # ========================================================= #
-
-    # If we need to copy the output files to their respective results directory, load the CHAINS configuration file to get the necessary information
-
-    if copy_files:
-
-      chains_path = os.path.dirname(misc['code_dir']) 
-      chains_config_file = control_errors.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
-  
-      print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
-      with open(chains_config_file, 'r') as chains:
-        chains_config = yaml.load(chains, Loader=yaml.FullLoader)
-      print('%12s' % "[ DONE ]")
 
     print("{:<80}".format("\nRendering the jinja template for the qoctra job script ..."), end="")
 
