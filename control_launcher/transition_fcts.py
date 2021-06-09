@@ -150,8 +150,8 @@ def brightests_to_darkests(system:dict):
       # Sorting the dark states
       # =======================
 
-      # Sort the indices of the states by decreasing order of their radiative lifetime
-      dark_max_indices = [system['eigenstates_list'].index(eigenstate) for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['lifetime'], reverse=True)]
+      # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime)
+      dark_max_indices = [system['eigenstates_list'].index(eigenstate) for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['lifetime'], reverse=True) if eigenstate['lifetime'] != float('inf')]
 
       # Iterate over the bright states
       # ==============================
@@ -194,8 +194,8 @@ def brightests_to_darkests(system:dict):
           print(''.center(50, '-'))
           print("{:<20} {:<30}".format("Label: ", transition["label"]))
           print(''.center(50, '-'))
-          print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_index)))
-          print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_index)))
+          print("{:<20} {:<30}".format("Initial state: ", "%s" % bright_label))
+          print("{:<20} {:<30}".format("Target state: ", "%s" % dark_label))
           print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
           print(''.center(50, '-'))
 

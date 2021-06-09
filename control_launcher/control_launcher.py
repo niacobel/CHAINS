@@ -523,6 +523,7 @@ def main():
             system['eigenstates_list'][max_index]['main_cont'] = system["states_list"][max_index]["label"]
             system['eigenstates_list'][max_index]['number'] = sorted_eig.index(current_value) # The number of the states is defined by increasing order of energy
             system['eigenstates_list'][max_index]['label'] = "E" + str(system['eigenstates_list'][max_index]['number'])
+            system['eigenstates_list'][max_index]['degeneracy'] = 1
 
             # Proceed to the next eigenvector
 
@@ -626,14 +627,7 @@ def main():
     for momdip_key in system["momdip_mtx"]:
 
       system['momdip_es_mtx'][momdip_key] = np.matmul(np.matmul(system['transpose'],system['momdip_mtx'][momdip_key]),system['eigenvectors'])
-        
-      print("\nDipole moments matrix with the '%s' key in the eigenstates basis set (atomic units)" % momdip_key)
-      print('')
-      for row in system['momdip_es_mtx'][momdip_key]:
-        for val in row:
-          print(np.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
-        print('')
-  
+          
     # ========================================================= #
     # Handling eigenstates degeneracies                         #
     # ========================================================= #
@@ -709,7 +703,7 @@ def main():
 
         # Determine where the new line will be placed
 
-        spot = min([eigenstate['number'] for eigenstate in system['eigenstates_list'] if system['eigenstates_list'].index(eigenstate) in group_ind])
+        spot = min(group_ind)
 
         # Determine the new line by taking the maximum (disregarding the sign) of each dipole moments from each line of the group
         # See https://stackoverflow.com/questions/51209928/get-maximum-of-absolute-along-axis for details
@@ -737,6 +731,15 @@ def main():
 
       system["momdip_es_mtx"][momdip_key] = new_mtx
 
+      #! Temporary (print it as a table rather than a matrix)
+
+      print("\nDipole moments matrix with the '%s' key in the eigenstates basis set (atomic units)" % momdip_key)
+      print('')
+      for row in system['momdip_es_mtx'][momdip_key]:
+        for val in row:
+          print(np.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
+        print('')
+
     # Update the eigenstates list
     # ===========================
 
@@ -751,14 +754,15 @@ def main():
       new_state['number'] = min(group)
       new_state['label'] = "E" + "-".join(map(str,sorted(group))) # e.g. for a group including the states number 2, 3 and 4, its label will be E2-3-4
       new_state['energy'] = np.mean([eigenstate['energy'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
+      new_state['degeneracy'] = len(group)
 
       # Regroup the information about main contributors, e.g. for a group including the states E2 and E3 with main contributors S2 and S3 respectively, the new value will be "E2:S2 - E3:S3"
 
       new_state['main_cont'] = " - ".join([eigenstate['label'] + ":" + eigenstate['main_cont'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
 
-      # Regroup the comments in the same way, adding a comment about degeneracy, e.g "2x degenerated (E2:1st max is S3)"
+      # Regroup the comments in the same way, e.g "E2:1st max is S3"
 
-      new_state['comment'] = str(len(group)) + "x degenerated " + "(" + " - ".join([eigenstate['label'] + ":" + eigenstate['comment'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group and eigenstate['comment'] != ""]) + ")"
+      new_state['comment'] = " - ".join([eigenstate['label'] + ":" + eigenstate['comment'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group and eigenstate['comment'] != ""])
 
       # Get the index of the state that has the same number as the new one
 
@@ -790,51 +794,58 @@ def main():
 
     # Iterate over each excited state
 
-    for eigenstate in system['eigenstates_list']:
+    for eigenstate_m in system['eigenstates_list']:
 
       sum_einstein_coeffs = 0
 
+      # Get the index of the state (to locate it in the matrices)
+
+      m_index = system['eigenstates_list'].index(eigenstate_m)
+
       # Iterate over each state with an energy lower than the current one
 
-      for other_state in [other_state for other_state in system['eigenstates_list'] if other_state['energy'] < eigenstate['energy']]:
+      for eigenstate_n in [eigenstate_n for eigenstate_n in system['eigenstates_list'] if eigenstate_n['energy'] < eigenstate_m['energy']]:
+
+        # Get the index of the state (to locate it in the matrices)
+
+        n_index = system['eigenstates_list'].index(eigenstate_n)
 
         # Compute the energy difference
 
-        energy_diff = eigenstate['energy'] - other_state['energy']
+        energy_diff = eigenstate_m['energy'] - eigenstate_n['energy']
 
         # Compute the square of the transition dipole moment
 
         square_dipole = 0
+        
         for momdip_key in system['momdip_es_mtx']:
-          eigen_index = system['eigenstates_list'].index(eigenstate)
-          other_index = system['eigenstates_list'].index(other_state)
-          square_dipole += system['momdip_es_mtx'][momdip_key][eigen_index][other_index] ** 2
+          square_dipole += system['momdip_es_mtx'][momdip_key][m_index][n_index] ** 2
 
         # Calculate the A Einstein Coefficient          
 
-        einstein_coeff = (4/3) * square_dipole * (energy_diff**3) / ((light_speed/au_velocity)**3)
+        einstein_coeff = (eigenstate_n['degeneracy']/eigenstate_m['degeneracy']) * (4/3) * square_dipole * (energy_diff**3) / ((light_speed/au_velocity)**3)
         sum_einstein_coeffs += einstein_coeff
 
       # Compute the radiative lifetime
 
       if sum_einstein_coeffs == 0:
-        eigenstate['lifetime'] = float('inf')
+        eigenstate_m['lifetime'] = float('inf')
       else:
-        eigenstate['lifetime'] = 1 / sum_einstein_coeffs
+        eigenstate_m['lifetime'] = 1 / sum_einstein_coeffs
 
     # Print the eigenstates list
     # ==========================
 
     print("")
-    print(''.center(120, '-'))
-    print('Eigenstates List'.center(120, ' '))
-    print(''.center(120, '-'))
-    print("{:<10} {:<10} {:<15} {:<30} {:<15} {:<30}".format('Number','Label','Energy (Ha)','Main Contributor','Lifetime (a.u.)','Comment'))
-    print(''.center(120, '-'))
+    print(''.center(135, '-'))
+    print('Eigenstates List'.center(135, ' '))
+    print(''.center(135, '-'))
+    print("{:<10} {:<10} {:<15} {:<10} {:<30} {:<15} {:<30}".format('Number','Label','Energy (Ha)','Degeneracy','Main Contributor','Lifetime (a.u.)','Comment'))
+    print(''.center(135, '-'))
     # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
     for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['number']):
-      print("{:<10} {:<10} {:<15.5e} {:<30} {:<15.5e} {:<30}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['main_cont'],eigenstate['lifetime'],eigenstate['comment']))
-    print(''.center(120, '-'))
+      print("{:<10} {:<10} {:<15.5e} {:<10} {:<30} {:<15.5e} {:<30}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['degeneracy'],eigenstate['main_cont'],eigenstate['lifetime'],eigenstate['comment']))
+    print(''.center(135, '-'))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
@@ -973,10 +984,10 @@ def main():
 
     eigenstate_file = "eigenstates.csv"
     with open(os.path.join(data_dir,eigenstate_file), "w") as f:
-      print("Number;Label;Energy (Ha);Main Contributor;Lifetime (a.u.)", file = f)
+      print("Number;Label;Energy (Ha);Degeneracy;Main Contributor;Lifetime (a.u.)", file = f)
       # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
       for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['number']):
-        eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:.5e}".format(eigenstate['energy']),eigenstate['main_cont'],"{:.5e}".format(eigenstate['lifetime'])))
+        eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:.5e}".format(eigenstate['energy']),str(eigenstate['degeneracy']),eigenstate['main_cont'],"{:.5e}".format(eigenstate['lifetime'])))
         print(eigenstate_line, file = f)
     print("    ├── The eigenstates list file ('%s') has been created into the directory" % eigenstate_file)
 
