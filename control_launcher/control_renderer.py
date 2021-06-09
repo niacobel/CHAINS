@@ -176,14 +176,14 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     try:
       
-      time_step = config['qoctra']['control']['time_step'] # Stored into a variable since it will be reused
-      time_step = re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', time_step) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python
+      time_step_raw = config['qoctra']['control']['time_step'] # Stored into a variable since it will be reused
+      time_step = re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', time_step_raw) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python
 
       param_render_vars.update({
         # CONTROL
         "max_iter" : config['qoctra']['control']['max_iter'],
         "threshold" : config['qoctra']['control']['threshold'],
-        "time_step" : time_step,
+        "time_step" : time_step_raw,
         "start_pulse" : " ",
         "guess_pulse" : rendered_pulse
       })
@@ -368,6 +368,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       if duration > time_limit:
         raise control_errors.ControlError ('ERROR: The duration of the pulse (%s a.u.) is too long compared to the radiative lifetime of this excited state (%s a.u.).' % (duration,system['eigenstates_list'][target_index]['lifetime']))
+
+      #! Correct the values rather than raise an exception? Or calculate the values based on nstep (user-supplied) and time_limit (duration = time_limit and time_step = time_limit / nstep, then check against NYQ-SHA and decrease time_step and duration if necessary.)
 
       # Set the variables not associated with the config file
       # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

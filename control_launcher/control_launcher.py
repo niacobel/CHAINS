@@ -571,6 +571,7 @@ def main():
       if list_index != max_indices[0]:
 
         # Since it was not the first maximum, check which maximum was used (second, third, ...) and leave a comment describing which major(s) contributor(s) had to be ignored
+        #! Add example in comments for clarity
 
         spot = max_indices.index(list_index)
         
