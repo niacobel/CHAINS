@@ -247,6 +247,10 @@ def main():
     geom_scan_path = os.path.join(chains_path,"abin_launcher","geom_scan.py")
     geom_scan = import_path(geom_scan_path)
 
+    # Initialize important variables
+
+    orbitals = [] # List of dictionaries containing information about the energies of the orbitals of each molecule
+
   # ========================================================= #
   # Exception handling for the preparation step               #
   # ========================================================= #
@@ -432,6 +436,93 @@ def main():
         transition["Energy (Ha)"] = float(transition["Energy (Ha)"])
         transition['Initial state number'] = int(transition['Initial state number'])
         transition['Target state number'] = int(transition['Target state number'])
+
+      # ========================================================= #
+      # Get the energies of the orbitals                          #
+      # ========================================================= #
+
+      # Initialize some variables
+
+      section_found = False
+      orb_values = []
+
+      # Load the QCHEM output file
+
+      qchem_file = results_errors.check_abspath(os.path.join(data_dir, mol_name + ".out"),"QCHEM output file","file")
+
+      with open(qchem_file, 'r') as out_file:
+        qchem_content = out_file.read().splitlines()
+
+      qchem_content = list(map(str.strip, qchem_content))   # Remove leading & trailing blank/spaces
+      qchem_content = list(filter(None, qchem_content))     # Remove blank lines/no char
+
+      # Define the expression patterns for the lines containing information about the orbitals
+    
+      orb_rx = {
+
+        # Pattern for finding the "Orbital Energies (a.u.) and Symmetries" line (which marks the start of the section)
+        'start': re.compile(r'^\s*Orbital Energies \(a\.u\.\) and Symmetries\s*$'),
+
+        # Pattern for finding lines looking like '-- Occupied --'
+        'occupied': re.compile(r'^\s*-- Occupied --\s*$'),
+
+        # Pattern for finding lines looking like '-- Virtual --'
+        'virtual': re.compile(r'^\s*-- Virtual --\s*$'),
+
+        # Pattern for finding lines looking like ' -5.286  -5.276  -3.648  -3.648  -3.648  -3.648  -3.647  -3.647' (number of values unknown and not capturing the values)
+        'energies': re.compile(r'^\s*(?:-?\d+\.\d+\s*)+$'),
+
+        # Pattern for finding the "Beta MOs" line (which marks the end of the section, no need to get both sets of orbitals)
+        'end': re.compile(r'^\s*Beta MOs')
+
+      }
+
+      # Parse the qchem output file to get the information
+
+      for line in qchem_content:
+
+        # Define when the section begins and ends (ignore beta orbitals)
+
+        if not section_found:
+          if orb_rx['start'].match(line):
+            section_found = True
+      
+        elif section_found and orb_rx['end'].match(line):
+          break
+
+        # Store the type of the orbital (occupied / virtual)
+
+        elif orb_rx['occupied'].match(line):
+          type = "Occupied"
+
+        elif orb_rx['virtual'].match(line):
+          type = "Virtual"
+
+        # If the line matches our energies pattern, parse the values and store them, along with their type (in tuple form)
+
+        elif orb_rx['energies'].match(line):
+          values = line.split()
+          for value in values:
+            orb_values.append((type,value))
+
+      # Raise an exception if the section has not been found
+
+      if not section_found:
+        raise results_errors.ResultsError ("ERROR: Unable to find the 'Orbital Energies (a.u.) and Symmetries' section in the QCHEM output file")
+
+      # Raise an exception if the energies of the orbitals have not been found
+
+      if orb_values == []:
+        raise results_errors.ResultsError ("ERROR: Unable to find the energies of the orbitals in the QCHEM output file")
+
+      # Add information about this molecule to the orbitals list
+
+      orbitals.append({
+        "TAG" : tag,
+        "Atoms" : mol_type,
+        "Molecule" : pretty_name,
+        "Orbitals" : orb_values
+      })
 
       # ========================================================= #
       # Computing values                                          #
