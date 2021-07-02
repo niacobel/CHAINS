@@ -249,7 +249,7 @@ def main():
 
     # Initialize important variables
 
-    orbitals = [] # List of dictionaries containing information about the energies of the orbitals of each molecule
+    charac_results = {} # Dictionary consisting of multiples dictionaries containing data about each molecule (1 dict per molecule)
 
   # ========================================================= #
   # Exception handling for the preparation step               #
@@ -360,6 +360,16 @@ def main():
 
       print('%12s' % "[ DONE ]")
 
+      # ========================================================= #
+      # Store ID info                                             #
+      # ========================================================= #
+
+      charac_results[mol_name] = {
+        "TAG" : tag,
+        "Type" : mol_type,
+        "Name" : pretty_name
+        }
+
     # ========================================================= #
     # Exception handling for the identification                 #
     # ========================================================= #
@@ -386,6 +396,8 @@ def main():
 
       data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
 
+      qchem_file = results_errors.check_abspath(os.path.join(data_dir, mol_name + ".out"),"QCHEM output file","file")
+
       states_file = results_errors.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file")
       mime_file = results_errors.check_abspath(os.path.join(data_dir, "mime"),"MIME file","file")
       momdip_file = results_errors.check_abspath(os.path.join(data_dir, "momdip_mtx"),"Transition dipole moments matrix file","file")
@@ -399,6 +411,14 @@ def main():
       # ========================================================= #
       # Load the files                                            #
       # ========================================================= #
+
+      # QCHEM output file
+
+      with open(qchem_file, 'r') as out_file:
+        qchem_content = out_file.read().splitlines()
+
+      qchem_content = list(map(str.strip, qchem_content))   # Remove leading & trailing blank/spaces
+      qchem_content = list(filter(None, qchem_content))     # Remove blank lines/no char
 
       # CSV-type lists
 
@@ -445,16 +465,6 @@ def main():
 
       section_found = False
       orb_values = []
-
-      # Load the QCHEM output file
-
-      qchem_file = results_errors.check_abspath(os.path.join(data_dir, mol_name + ".out"),"QCHEM output file","file")
-
-      with open(qchem_file, 'r') as out_file:
-        qchem_content = out_file.read().splitlines()
-
-      qchem_content = list(map(str.strip, qchem_content))   # Remove leading & trailing blank/spaces
-      qchem_content = list(filter(None, qchem_content))     # Remove blank lines/no char
 
       # Define the expression patterns for the lines containing information about the orbitals
     
@@ -515,14 +525,9 @@ def main():
       if orb_values == []:
         raise results_errors.ResultsError ("ERROR: Unable to find the energies of the orbitals in the QCHEM output file")
 
-      # Add information about this molecule to the orbitals list
+      # Store the energies of the orbitals
 
-      orbitals.append({
-        "TAG" : tag,
-        "Atoms" : mol_type,
-        "Molecule" : pretty_name,
-        "Orbitals" : orb_values
-      })
+      charac_results[mol_name].update({"Kohn-Sham Alpha Orbitals (QCHEM)" : orb_values})
 
       # ========================================================= #
       # Computing values                                          #
@@ -763,6 +768,46 @@ def main():
     print(''.center(len(console_message)+10, '*'))
     print(console_message.center(len(console_message)+10))
     print(''.center(len(console_message)+10, '*'))
+
+  # =================================================================== #
+  # =================================================================== #
+  #                         YAML FILE CREATION                          #
+  # =================================================================== #
+  # =================================================================== #
+
+  # Create a custom class for dumping our data into the YAML format
+
+  class CustomDumper(yaml.SafeDumper):
+
+    # Insert blank lines between top-level objects (source: https://github.com/yaml/pyyaml/issues/127)
+    def write_line_break(self, data=None):
+      super().write_line_break(data)
+
+      if len(self.indents) == 1:
+        super().write_line_break()
+
+    # Avoid writing anchors and aliases (source: https://ttl255.com/yaml-anchors-and-aliases-and-how-to-disable-them/)
+    def ignore_aliases(self, data):
+      return True
+
+  # Define the path for the YAML file
+
+  yaml_file = os.path.join(out_dir,"charac_results.yml")
+
+  # If the file already exists, update the data
+
+  if os.path.exists(yaml_file):
+
+    with open(yaml_file, 'r') as old_file:
+      old_charac_results = yaml.load(old_file, Loader=yaml.FullLoader)
+
+    old_charac_results.update(charac_results)
+    charac_results = old_charac_results
+
+  # Write the file (overwriting the old file if it already existed)
+
+  with open(yaml_file, 'w') as file:
+    yaml.dump(charac_results, file, Dumper=CustomDumper, sort_keys=False)
 
   print("")
   print("".center(columns,"*"))
