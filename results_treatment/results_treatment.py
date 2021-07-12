@@ -6,7 +6,7 @@
 ##                              This script scans one or more molecule directories containing all the information                             ##
 ##                    obtained through CHAINS and the various programs and compiles the results into a single YAML file.                      ##
 ##                                                                                                                                            ##
-##                             /!\ In order to run, this script requires Python 3.5+ as well as YAML, Jinja2 /!\                              ##
+##                                 /!\ In order to run, this script requires Python 3.5+ as well as YAML /!\                                  ##
 ##                                          /!\ Ask your cluster(s) administrator(s) if needed. /!\                                           ##
 ################################################################################################################################################
 
@@ -19,8 +19,6 @@ import shutil
 import sys
 from inspect import getsourcefile
 
-import jinja2  # Only needed in the ind_results subscript, it is loaded here to check if your python installation does support jinja2
-import numpy as np
 import yaml
 
 import results_errors
@@ -364,6 +362,11 @@ def main():
           }
         }
 
+      # Add the number of Si atoms (for pure Si QDs only)
+
+      if mol_type == "Si":
+        comp_results[mol_name]['ID'].update({"Nb_Si_atoms" : chemical_formula["Si"] if chemical_formula["Si"] != "" else 1})
+
     # ========================================================= #
     # Exception handling for the identification                 #
     # ========================================================= #
@@ -518,7 +521,7 @@ def main():
       # Store data
       # ==========
 
-      comp_results[mol_name].update({ "Energy gaps" : 
+      comp_results[mol_name].update({ "Energy_gaps" : 
           { "HOMO-LUMO" : hl_gap,
             "Optical" : opt_gap
           }
