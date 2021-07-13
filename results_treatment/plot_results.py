@@ -20,8 +20,66 @@ import sys
 from inspect import getsourcefile
 
 import yaml
+import matplotlib.pyplot as plt
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 
 import results_errors
+
+# =================================================================== #
+# =================================================================== #
+#                        FUNCTIONS DEFINITIONS                        #
+# =================================================================== #
+# =================================================================== #
+
+def energy_unit_conversion(value:float,init:str,target:str) -> float:
+    """|  Converts an energy value from an initial unit to a target unit by using atomic units of energy (Hartree) as an intermediary.
+    |  Currently supported units: Hartree, cm\ :sup:`-1`\ , eV, nm, Hz and Joules
+
+    Parameters
+    ----------
+    value : float
+        The energy value we need to convert.
+    init : str
+        The unit of the value we need to convert.
+    target : str
+        The unit we must convert the value to.
+    
+    Returns
+    -------
+    conv_value : float
+        The converted energy value.
+    """
+
+    # Define the dictionary of conversion factors, from atomic units (Hartree) to any unit you want. - Taken from the NIST website (https://physics.nist.gov/)
+
+    conv_factors = {
+      # 1 Hartree equals:
+      "Ha" : 1,
+      "cm-1" : 2.1947463136320e+05,
+      "eV" : 27.211386245988,
+      "nm" : 2.1947463136320e+05 * 1e+07,
+      "Hz" : 6.579683920502e+15,
+      "J" : 4.3597447222071e-18
+      }
+
+    # Put everything in lower cases, to make it case insensitive
+
+    init_low = init.lower()
+    target_low = target.lower()
+    conv_factors_low = dict((key.lower(), value) for key, value in conv_factors.items())
+
+    # Check if the desired units are supported
+
+    if init_low not in conv_factors_low.keys():
+      raise results_errors.ResultsError ("ERROR: The unit of the value you want to convert (%s) is currently not supported. Supported values include: %s" % (init, ', '.join(unit for unit in conv_factors.keys())))
+    elif target_low not in conv_factors_low.keys():
+      raise results_errors.ResultsError ("ERROR: The unit you want to convert the value to (%s) is currently not supported. Supported values include: %s" % (target, ', '.join(unit for unit in conv_factors.keys())))
+    
+    # Convert the value
+
+    conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
+
+    return conv_value
 
 # =================================================================== #
 # =================================================================== #
@@ -147,6 +205,8 @@ def main():
   # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
   try:
 
+    print ("{:<140}".format('\nSorting the data ...'), end="")
+
     # Get all the different types of molecules
 
     mol_types = [yml_content[mol]['ID']['Type'] for mol in yml_content]
@@ -162,9 +222,129 @@ def main():
     # Separate the reference (Si) from the other types
 
     si_data = yml_sorted.pop("Si")
+    mol_types.remove("Si")
+
+    print('%12s' % "[ DONE ]")
 
   # ========================================================= #
   # Exception handling for sorting the data                   #
+  # ========================================================= #
+
+  except results_errors.ResultsError as error:
+    print("")
+    print(error)
+    exit(-1)
+
+  # =================================================================== #
+  # =================================================================== #
+  #                        PLOTTING ENERGY GAPS                         #
+  # =================================================================== #
+  # =================================================================== #
+
+  # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+  try:
+
+    section_title = "1. Energy gaps"
+
+    print("")
+    print(''.center(len(section_title)+10, '*'))
+    print(section_title.center(len(section_title)+10))
+    print(''.center(len(section_title)+10, '*'))
+
+    # Get the values for Si
+    # =====================
+
+    print ("{:<140}".format('\nFetching the values for Si QDs ...'), end="")
+
+    si_gaps = []
+
+    for mol in si_data:
+      if si_data[mol].get('Energy_gaps'):
+        nb_si_atoms = si_data[mol]['ID']['Nb_Si_atoms']
+        hl_gap = energy_unit_conversion(si_data[mol]['Energy_gaps']['HOMO-LUMO'],"ha","ev")
+        opt_gap = energy_unit_conversion(si_data[mol]['Energy_gaps']['Optical'],"ha","ev")
+        si_gaps.append((nb_si_atoms,hl_gap,opt_gap))
+
+    si_gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
+
+    print('%12s' % "[ DONE ]")
+
+    # Iterate over each molecule type and compare it to Si
+    # ====================================================
+
+    for mol_type in mol_types:
+
+      print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_type), end="")
+
+      # Get the values
+      # ==============
+
+      gaps = []
+
+      for mol in yml_sorted[mol_type]:
+        if yml_sorted[mol_type][mol].get('Energy_gaps'):
+
+          # Get the gaps values
+
+          hl_gap = energy_unit_conversion(yml_sorted[mol_type][mol]['Energy_gaps']['HOMO-LUMO'],"ha","ev")
+          opt_gap = energy_unit_conversion(yml_sorted[mol_type][mol]['Energy_gaps']['Optical'],"ha","ev")
+
+          # Use the TAG key to find the corresponding Si QD and fetch its number of Si atoms
+
+          for si_mol in si_data:
+            if si_data[si_mol]['ID']['TAG'] == yml_sorted[mol_type][mol]['ID']['TAG']:
+              nb_si_atoms = si_data[si_mol]['ID']['Nb_Si_atoms']
+
+          # Store the data for this molecule
+
+          gaps.append((nb_si_atoms,hl_gap,opt_gap))
+
+      gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
+
+      # Plot the graphs
+      # ===============
+
+      plt.style.use('seaborn-colorblind')
+
+      fig, ax = plt.subplots()
+
+      # Plot the Si values
+
+      ax.plot([mol[0] for mol in si_gaps],[mol[1] for mol in si_gaps],marker='.',linestyle='--',label='H-L gaps - Si (DFT)')
+      ax.plot([mol[0] for mol in si_gaps],[mol[2] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Optical gaps - Si (TD-DFT)')
+
+      # Plot the specific type value
+
+      ax.plot([mol[0] for mol in gaps],[mol[1] for mol in gaps],marker='.',linestyle='-',label='H-L gaps - %s (DFT)' % mol_type)
+      ax.plot([mol[0] for mol in gaps],[mol[2] for mol in gaps],marker='^',markersize=4,linestyle='-',label='Optical gaps - %s (TD-DFT)' % mol_type)
+
+      # Add the legend and titles
+
+      ax.set_title('Energy gaps: Si vs %s' % mol_type)
+      ax.set_xlabel("Number of Si atoms in the Si QD")
+      ax.set_ylabel('Energy (eV)')
+      ax.legend()
+
+      # Set other parameters
+
+      ax.tick_params(top=False, right=False)
+      ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+      ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+      plt.tight_layout()
+      plt.grid(True,which='both',linestyle='--')
+
+      # Save the figure and clear the axes to prepare for the next plot
+
+      plt.savefig(os.path.join(out_dir,'gaps','gaps_Si_vs_%s.png' % mol_type),dpi=200)
+      plt.cla()
+
+      print('%12s' % "[ DONE ]")
+
+      print(mol_type,gaps)
+   
+  # ========================================================= #
+  # Exception handling for plotting the energy gaps           #
   # ========================================================= #
 
   except results_errors.ResultsError as error:
