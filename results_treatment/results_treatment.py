@@ -223,26 +223,13 @@ def main():
       ip_list = list(ip_content)
     print('%12s' % "[ DONE ]")
 
-    # ABIN LAUNCHER's files
-    # =====================
+    # ABIN LAUNCHER's geom_scan.py file
+    # =================================
 
     geom_scan_path = os.path.join(chains_path,"abin_launcher","geom_scan.py")
-    scaling_fcts_path = os.path.join(chains_path,"abin_launcher","scaling_fcts.py")
 
-    print ("{:<140}".format("\nImporting ABIN LAUNCHER's subscripts ..."), end="")
+    print ("{:<140}".format("\nImporting ABIN LAUNCHER's geom_scan.py file ..."), end="")
     geom_scan = import_path(geom_scan_path)
-    scaling_fcts = import_path(scaling_fcts_path)
-    print('%12s' % "[ DONE ]")
-
-    # Mendeleev's periodic table
-    # ==========================
-
-    # Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used notably by the scaling process.
-
-    mendeleev_file = results_errors.check_abspath(os.path.join(chains_path,"abin_launcher","mendeleev.yml"),"Mendeleev periodic table YAML file","file")
-    print ("{:<140}".format("\nLoading AlexGustafsson's Mendeleev Table ..."), end="")
-    with open(mendeleev_file, 'r') as periodic_table:
-      mendeleev = yaml.load(periodic_table, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
     # ========================================================= #
@@ -359,14 +346,10 @@ def main():
       mol_group = ''.join(atoms)
 
       # ========================================================= #
-      # Total number of electrons                                 #
+      # Total number of atoms                                     #
       # ========================================================= #
 
-      # Call the scaling function from ABIN LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
-
-      with open(os.devnull, 'w') as devnull:
-        with contextlib.redirect_stdout(devnull):
-          nb_elec = scaling_fcts.total_nb_elec(mendeleev, file_data)
+      nb_atoms = sum(file_data['chemical_formula'].values())
 
       # ========================================================= #
       # "Pretty" name                                             #
@@ -409,7 +392,7 @@ def main():
           { "TAG" : tag,
             "Group" : mol_group,
             "Name" : pretty_name,
-            "Nb electrons" : nb_elec
+            "Nb atoms" : nb_atoms
           }
         }
 
