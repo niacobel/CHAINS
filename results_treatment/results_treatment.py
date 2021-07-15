@@ -184,8 +184,11 @@ def main():
     print ("{:<40} {:<100}".format('\nCodes directory:',code_dir))
 
     # ========================================================= #
-    # Check and load the YAML configuration file                #
+    # Load important files                                      #
     # ========================================================= #
+
+    # YAML configuration file
+    # =======================
 
     if config_file: 
       config_file = results_errors.check_abspath(config_file,"Command line argument -cf / --config","file")
@@ -196,6 +199,50 @@ def main():
     print ("{:<40} {:<99}".format('\nLoading the configuration file',config_file + " ..."), end="")
     with open(config_file, 'r') as f_config:
       config = yaml.load(f_config, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
+    # CHAINS YAML configuration file
+    # ==============================
+
+    chains_path = os.path.dirname(code_dir) 
+    chains_config_file = results_errors.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
+
+    print ("{:<140}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+    with open(chains_config_file, 'r') as chains:
+      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
+    # Ionization potentials CSV file
+    # ==============================
+
+    ip_file = results_errors.check_abspath(chains_config['ip_file'],"Ionization potentials CSV file","file")
+
+    print ("{:<140}".format("\nLoading ionization potentials CSV file ..."), end="")
+    with open(ip_file, 'r', newline='') as csv_file:
+      ip_content = csv.DictReader(csv_file, delimiter=';')
+      ip_list = list(ip_content)
+    print('%12s' % "[ DONE ]")
+
+    # ABIN LAUNCHER's files
+    # =====================
+
+    geom_scan_path = os.path.join(chains_path,"abin_launcher","geom_scan.py")
+    scaling_fcts_path = os.path.join(chains_path,"abin_launcher","scaling_fcts.py")
+
+    print ("{:<140}".format("\nImporting ABIN LAUNCHER's subscripts ..."), end="")
+    geom_scan = import_path(geom_scan_path)
+    scaling_fcts = import_path(scaling_fcts_path)
+    print('%12s' % "[ DONE ]")
+
+    # Mendeleev's periodic table
+    # ==========================
+
+    # Loading AlexGustafsson's Mendeleev Table (found at https://github.com/AlexGustafsson/molecular-data) which will be used notably by the scaling process.
+
+    mendeleev_file = results_errors.check_abspath(os.path.join(chains_path,"abin_launcher","mendeleev.yml"),"Mendeleev periodic table YAML file","file")
+    print ("{:<140}".format("\nLoading AlexGustafsson's Mendeleev Table ..."), end="")
+    with open(mendeleev_file, 'r') as periodic_table:
+      mendeleev = yaml.load(periodic_table, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
     # ========================================================= #
@@ -230,15 +277,8 @@ def main():
     # Determine other important variables                       #
     # ========================================================= #
 
+    out_yml = os.path.abspath(out_yml)
     print ("{:<40} {:<100}".format('\nOutput YAML file:',out_yml))
-
-    # Import the geom_scan.py file of ABIN LAUNCHER
-
-    chains_path = os.path.dirname(code_dir)  
-    geom_scan_path = os.path.join(chains_path,"abin_launcher","geom_scan.py")
-    geom_scan = import_path(geom_scan_path)
-
-    # Initialize important variables
 
     comp_results = {} # Dictionary consisting of multiples dictionaries containing data about each molecule (1 dict per molecule)
 
@@ -288,7 +328,7 @@ def main():
       tag = tag_finder.group('tag').upper()
 
       # ========================================================= #
-      # Constitutive atoms                                        #
+      # Group (constitutive atoms)                                #
       # ========================================================= #
 
       # Check the optimized geometry file
@@ -316,7 +356,17 @@ def main():
       atoms.sort()
       atoms.insert(0, atoms.pop(atoms.index("Si")))
 
-      mol_type = ''.join(atoms)
+      mol_group = ''.join(atoms)
+
+      # ========================================================= #
+      # Total number of electrons                                 #
+      # ========================================================= #
+
+      # Call the scaling function from ABIN LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
+
+      with open(os.devnull, 'w') as devnull:
+        with contextlib.redirect_stdout(devnull):
+          nb_elec = scaling_fcts.total_nb_elec(mendeleev, file_data)
 
       # ========================================================= #
       # "Pretty" name                                             #
@@ -357,15 +407,16 @@ def main():
 
       comp_results[mol_name] = { "ID" : 
           { "TAG" : tag,
-            "Type" : mol_type,
-            "Name" : pretty_name
+            "Group" : mol_group,
+            "Name" : pretty_name,
+            "Nb electrons" : nb_elec
           }
         }
 
       # Add the number of Si atoms (for pure Si QDs only)
 
-      if mol_type == "Si":
-        comp_results[mol_name]['ID'].update({"Nb_Si_atoms" : chemical_formula["Si"] if chemical_formula["Si"] != "" else 1})
+      if mol_group == "Si":
+        comp_results[mol_name]['ID'].update({"Nb Si atoms" : chemical_formula["Si"] if chemical_formula["Si"] != "" else 1})
 
     # ========================================================= #
     # Exception handling for the identification                 #
@@ -479,7 +530,7 @@ def main():
 
       # Store the energies of the orbitals as a big string where values are delimited by ";"
 
-      comp_results[mol_name].update({"KS_Orbitals" :
+      comp_results[mol_name].update({"QCHEM KS Orbitals" :
           { "Occupied" : ";".join(map(str,occ_orb)),
             "Virtual" : ";".join(map(str,virt_orb))
           }
@@ -521,11 +572,29 @@ def main():
       # Store data
       # ==========
 
-      comp_results[mol_name].update({ "Energy_gaps" : 
+      comp_results[mol_name].update({ "Energy gaps (Ha)" : 
           { "HOMO-LUMO" : hl_gap,
             "Optical" : opt_gap
           }
         })
+
+      print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
+      # Fetch ionization potentials                               #
+      # ========================================================= #
+
+      print ("{:<140}".format('\nFetching ionization potentials values ...'), end="")
+
+      for line in ip_list:
+        if line['Molecule'] == mol_name:
+          comp_results[mol_name].update({ "IPs (Ha)" : 
+            { "Koopmans" : float(line['IP (Koopmans)']),
+              "Vertical" : float(line['IP (vertical)']) if line['IP (vertical)'] != "N/A" else line['IP (vertical)'],
+              "Adiabatic" : float(line['IP (adiabatic)']) if line['IP (adiabatic)'] != "N/A" else line['IP (adiabatic)']
+            }
+          })
+          break
 
       print('%12s' % "[ DONE ]")
 
