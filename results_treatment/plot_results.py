@@ -11,12 +11,8 @@
 ################################################################################################################################################
 
 import argparse
-import contextlib
-import csv
 import os
-import re
 import shutil
-import sys
 from inspect import getsourcefile
 
 import yaml
@@ -202,38 +198,21 @@ def main():
   # =================================================================== #
   # =================================================================== #
 
-  # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-  try:
+  print ("{:<140}".format('\nSorting the data ...'), end="")
 
-    print ("{:<140}".format('\nSorting the data ...'), end="")
+  # Get all the different groups of molecules
 
-    # Get all the different types of molecules
+  mol_groups = [yml_content[mol]['ID']['Group'] for mol in yml_content]
+  mol_groups = list(dict.fromkeys(mol_groups)) # Remove duplicates (https://www.w3schools.com/python/python_howto_remove_duplicates.asp)
 
-    mol_types = [yml_content[mol]['ID']['Type'] for mol in yml_content]
-    mol_types = list(dict.fromkeys(mol_types)) # Remove duplicates (https://www.w3schools.com/python/python_howto_remove_duplicates.asp)
+  # Regroup the data by group (constitutive atoms) (#!only include spheroids for now)
 
-    # Regroup the data by type (constitutive atoms) (#!only include spheroids for now)
+  yml_sorted = {}
 
-    yml_sorted = {}
+  for mol_group in mol_groups:
+    yml_sorted[mol_group] = {mol:value for (mol,value) in yml_content.items() if yml_content[mol]['ID']['Group'] == mol_group and yml_content[mol]['ID']['TAG'].startswith("S")}
 
-    for mol_type in mol_types:
-      yml_sorted[mol_type] = {mol:value for (mol,value) in yml_content.items() if yml_content[mol]['ID']['Type'] == mol_type and yml_content[mol]['ID']['TAG'].startswith("S")}
-
-    # Separate the reference (Si) from the other types
-
-    si_data = yml_sorted.pop("Si")
-    mol_types.remove("Si")
-
-    print('%12s' % "[ DONE ]")
-
-  # ========================================================= #
-  # Exception handling for sorting the data                   #
-  # ========================================================= #
-
-  except results_errors.ResultsError as error:
-    print("")
-    print(error)
-    exit(-1)
+  print('%12s' % "[ DONE ]")
 
   # =================================================================== #
   # =================================================================== #
@@ -241,59 +220,64 @@ def main():
   # =================================================================== #
   # =================================================================== #
 
-  # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-  try:
+  section_title = "1. Energy gaps"
 
-    section_title = "1. Energy gaps"
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
 
-    print("")
-    print(''.center(len(section_title)+10, '*'))
-    print(section_title.center(len(section_title)+10))
-    print(''.center(len(section_title)+10, '*'))
+  # Create the directory that will contain the graphs
+  # =================================================
 
-    # Get the values for Si
-    # =====================
+  gaps_dir = os.path.join(out_dir,'gaps')
+  os.makedirs(gaps_dir, exist_ok = True)
 
-    print ("{:<140}".format('\nFetching the values for Si QDs ...'), end="")
+  # Get the values for Si
+  # =====================
 
-    si_gaps = []
+  print ("{:<140}".format('\nFetching the values for Si QDs ...'), end="")
 
-    for mol in si_data:
-      if si_data[mol].get('Energy_gaps'):
-        nb_si_atoms = si_data[mol]['ID']['Nb_Si_atoms']
-        hl_gap = energy_unit_conversion(si_data[mol]['Energy_gaps']['HOMO-LUMO'],"ha","ev")
-        opt_gap = energy_unit_conversion(si_data[mol]['Energy_gaps']['Optical'],"ha","ev")
-        si_gaps.append((nb_si_atoms,hl_gap,opt_gap))
+  si_gaps = []
 
-    si_gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
+  for mol in yml_sorted['Si']:
+    if yml_sorted['Si'][mol].get('Energy gaps (Ha)'):
+      nb_si_atoms = yml_sorted['Si'][mol]['ID']['Nb Si atoms']
+      hl_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
+      opt_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
+      si_gaps.append((nb_si_atoms,hl_gap,opt_gap))
 
-    print('%12s' % "[ DONE ]")
+  si_gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
 
-    # Iterate over each molecule type and compare it to Si
-    # ====================================================
+  print('%12s' % "[ DONE ]")
 
-    for mol_type in mol_types:
+  # Iterate over each molecule group and compare it to Si
+  # ====================================================
 
-      print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_type), end="")
+  for mol_group in mol_groups:
+
+    if mol_group != 'Si':
+
+      print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_group), end="")
 
       # Get the values
       # ==============
 
       gaps = []
 
-      for mol in yml_sorted[mol_type]:
-        if yml_sorted[mol_type][mol].get('Energy_gaps'):
+      for mol in yml_sorted[mol_group]:
+        if yml_sorted[mol_group][mol].get('Energy gaps (Ha)'):
 
           # Get the gaps values
 
-          hl_gap = energy_unit_conversion(yml_sorted[mol_type][mol]['Energy_gaps']['HOMO-LUMO'],"ha","ev")
-          opt_gap = energy_unit_conversion(yml_sorted[mol_type][mol]['Energy_gaps']['Optical'],"ha","ev")
+          hl_gap = energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
+          opt_gap = energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
 
           # Use the TAG key to find the corresponding Si QD and fetch its number of Si atoms
 
-          for si_mol in si_data:
-            if si_data[si_mol]['ID']['TAG'] == yml_sorted[mol_type][mol]['ID']['TAG']:
-              nb_si_atoms = si_data[si_mol]['ID']['Nb_Si_atoms']
+          for si_mol in yml_sorted['Si']:
+            if yml_sorted['Si'][si_mol]['ID']['TAG'] == yml_sorted[mol_group][mol]['ID']['TAG']:
+              nb_si_atoms = yml_sorted['Si'][si_mol]['ID']['Nb Si atoms']
 
           # Store the data for this molecule
 
@@ -313,14 +297,14 @@ def main():
       ax.plot([mol[0] for mol in si_gaps],[mol[1] for mol in si_gaps],marker='.',linestyle='--',label='H-L gaps - Si (DFT)')
       ax.plot([mol[0] for mol in si_gaps],[mol[2] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Optical gaps - Si (TD-DFT)')
 
-      # Plot the specific type value
+      # Plot the specific group value
 
-      ax.plot([mol[0] for mol in gaps],[mol[1] for mol in gaps],marker='.',linestyle='-',label='H-L gaps - %s (DFT)' % mol_type)
-      ax.plot([mol[0] for mol in gaps],[mol[2] for mol in gaps],marker='^',markersize=4,linestyle='-',label='Optical gaps - %s (TD-DFT)' % mol_type)
+      ax.plot([mol[0] for mol in gaps],[mol[1] for mol in gaps],marker='.',linestyle='-',label='H-L gaps - %s (DFT)' % mol_group)
+      ax.plot([mol[0] for mol in gaps],[mol[2] for mol in gaps],marker='^',markersize=4,linestyle='-',label='Optical gaps - %s (TD-DFT)' % mol_group)
 
       # Add the legend and titles
 
-      ax.set_title('Energy gaps: Si vs %s' % mol_type)
+      ax.set_title('Energy gaps: Si vs %s' % mol_group)
       ax.set_xlabel("Number of Si atoms in the Si QD")
       ax.set_ylabel('Energy (eV)')
       ax.legend()
@@ -336,18 +320,161 @@ def main():
 
       # Save the figure and clear the axes to prepare for the next plot
 
-      plt.savefig(os.path.join(out_dir,'gaps','gaps_Si_vs_%s.png' % mol_type),dpi=200)
+      plt.savefig(os.path.join(gaps_dir,'gaps_Si_vs_%s.png' % mol_group),dpi=200)
       plt.cla()
 
       print('%12s' % "[ DONE ]")
-
-      print(mol_type,gaps)
    
-  # ========================================================= #
-  # Exception handling for plotting the energy gaps           #
-  # ========================================================= #
+  # =================================================================== #
+  # =================================================================== #
+  #                      PLOTTING ORBITAL ENERGIES                      #
+  # =================================================================== #
+  # =================================================================== #
 
-  except results_errors.ResultsError as error:
-    print("")
-    print(error)
-    exit(-1)
+  section_title = "2. Orbital energies"
+
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
+
+  # Create the directory that will contain the graphs
+  # =================================================
+
+  orb_dir = os.path.join(out_dir,'orbitals')
+  os.makedirs(orb_dir, exist_ok = True)
+
+  # Iterate over each group
+  # =======================
+
+  for mol_group in mol_groups:
+
+    print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_group), end="")
+
+    # Initialize the list of tuples that will contain all the values
+
+    occ_orbitals = []
+    virt_orbitals = []
+
+    # Smallest molecule (reference)
+    # =============================
+
+    # Identify the smallest molecule of the group that will act as reference
+
+    min_atoms =  min([yml_sorted[mol_group][mol]['ID']['Nb atoms'] for mol in yml_sorted[mol_group] if yml_sorted[mol_group][mol].get('QCHEM KS Orbitals')])
+    ref_mol = list(filter(lambda mol: yml_sorted[mol_group][mol]['ID']['Nb atoms'] == min_atoms, yml_sorted[mol_group]))[0]
+
+    # Convert the orbital values from string to list and take the top 5 levels
+
+    occ_values = sorted(map(float,yml_sorted[mol_group][ref_mol]['QCHEM KS Orbitals']['Occupied'].split(';')),reverse=True)[0:5]
+    virt_values = sorted(map(float,yml_sorted[mol_group][ref_mol]['QCHEM KS Orbitals']['Virtual'].split(';')))[0:5]
+
+    # Filter the extreme values (values higher than the double of the mean)
+
+    occ_values = [val for val in occ_values if abs(val) < (2 * abs(sum(occ_values)/len(occ_values)))]
+    virt_values = [val for val in virt_values if abs(val) < (2 * abs(sum(virt_values)/len(virt_values)))]
+
+    # Shift the values by centering them around the HOMO-LUMO gap
+
+    hl_gap = min(virt_values) - max(occ_values)
+    shift = max(occ_values) + (hl_gap/2)
+    occ_values = [val - shift for val in sorted(occ_values)]
+    virt_values = [val - shift for val in virt_values]
+
+    # Store the values in the list as tuples (x = 1 since it is the smallest molecule of the group)
+
+    for value in occ_values:
+      occ_orbitals.append((1,value))
+    for value in virt_values:
+      virt_orbitals.append((1,value))
+
+    # Define the upper and lower limits that will be used to filter the orbital energies of the bigger molecules of the group
+
+    upper_limit = max(virt_values)
+    lower_limit = min(occ_values)
+
+    # Rest of the group
+    # =================
+
+    # Sort the molecules by size
+
+    sorted_mol = sorted(yml_sorted[mol_group].keys(), key=lambda mol: yml_sorted[mol_group][mol]['ID']['Nb atoms'])
+
+    # Iterate over each molecule
+
+    for mol in yml_sorted[mol_group]:
+      if mol != ref_mol and yml_sorted[mol_group][mol].get('QCHEM KS Orbitals'):
+
+        # Determine the x value
+
+        x_value = sorted_mol.index(mol) + 1
+
+        # Convert the orbital values from string to list
+
+        occ_values = sorted(map(float,yml_sorted[mol_group][mol]['QCHEM KS Orbitals']['Occupied'].split(';')),reverse=True)
+        virt_values = sorted(map(float,yml_sorted[mol_group][mol]['QCHEM KS Orbitals']['Virtual'].split(';')))
+
+        # Shift the values by centering them around the HOMO-LUMO gap
+
+        hl_gap = min(virt_values) - max(occ_values)
+        shift = max(occ_values) + (hl_gap/2)
+        occ_values = [val - shift for val in sorted(occ_values)]
+        virt_values = [val - shift for val in virt_values]
+
+        # Filter the values based on the group limits
+
+        occ_values = [val for val in occ_values if val >= lower_limit]
+        virt_values = [val for val in virt_values if val <= upper_limit]
+
+        # Store the values in the list as tuples
+
+        for value in occ_values:
+          occ_orbitals.append((x_value,value))
+        for value in virt_values:
+          virt_orbitals.append((x_value,value))
+    
+    # Plot the values
+    # ===============
+
+    plt.style.use('seaborn-colorblind')
+
+    fig, ax = plt.subplots()
+
+    # Define the X labels and ticks
+
+    xlabels = [yml_sorted[mol_group][mol]['ID']['Name'] for mol in sorted_mol]
+    xticks = list(range(1,len(xlabels)+1))
+
+    # Plot the values
+
+    ax.scatter([orb[0] for orb in occ_orbitals],[orb[1] for orb in occ_orbitals],label='Occupied',color='red',marker='_',s=900)
+    ax.scatter([orb[0] for orb in virt_orbitals],[orb[1] for orb in virt_orbitals],label='Virtual',color='blue',marker='_',s=900)
+
+    # Add the legend and titles
+
+    ax.set_title('Orbital levels for the %s QDs' % mol_group)
+    ax.set_ylabel('Energy (Ha)')
+
+    # Set other parameters
+
+    ax.tick_params(top=False, right=False)
+    plt.xticks(ticks=xticks,labels=xlabels)
+    plt.tight_layout()
+
+    # Save the figure and clear the axes to prepare for the next plot
+
+    plt.savefig(os.path.join(orb_dir,'orb_%s.png' % mol_group),dpi=200)
+    plt.cla()
+
+    print('%12s' % "[ DONE ]")
+
+# =================================================================== #
+# =================================================================== #
+#                          CALL MAIN FUNCTION                         #
+# =================================================================== #
+# =================================================================== #
+
+# If this script is executed through the command line, call the main function (see https://realpython.com/python-main-function/ for details)
+
+if __name__ == "__main__":
+    main()   
