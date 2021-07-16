@@ -294,6 +294,15 @@ def main():
     print(console_message.center(len(console_message)+10))
     print(''.center(len(console_message)+11, '*'))
 
+    # Start by checking the data directory containing the relevant files, skip the molecule if that directory does not exist
+
+    try:
+      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
+    except results_errors.ResultsError as error:
+      print(error)
+      print("Skipping %s molecule" % mol_name)
+      continue
+
     # ========================================================= #
     # ========================================================= #
     #                 IDENTIFYING THE MOLECULE                  #
@@ -419,10 +428,6 @@ def main():
     # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
     
-      # Get the path towards the data directory containing the relevant files
-
-      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
-
       # ========================================================= #
       # Kohn-Sham orbitals                                        #
       # ========================================================= #
