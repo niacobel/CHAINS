@@ -17,7 +17,8 @@ from inspect import getsourcefile
 
 import yaml
 import matplotlib.pyplot as plt
-from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+from matplotlib.ticker import AutoMinorLocator
+import matplotlib.mathtext
 
 import results_errors
 
@@ -452,12 +453,12 @@ def main():
 
     # Add the legend and titles
 
-    ax.set_title('Orbital levels for the %s QDs' % mol_group)
+    ax.set_title('Orbital energies for the %s QDs' % mol_group)
     ax.set_ylabel('Energy (Ha)')
 
     # Set other parameters
 
-    ax.tick_params(top=False, right=False)
+    ax.tick_params(top=False, right=False, bottom=False)
     plt.xticks(ticks=xticks,labels=xlabels)
     plt.tight_layout()
 
