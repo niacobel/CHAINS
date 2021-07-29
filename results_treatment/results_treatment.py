@@ -557,12 +557,19 @@ def main():
       bright_energies = [float(state['Energy (Ha)']) for state in states_list if state['Type'].lower() == "bright"]
       opt_gap = min(bright_energies)
 
+      # Singlet-Triplet gap
+      # ===================
+
+      dark_energies = [float(state['Energy (Ha)']) for state in states_list if state['Type'].lower() == "dark"]
+      st_gap = abs( min(dark_energies) - min(bright_energies) )
+
       # Store data
       # ==========
 
       comp_results[mol_name].update({ "Energy gaps (Ha)" : 
           { "HOMO-LUMO" : hl_gap,
-            "Optical" : opt_gap
+            "Optical" : opt_gap,
+            "Singlet-Triplet" : st_gap
           }
         })
 
