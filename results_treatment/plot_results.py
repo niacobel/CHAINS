@@ -246,7 +246,8 @@ def main():
       nb_si_atoms = yml_sorted['Si'][mol]['ID']['Nb Si atoms']
       hl_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
       opt_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
-      si_gaps.append((nb_si_atoms,hl_gap,opt_gap))
+      st_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
+      si_gaps.append((nb_si_atoms,hl_gap,opt_gap,st_gap))
 
   si_gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
 
@@ -273,6 +274,7 @@ def main():
 
           hl_gap = energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
           opt_gap = energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
+          st_gap = energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
 
           # Use the TAG key to find the corresponding Si QD and fetch its number of Si atoms
 
@@ -282,12 +284,12 @@ def main():
 
           # Store the data for this molecule
 
-          gaps.append((nb_si_atoms,hl_gap,opt_gap))
+          gaps.append((nb_si_atoms,hl_gap,opt_gap,st_gap))
 
       gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
 
-      # Plot the graphs
-      # ===============
+      # Plot the optical and HOMO-LUMO gaps graphs
+      # ==========================================
 
       plt.style.use('seaborn-colorblind')
 
@@ -319,13 +321,52 @@ def main():
       plt.tight_layout()
       plt.grid(True,which='both',linestyle='--')
 
-      # Save the figure and clear the axes to prepare for the next plot
+      # Save the file and close the figure
 
       plt.savefig(os.path.join(gaps_dir,'gaps_Si_vs_%s.png' % mol_group),dpi=200)
-      plt.cla()
+      plt.close()
+
+      # Plot the singlet-triplet gaps graphs
+      # ====================================
+
+      plt.style.use('seaborn-colorblind')
+
+      fig, ax = plt.subplots()
+
+      # Plot the Si values
+
+      ax.plot([mol[0] for mol in si_gaps],[mol[3] for mol in si_gaps],marker='.',linestyle='--',label='S-T gaps - Si (TD-DFT)')
+
+      # Plot the specific group value
+
+      ax.plot([mol[0] for mol in gaps],[mol[3] for mol in gaps],marker='.',linestyle='-',label='S-T gaps - %s (TD-DFT)' % mol_group)
+
+      # Add the legend and titles
+
+      ax.set_title('Singlet-Triplet gaps: Si vs %s' % mol_group)
+      ax.set_xlabel("Number of Si atoms in the Si QD")
+      ax.set_ylabel(r'$\Delta E_{ST}~(eV)$')
+      ax.legend()
+
+      # Set other parameters
+
+      ax.tick_params(top=False, right=False)
+      ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+      ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+      plt.tight_layout()
+      plt.grid(True,which='both',linestyle='--')
+
+      params = {'mathtext.default': 'regular' }          
+      plt.rcParams.update(params)
+
+      # Save the file and close the figure
+
+      plt.savefig(os.path.join(gaps_dir,'st_gaps_Si_vs_%s.png' % mol_group),dpi=200)
+      plt.close()
 
       print('%12s' % "[ DONE ]")
-   
+
   # =================================================================== #
   # =================================================================== #
   #                      PLOTTING ORBITAL ENERGIES                      #
@@ -397,14 +438,18 @@ def main():
     # Rest of the group
     # =================
 
+    # Filter the molecules for which the data is available
+
+    mols = [mol for mol in yml_sorted[mol_group] if yml_sorted[mol_group][mol].get('QCHEM KS Orbitals')]
+
     # Sort the molecules by size
 
-    sorted_mol = sorted(yml_sorted[mol_group].keys(), key=lambda mol: yml_sorted[mol_group][mol]['ID']['Nb atoms'])
+    sorted_mol = sorted(mols, key=lambda mol: yml_sorted[mol_group][mol]['ID']['Nb atoms'])
 
     # Iterate over each molecule
 
-    for mol in yml_sorted[mol_group]:
-      if mol != ref_mol and yml_sorted[mol_group][mol].get('QCHEM KS Orbitals'):
+    for mol in sorted_mol:
+      if mol != ref_mol:
 
         # Determine the x value
 
@@ -462,10 +507,13 @@ def main():
     plt.xticks(ticks=xticks,labels=xlabels)
     plt.tight_layout()
 
-    # Save the figure and clear the axes to prepare for the next plot
+    params = {'mathtext.default': 'regular' }          
+    plt.rcParams.update(params)
+
+    # Save the file and close the figure
 
     plt.savefig(os.path.join(orb_dir,'orb_%s.png' % mol_group),dpi=200)
-    plt.cla()
+    plt.close()
 
     print('%12s' % "[ DONE ]")
 
