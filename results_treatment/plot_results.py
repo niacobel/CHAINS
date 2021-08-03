@@ -228,12 +228,6 @@ def main():
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
-  # Create the directory that will contain the graphs
-  # =================================================
-
-  gaps_dir = os.path.join(out_dir,'gaps')
-  os.makedirs(gaps_dir, exist_ok = True)
-
   # Get the values for Si
   # =====================
 
@@ -323,7 +317,7 @@ def main():
 
       # Save the file and close the figure
 
-      plt.savefig(os.path.join(gaps_dir,'gaps_Si_vs_%s.png' % mol_group),dpi=200)
+      plt.savefig(os.path.join(out_dir,'%s_gaps.png' % mol_group),dpi=200)
       plt.close()
 
       # Plot the singlet-triplet gaps graphs
@@ -362,7 +356,7 @@ def main():
 
       # Save the file and close the figure
 
-      plt.savefig(os.path.join(gaps_dir,'st_gaps_Si_vs_%s.png' % mol_group),dpi=200)
+      plt.savefig(os.path.join(out_dir,'%s_st_gaps.png' % mol_group),dpi=200)
       plt.close()
 
       print('%12s' % "[ DONE ]")
@@ -379,12 +373,6 @@ def main():
   print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
-
-  # Create the directory that will contain the graphs
-  # =================================================
-
-  orb_dir = os.path.join(out_dir,'orbitals')
-  os.makedirs(orb_dir, exist_ok = True)
 
   # Iterate over each group
   # =======================
@@ -512,10 +500,103 @@ def main():
 
     # Save the file and close the figure
 
-    plt.savefig(os.path.join(orb_dir,'orb_%s.png' % mol_group),dpi=200)
+    plt.savefig(os.path.join(out_dir,'%s_orb.png' % mol_group),dpi=200)
     plt.close()
 
     print('%12s' % "[ DONE ]")
+
+  # =================================================================== #
+  # =================================================================== #
+  #                   PLOTTING IONIZATION POTENTIALS                    #
+  # =================================================================== #
+  # =================================================================== #
+
+  section_title = "3. Ionization potentials"
+
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
+
+  # Iterate over each molecule group
+  # ================================
+
+  for mol_group in mol_groups:
+
+      print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_group), end="")
+
+      # Get the values
+      # ==============
+
+      ips_koop = []
+      ips_vert = []
+      ips_adiab = []
+
+      for mol in yml_sorted[mol_group]:
+        if yml_sorted[mol_group][mol].get('IPs (Ha)'):
+
+          # Use the TAG key to find the corresponding Si QD and fetch its number of Si atoms
+
+          for si_mol in yml_sorted['Si']:
+            if yml_sorted['Si'][si_mol]['ID']['TAG'] == yml_sorted[mol_group][mol]['ID']['TAG']:
+              nb_si_atoms = yml_sorted['Si'][si_mol]['ID']['Nb Si atoms']
+
+          # Get the IPs values and add them to their corresponding lists
+
+          ip_koop = energy_unit_conversion(yml_sorted[mol_group][mol]['IPs (Ha)']['Koopmans'],"ha","ev")
+          ips_koop.append((nb_si_atoms,ip_koop))
+
+          ip_vert = yml_sorted[mol_group][mol]['IPs (Ha)']['Vertical']
+          if ip_vert != 'N/A':
+             ip_vert = energy_unit_conversion(ip_vert,"ha","ev")
+             ips_vert.append((nb_si_atoms,ip_vert))
+
+          ip_adiab = yml_sorted[mol_group][mol]['IPs (Ha)']['Adiabatic']
+          if ip_adiab != 'N/A':
+             ip_adiab = energy_unit_conversion(ip_adiab,"ha","ev")
+             ips_adiab.append((nb_si_atoms,ip_adiab))       
+
+      # Sort the values by number of Si atoms
+
+      ips_koop.sort(key=lambda tup: tup[0])
+      ips_vert.sort(key=lambda tup: tup[0])
+      ips_adiab.sort(key=lambda tup: tup[0])
+
+      # Plot the graphs
+      # ===============
+
+      plt.style.use('seaborn-colorblind')
+
+      fig, ax = plt.subplots()
+
+      # Plot the values
+
+      ax.plot([mol[0] for mol in ips_koop],[mol[1] for mol in ips_koop],marker='.',linestyle='-',label='Koopmans')
+      ax.plot([mol[0] for mol in ips_vert],[mol[1] for mol in ips_vert],marker='.',linestyle='-',label='Vertical')
+      ax.plot([mol[0] for mol in ips_adiab],[mol[1] for mol in ips_adiab],marker='.',linestyle='-',label='Adiabatic')
+
+      # Add the legend and titles
+
+      ax.set_title('Ionization potentials for %s QDs' % mol_group)
+      ax.set_xlabel("Number of Si atoms in the original Si QD")
+      ax.set_ylabel('Energy (eV)')
+      ax.legend()
+
+      # Set other parameters
+
+      ax.tick_params(top=False, right=False)
+      ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+      ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+      plt.tight_layout()
+      plt.grid(True,which='both',linestyle='--')
+
+      # Save the file and close the figure
+
+      plt.savefig(os.path.join(out_dir,'%s_ips.png' % mol_group),dpi=200)
+      plt.close()
+
+      print('%12s' % "[ DONE ]")
 
 # =================================================================== #
 # =================================================================== #
