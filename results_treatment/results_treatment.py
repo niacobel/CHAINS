@@ -296,14 +296,14 @@ def main():
 
     # ========================================================= #
     # ========================================================= #
-    #                 IDENTIFYING THE MOLECULE                  #
+    #             NAME & STRUCTURE OF THE MOLECULE              #
     # ========================================================= #
     # ========================================================= #
 
     # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
 
-      print ("{:<140}".format('\nIdentifying molecule ...'), end="")
+      print ("{:<140}".format('\nIdentifying name and structure of the molecule ...'), end="")
 
       # ========================================================= #
       # TAG of the molecule                                       #
@@ -385,21 +385,66 @@ def main():
       print('%12s' % "[ DONE ]")
 
       # ========================================================= #
-      # Store ID info                                             #
+      # Size of the molecule                                      #
       # ========================================================= #
 
-      comp_results[mol_name] = { "ID" : 
+      # Define the pattern to extract coordinates from the XYZ file lines
+
+      coord_pattern = re.compile(r'^\s*[a-zA-Z]{1,3}\s+(?P<coord_x>-?\d+\.\d+)\s+(?P<coord_y>-?\d+\.\d+)\s+(?P<coord_z>-?\d+\.\d+)\s*$')
+
+      # Determine the size of the molecule by getting the highest distance between two atoms
+
+      size = 0
+
+      for line in file_data['atomic_coordinates']:
+
+        # Extract coordinates of first atom
+
+        match = coord_pattern.match(line)
+
+        x1 = float(match.group('coord_x'))
+        y1 = float(match.group('coord_y'))
+        z1 = float(match.group('coord_z'))
+
+        for other_line in file_data['atomic_coordinates']:
+
+          if line != other_line:
+
+            # Extract coordinates of second atom
+
+            match = coord_pattern.match(other_line)
+
+            x2 = float(match.group('coord_x'))
+            y2 = float(match.group('coord_y'))
+            z2 = float(match.group('coord_z'))
+
+            # Compute the distance and store it if it is the highest one yet
+
+            distance = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**0.5
+
+            if distance > size:
+              size = distance
+
+      # ========================================================= #
+      # Store name and structure info                             #
+      # ========================================================= #
+
+      comp_results[mol_name] = { 
+        "ID" : 
           { "TAG" : tag,
             "Group" : mol_group,
             "Name" : pretty_name,
-            "Nb atoms" : nb_atoms
+          },
+        "Structure":
+          { "Nb atoms" : nb_atoms,
+            "Size (Ang)" : size
           }
         }
 
       # Add the number of Si atoms (for pure Si QDs only)
 
       if mol_group == "Si":
-        comp_results[mol_name]['ID'].update({"Nb Si atoms" : chemical_formula["Si"] if chemical_formula["Si"] != "" else 1})
+        comp_results[mol_name]['Structure'].update({"Nb Si atoms" : chemical_formula["Si"] if chemical_formula["Si"] != "" else 1})
 
     # ========================================================= #
     # Exception handling for the identification                 #
@@ -585,6 +630,66 @@ def main():
             }
           })
           break
+
+      print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
+      # Fetch permanent dipole moment                             #
+      # ========================================================= #
+
+      print ("{:<140}".format('\nFetching permanent dipole moment value ...'), end="")
+
+      # Initialize some variables
+
+      section_found = False
+      mu = "N/A"
+
+      # Define the expression patterns for the lines containing information about the permanent dipole moment
+    
+      mu_rx = {
+
+        # Pattern for finding the "Dipole Moment (Debye)" line (which marks the start of the section)
+        'start': re.compile(r'^\s*Dipole Moment \(Debye\)\s*$'),
+
+        # Pattern for finding lines looking like '       Tot       0.2618' (and capture the value)
+        'value': re.compile(r'^\s*Tot\s+(?P<mu>\d+\.\d+)\s*$'),
+
+        # Pattern for finding the "-----------------" line (which marks the end of the section)
+        'end': re.compile(r'^\s*-+\s*$')
+
+      }
+
+      # Parse the qchem output file to get the information
+
+      for line in qchem_content:
+
+        # Define when the section begins and ends (ignore beta orbitals)
+
+        if not section_found:
+          if mu_rx['start'].match(line):
+            section_found = True
+      
+        elif section_found and mu_rx['end'].match(line):
+          break
+
+        # Store the value
+
+        elif mu_rx['value'].match(line):
+          mu = float(mu_rx['value'].match(line).group('mu'))
+
+      # Raise an exception if the section has not been found
+
+      if not section_found:
+        raise results_errors.ResultsError ("ERROR: Unable to find the 'Dipole Moment (Debye)' line in the QCHEM output file")
+
+      # Raise an exception if the energies of the orbitals have not been found
+
+      if mu == "N/A":
+        raise results_errors.ResultsError ("ERROR: Unable to find the value of the permanent dipole moment in the QCHEM output file")
+
+      # Store the value
+
+      comp_results[mol_name]['Structure'].update({"Permanent dipole moment (Debye)" : mu})
 
       print('%12s' % "[ DONE ]")
 
