@@ -469,12 +469,10 @@ def main():
       data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
 
       # ========================================================= #
-      # Kohn-Sham orbitals                                        #
+      # Load the QCHEM output file                                #
       # ========================================================= #
 
-      print ("{:<140}".format('\nFetching KS orbitals values ...'), end="")
-
-      # Load the QCHEM output file
+      print ("{:<140}".format('\nLoading QCHEM output file ...'), end="")
 
       qchem_file = results_errors.check_abspath(os.path.join(data_dir, mol_name + ".out"),"QCHEM output file","file")
 
@@ -483,6 +481,60 @@ def main():
 
       qchem_content = list(map(str.strip, qchem_content))   # Remove leading & trailing blank/spaces
       qchem_content = list(filter(None, qchem_content))     # Remove blank lines/no char
+
+      print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
+      # Get symmetry group                                        #
+      # ========================================================= #
+
+      # Initialize some variables
+
+      sym_group = None
+      sym_subgroup = None
+
+      # Define the expression patterns for the lines containing information about the symmetry
+
+      sym_rx = {
+      
+        # Pattern for finding the "Molecular Point Group                 Td    NOp = 24" type of line
+        'group_line': re.compile(r'^\s*Molecular Point Group\s*(?P<group>[a-zA-Z0-9]+)\s*NOp\s*=\s*\d*\s*$'),
+
+        # Pattern for finding the "Largest Abelian Subgroup              D2    NOp =  4" type of line
+        'subgroup_line': re.compile(r'^\s*Largest Abelian Subgroup\s*(?P<subgroup>[a-zA-Z0-9]+)\s*NOp\s*=\s*\d*\s*$')
+
+      }
+
+      # Parse the qchem output file to get the information
+
+      for line in qchem_content:
+
+        # Store the data when encountered
+
+        if sym_rx['group_line'].match(line):
+          sym_group = sym_rx['group_line'].match(line).group('group')
+
+        elif sym_rx['subgroup_line'].match(line):
+          sym_subgroup = sym_rx['subgroup_line'].match(line).group('subgroup')
+          break # This line will necessary follow the previous one so no need to go further
+
+      # Raise an exception if the symmetry has not been found
+
+      if not sym_group:
+        raise results_errors.ResultsError ("ERROR: Unable to find the molecule point group in the QCHEM output file")
+
+      if not sym_subgroup:
+        raise results_errors.ResultsError ("ERROR: Unable to find the largest abelian subgroup in the QCHEM output file")
+
+      # Add the data to the structure subdictionary for this molecule
+
+      comp_results[mol_name]['Structure'].update({"Symmetry" : sym_group + " (" + sym_subgroup + ")"})
+
+      # ========================================================= #
+      # Kohn-Sham orbitals                                        #
+      # ========================================================= #
+
+      print ("{:<140}".format('\nFetching KS orbitals values ...'), end="")
 
       # Initialize some variables
 
