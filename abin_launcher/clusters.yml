@@ -141,9 +141,9 @@ dragon2:
         - 
           label: small
           scale_limit: 500
-          time: 3-00:00:00
+          time: 4-00:00:00
           cores: 8
-          mem_per_cpu: 750 # in MB
+          mem_per_cpu: 1000 # in MB
         - 
           label: medium
           scale_limit: 1000

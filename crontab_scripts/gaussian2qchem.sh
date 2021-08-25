@@ -81,7 +81,7 @@ else
     if  [[ $MOL_NAME == s00-* ]] || [[ $MOL_NAME == s01-* ]] || [[ $MOL_NAME == s02-* ]] || [[ $MOL_NAME == s03-* ]] || [[ $MOL_NAME == s04-* ]] || [[ $MOL_NAME == p01-* ]] ;
     then
         mkdir -p "${out_dir_tzvp}"
-        python "${abin_dir}/abin_launcher.py" -p qchem -m "${filepath}" -cf "${chains_path}/configs/qchem/TZVP.yml" -o "${out_dir_tzvp}" -cl "${cluster_name}" -ow -kc -km > "${abin_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}_TZVP.log"
+        python "${abin_dir}/abin_launcher.py" -p qchem_tzvp -m "${filepath}" -cf "${chains_path}/configs/qchem/TZVP.yml" -o "${out_dir_tzvp}" -cl "${cluster_name}" -ow -kc -km > "${abin_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}_TZVP.log"
     fi
 
     # Proceed with standard SVP run

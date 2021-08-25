@@ -237,7 +237,7 @@ def main():
 
   for mol in yml_sorted['Si']:
     if yml_sorted['Si'][mol].get('Energy gaps (Ha)'):
-      nb_si_atoms = yml_sorted['Si'][mol]['ID']['Nb Si atoms']
+      nb_si_atoms = yml_sorted['Si'][mol]['Structure']['Nb Si atoms']
       hl_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
       opt_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
       st_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
@@ -274,7 +274,7 @@ def main():
 
           for si_mol in yml_sorted['Si']:
             if yml_sorted['Si'][si_mol]['ID']['TAG'] == yml_sorted[mol_group][mol]['ID']['TAG']:
-              nb_si_atoms = yml_sorted['Si'][si_mol]['ID']['Nb Si atoms']
+              nb_si_atoms = yml_sorted['Si'][si_mol]['Structure']['Nb Si atoms']
 
           # Store the data for this molecule
 
@@ -391,8 +391,8 @@ def main():
 
     # Identify the smallest molecule of the group that will act as reference
 
-    min_atoms =  min([yml_sorted[mol_group][mol]['ID']['Nb atoms'] for mol in yml_sorted[mol_group] if yml_sorted[mol_group][mol].get('QCHEM KS Orbitals')])
-    ref_mol = list(filter(lambda mol: yml_sorted[mol_group][mol]['ID']['Nb atoms'] == min_atoms, yml_sorted[mol_group]))[0]
+    min_atoms =  min([yml_sorted[mol_group][mol]['Structure']['Nb atoms'] for mol in yml_sorted[mol_group] if yml_sorted[mol_group][mol].get('QCHEM KS Orbitals')])
+    ref_mol = list(filter(lambda mol: yml_sorted[mol_group][mol]['Structure']['Nb atoms'] == min_atoms, yml_sorted[mol_group]))[0]
 
     # Convert the orbital values from string to list and take the top 5 levels
 
@@ -432,7 +432,7 @@ def main():
 
     # Sort the molecules by size
 
-    sorted_mol = sorted(mols, key=lambda mol: yml_sorted[mol_group][mol]['ID']['Nb atoms'])
+    sorted_mol = sorted(mols, key=lambda mol: yml_sorted[mol_group][mol]['Structure']['Nb atoms'])
 
     # Iterate over each molecule
 
@@ -539,7 +539,7 @@ def main():
 
           for si_mol in yml_sorted['Si']:
             if yml_sorted['Si'][si_mol]['ID']['TAG'] == yml_sorted[mol_group][mol]['ID']['TAG']:
-              nb_si_atoms = yml_sorted['Si'][si_mol]['ID']['Nb Si atoms']
+              nb_si_atoms = yml_sorted['Si'][si_mol]['Structure']['Nb Si atoms']
 
           # Get the IPs values and add them to their corresponding lists
 
