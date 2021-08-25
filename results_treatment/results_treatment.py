@@ -468,11 +468,13 @@ def main():
 
       data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
 
+      print ("{:<140}".format('\nCharacterization results'))
+
       # ========================================================= #
       # Load the QCHEM output file                                #
       # ========================================================= #
 
-      print ("{:<140}".format('\nLoading QCHEM output file ...'), end="")
+      print ("{:<133}".format('\n\tLoading QCHEM output file ...'), end="")
 
       qchem_file = results_errors.check_abspath(os.path.join(data_dir, mol_name + ".out"),"QCHEM output file","file")
 
@@ -487,6 +489,8 @@ def main():
       # ========================================================= #
       # Get symmetry group                                        #
       # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching molecular point group ...'), end="")
 
       # Initialize some variables
 
@@ -530,11 +534,13 @@ def main():
 
       comp_results[mol_name]['Structure'].update({"Symmetry" : sym_group + " (" + sym_subgroup + ")"})
 
+      print('%12s' % "[ DONE ]")
+
       # ========================================================= #
       # Kohn-Sham orbitals                                        #
       # ========================================================= #
 
-      print ("{:<140}".format('\nFetching KS orbitals values ...'), end="")
+      print ("{:<133}".format('\n\tFetching KS orbitals values ...'), end="")
 
       # Initialize some variables
 
@@ -622,7 +628,7 @@ def main():
       # Compute energy gaps                                       #
       # ========================================================= #
 
-      print ("{:<140}".format('\nComputing energy gaps ...'), end="")
+      print ("{:<133}".format('\n\tComputing energy gaps ...'), end="")
 
       # HOMO-LUMO gap
       # =============
@@ -671,7 +677,7 @@ def main():
       # Fetch ionization potentials                               #
       # ========================================================= #
 
-      print ("{:<140}".format('\nFetching ionization potentials values ...'), end="")
+      print ("{:<133}".format('\n\tFetching ionization potentials values ...'), end="")
 
       for line in ip_list:
         if line['Molecule'] == mol_name:
@@ -689,7 +695,7 @@ def main():
       # Fetch permanent dipole moment                             #
       # ========================================================= #
 
-      print ("{:<140}".format('\nFetching permanent dipole moment value ...'), end="")
+      print ("{:<133}".format('\n\tFetching permanent dipole moment value ...'), end="")
 
       # Initialize some variables
 
@@ -747,6 +753,138 @@ def main():
 
     # ========================================================= #
     # Exception handling for the characterization results       #
+    # ========================================================= #
+
+    except results_errors.ResultsError as error:
+      print(error)
+      print("Skipping %s molecule" % mol_name)
+      continue
+
+    # ========================================================= #
+    # ========================================================= #
+    #                      CONTROL RESULTS                      #
+    # ========================================================= #
+    # ========================================================= #
+
+    # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+    try:
+    
+      print ("{:<140}".format('\nControl results'))
+
+      # Load the eigenvalues list
+
+      eigenvalues_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file")
+      
+      with open(eigenvalues_file, 'r', newline='') as ev_file:
+
+        eigenvalues = ev_file.read().splitlines()
+
+      eigenvalues = list(map(float, eigenvalues))   # Convert the values from string to float
+
+      # Store general information about the control system
+
+      comp_results[mol_name].update({ 
+          "Control" : 
+            { "Nb excited states" : len(eigenvalues) - 1,
+              "Transitions" : []
+            }
+        })
+
+      # Load the transitions list
+
+      transitions_file = results_errors.check_abspath(os.path.join(data_dir, "transitions.csv"),"Transitions file","file")
+
+      with open(transitions_file, 'r', newline='') as csv_file:
+
+        transitions_content = csv.DictReader(csv_file, delimiter=';')
+        transitions_list = list(transitions_content)
+        transitions_header = transitions_content.fieldnames
+
+      for transition in transitions_list:
+        transition["Energy (Ha)"] = float(transition["Energy (Ha)"])
+        transition['Initial state number'] = int(transition['Initial state number'])
+        transition['Target state number'] = int(transition['Target state number'])
+
+      # Look for directories in the results CONTROL directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
+
+      control_dir = os.path.join(mol_dir,"CONTROL")
+
+      dir_list_all = [dir.name for dir in os.scandir(control_dir) if dir.is_dir()]
+
+      # Only keep the 'transition_config'-type directories
+
+      dir_list = []
+
+      for dirname in dir_list_all:
+        
+        # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+        try:
+
+          for transition in transitions_list:
+
+            # Define the 'transition_config' regex and apply it to the dirname
+
+            pattern = re.compile(r"^" + re.escape(transition["Label"]) + r"_(?P<config>.*)$")
+            matching_dir = pattern.match(dirname)
+
+            # If it is a '<transition>_<config>' directory, collect the data
+
+            if matching_dir is not None:
+
+              dir_list.append(dirname)
+              config = pattern.match(dirname).group('config')
+
+              print ("{:<133}".format("\n\tTreating the %s transition with the '%s' config ..." % (transition["Label"], config)), end="")
+
+              # Get the number of iterations and final fidelity
+
+              iter_file = results_errors.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
+
+              # Go straight to the last line of the iterations file (see https://stackoverflow.com/questions/46258499/read-the-last-line-of-a-file-in-python for reference)
+              with open(iter_file, 'rb') as f:
+                f.seek(-2, os.SEEK_END)
+                while f.read(1) != b'\n':
+                    f.seek(-2, os.SEEK_CUR)
+                last_line = f.readline().decode()
+
+              # Define the expression patterns for the lines of the iterations file
+              # For example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
+              rx_iter_line = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+\d\.\d+D[+-]\d+\s\|Recou\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
+
+              # Get the number of iterations and the last fidelity from the last line
+              iter_data = rx_iter_line.match(last_line)
+              if iter_data is not None:
+                niter = int(iter_data.group("niter"))
+                fidelity = float(iter_data.group("fidelity").replace("D","E"))
+              else:
+                raise results_errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
+
+              # Store information specific to this transition
+
+              comp_results[mol_name]['Control']['Transitions'].append({
+                "Label" : transition["Label"],
+                "Config" : config,
+                "Initial state" : states_list[transition['Initial state number']]["Label"],
+                "Target state" : states_list[transition['Target state number']]["Label"],
+                "Energy (Ha)" : transition["Energy (Ha)"],
+                "Nb iterations" : niter,
+                "Fidelity" : fidelity
+              })
+
+              print('%12s' % "[ DONE ]")
+
+              break # No need to consider the other transitions for this directory
+
+        except results_errors.ResultsError as error:
+          print(error)
+          print("Skipping %s directory" % dirname)
+          continue
+
+      if dir_list == []:
+        raise results_errors.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % os.path.join(mol_dir,"CONTROL"))
+   
+    # ========================================================= #
+    #    Exception handling for the control results             #
     # ========================================================= #
 
     except results_errors.ResultsError as error:
