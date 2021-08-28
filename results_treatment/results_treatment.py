@@ -19,7 +19,9 @@ import shutil
 import sys
 from inspect import getsourcefile
 
+import numpy as np
 import yaml
+from scipy.spatial import ConvexHull, distance
 
 import results_errors
 
@@ -388,13 +390,15 @@ def main():
       # Size of the molecule                                      #
       # ========================================================= #
 
+      # Create the list that will contain all coordinates
+
+      coord_list = []
+
       # Define the pattern to extract coordinates from the XYZ file lines
 
       coord_pattern = re.compile(r'^\s*[a-zA-Z]{1,3}\s+(?P<coord_x>-?\d+\.\d+)\s+(?P<coord_y>-?\d+\.\d+)\s+(?P<coord_z>-?\d+\.\d+)\s*$')
 
-      # Determine the size of the molecule by getting the highest distance between two atoms
-
-      size = 0
+      # Extract coordinates (and convert them from Angstrom to nanometers)
 
       for line in file_data['atomic_coordinates']:
 
@@ -402,28 +406,27 @@ def main():
 
         match = coord_pattern.match(line)
 
-        x1 = float(match.group('coord_x'))
-        y1 = float(match.group('coord_y'))
-        z1 = float(match.group('coord_z'))
+        x1 = float(match.group('coord_x'))/10
+        y1 = float(match.group('coord_y'))/10
+        z1 = float(match.group('coord_z'))/10
 
-        for other_line in file_data['atomic_coordinates']:
+        coord_list.append([x1,y1,z1])
 
-          if line != other_line:
+      # Compute the Convex hull of the molecule and get the list of points consituting it
 
-            # Extract coordinates of second atom
+      points = np.array(coord_list)
+      hull = ConvexHull(points)
+      pts_hull = points[hull.vertices,:]
 
-            match = coord_pattern.match(other_line)
+      # Compute the average distance between the points of the hull and their centroid, which will reflect the size of the molecule
 
-            x2 = float(match.group('coord_x'))
-            y2 = float(match.group('coord_y'))
-            z2 = float(match.group('coord_z'))
+      centroid = np.array(np.mean(pts_hull,axis=0),ndmin=2)
+      dist = distance.cdist(pts_hull,centroid)
+      size = np.mean(dist)
 
-            # Compute the distance and store it if it is the highest one yet
+      # Get the volume of the hull, as another way to reflect the size of the molecule
 
-            distance = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**0.5
-
-            if distance > size:
-              size = distance
+      volume = hull.volume
 
       # ========================================================= #
       # Store name and structure info                             #
@@ -437,7 +440,8 @@ def main():
           },
         "Structure":
           { "Nb atoms" : nb_atoms,
-            "Size (Ang)" : size
+            "Size (nm)" : float(size),
+            "Volume (nm^3)" : float(volume)
           }
         }
 
@@ -919,9 +923,9 @@ def main():
     def ignore_aliases(self, data):
       return True
 
-  # If the file already exists, update the data
+  # If the file already exists and is not empty, update the data
 
-  if os.path.exists(out_yml):
+  if os.path.exists(out_yml) and os.stat(out_yml).st_size > 0:
 
     with open(out_yml, 'r') as old_file:
       old_comp_results = yaml.load(old_file, Loader=yaml.FullLoader)
