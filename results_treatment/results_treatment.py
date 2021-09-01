@@ -234,6 +234,15 @@ def main():
     geom_scan = import_path(geom_scan_path)
     print('%12s' % "[ DONE ]")
 
+    # CONTROL LAUNCHER's source_parser.py file
+    # =================================
+
+    source_parser_path = os.path.join(chains_path,"control_launcher","source_parser.py")
+
+    print ("{:<140}".format("\nImporting CONTROL LAUNCHER's source_parser.py file ..."), end="")
+    source_parser = import_path(source_parser_path)
+    print('%12s' % "[ DONE ]")
+
     # ========================================================= #
     # Check molecule directories                                #
     # ========================================================= #
@@ -412,7 +421,7 @@ def main():
 
         coord_list.append([x1,y1,z1])
 
-      # Compute the Convex hull of the molecule and get the list of points consituting it
+      # Compute the convex hull of the molecule and get the list of points consituting it
 
       points = np.array(coord_list)
       hull = ConvexHull(points)
@@ -422,7 +431,7 @@ def main():
 
       centroid = np.array(np.mean(pts_hull,axis=0),ndmin=2)
       dist = distance.cdist(pts_hull,centroid)
-      size = np.mean(dist)
+      size = 2*np.mean(dist)
 
       # Get the volume of the hull, as another way to reflect the size of the molecule
 
@@ -468,10 +477,6 @@ def main():
     # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
     
-      # Check the data directory
-
-      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
-
       print ("{:<140}".format('\nCharacterization results'))
 
       # ========================================================= #
@@ -480,7 +485,8 @@ def main():
 
       print ("{:<133}".format('\n\tLoading QCHEM output file ...'), end="")
 
-      qchem_file = results_errors.check_abspath(os.path.join(data_dir, mol_name + ".out"),"QCHEM output file","file")
+      qchem_dir = os.path.join(mol_dir, "QCHEM")
+      qchem_file = results_errors.check_abspath(os.path.join(qchem_dir, mol_name + ".out"),"QCHEM output file","file")
 
       with open(qchem_file, 'r') as out_file:
         qchem_content = out_file.read().splitlines()
@@ -537,6 +543,66 @@ def main():
       # Add the data to the structure subdictionary for this molecule
 
       comp_results[mol_name]['Structure'].update({"Symmetry" : sym_group + " (" + sym_subgroup + ")"})
+
+      print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
+      # Fetch permanent dipole moment                             #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching permanent dipole moment value ...'), end="")
+
+      # Initialize some variables
+
+      section_found = False
+      mu = "N/A"
+
+      # Define the expression patterns for the lines containing information about the permanent dipole moment
+    
+      mu_rx = {
+
+        # Pattern for finding the "Dipole Moment (Debye)" line (which marks the start of the section)
+        'start': re.compile(r'^\s*Dipole Moment \(Debye\)\s*$'),
+
+        # Pattern for finding lines looking like '       Tot       0.2618' (and capture the value)
+        'value': re.compile(r'^\s*Tot\s+(?P<mu>\d+\.\d+)\s*$'),
+
+        # Pattern for finding the "-----------------" line (which marks the end of the section)
+        'end': re.compile(r'^\s*-+\s*$')
+
+      }
+
+      # Parse the qchem output file to get the information
+
+      for line in qchem_content:
+
+        # Define when the section begins and ends (ignore beta orbitals)
+
+        if not section_found:
+          if mu_rx['start'].match(line):
+            section_found = True
+      
+        elif section_found and mu_rx['end'].match(line):
+          break
+
+        # Store the value
+
+        elif mu_rx['value'].match(line):
+          mu = float(mu_rx['value'].match(line).group('mu'))
+
+      # Raise an exception if the section has not been found
+
+      if not section_found:
+        raise results_errors.ResultsError ("ERROR: Unable to find the 'Dipole Moment (Debye)' line in the QCHEM output file")
+
+      # Raise an exception if the energies of the orbitals have not been found
+
+      if mu == "N/A":
+        raise results_errors.ResultsError ("ERROR: Unable to find the value of the permanent dipole moment in the QCHEM output file")
+
+      # Store the value
+
+      comp_results[mol_name]['Structure'].update({"Permanent dipole moment (Debye)" : mu})
 
       print('%12s' % "[ DONE ]")
 
@@ -644,25 +710,23 @@ def main():
       # Optical gap
       # ===========
 
-      # Load the states list
+      # Call the parsing function from CONTROL LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
 
-      states_file = results_errors.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file")
+      with open(os.devnull, 'w') as devnull:
+        with contextlib.redirect_stdout(devnull):
+          system = source_parser.qchem_tddft(qchem_content)
 
-      with open(states_file, 'r', newline='') as csv_file:
-
-        states_content = csv.DictReader(csv_file, delimiter=';')
-        states_list = list(states_content)
-        states_header = states_content.fieldnames
+      states_list = system['states_list']
 
       # Get the energy of the first bright excited state
 
-      bright_energies = [float(state['Energy (Ha)']) for state in states_list if state['Type'].lower() == "bright"]
+      bright_energies = [float(state['energy']) for state in states_list if state['type'].lower() == "bright"]
       opt_gap = min(bright_energies)
 
       # Singlet-Triplet gap
       # ===================
 
-      dark_energies = [float(state['Energy (Ha)']) for state in states_list if state['Type'].lower() == "dark"]
+      dark_energies = [float(state['energy']) for state in states_list if state['type'].lower() == "dark"]
       st_gap = abs( min(dark_energies) - min(bright_energies) )
 
       # Store data
@@ -695,66 +759,6 @@ def main():
 
       print('%12s' % "[ DONE ]")
 
-      # ========================================================= #
-      # Fetch permanent dipole moment                             #
-      # ========================================================= #
-
-      print ("{:<133}".format('\n\tFetching permanent dipole moment value ...'), end="")
-
-      # Initialize some variables
-
-      section_found = False
-      mu = "N/A"
-
-      # Define the expression patterns for the lines containing information about the permanent dipole moment
-    
-      mu_rx = {
-
-        # Pattern for finding the "Dipole Moment (Debye)" line (which marks the start of the section)
-        'start': re.compile(r'^\s*Dipole Moment \(Debye\)\s*$'),
-
-        # Pattern for finding lines looking like '       Tot       0.2618' (and capture the value)
-        'value': re.compile(r'^\s*Tot\s+(?P<mu>\d+\.\d+)\s*$'),
-
-        # Pattern for finding the "-----------------" line (which marks the end of the section)
-        'end': re.compile(r'^\s*-+\s*$')
-
-      }
-
-      # Parse the qchem output file to get the information
-
-      for line in qchem_content:
-
-        # Define when the section begins and ends (ignore beta orbitals)
-
-        if not section_found:
-          if mu_rx['start'].match(line):
-            section_found = True
-      
-        elif section_found and mu_rx['end'].match(line):
-          break
-
-        # Store the value
-
-        elif mu_rx['value'].match(line):
-          mu = float(mu_rx['value'].match(line).group('mu'))
-
-      # Raise an exception if the section has not been found
-
-      if not section_found:
-        raise results_errors.ResultsError ("ERROR: Unable to find the 'Dipole Moment (Debye)' line in the QCHEM output file")
-
-      # Raise an exception if the energies of the orbitals have not been found
-
-      if mu == "N/A":
-        raise results_errors.ResultsError ("ERROR: Unable to find the value of the permanent dipole moment in the QCHEM output file")
-
-      # Store the value
-
-      comp_results[mol_name]['Structure'].update({"Permanent dipole moment (Debye)" : mu})
-
-      print('%12s' % "[ DONE ]")
-
     # ========================================================= #
     # Exception handling for the characterization results       #
     # ========================================================= #
@@ -775,6 +779,10 @@ def main():
     
       print ("{:<140}".format('\nControl results'))
 
+      # Check the data directory
+
+      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
+
       # Load the eigenvalues list
 
       eigenvalues_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file")
@@ -793,6 +801,16 @@ def main():
               "Transitions" : []
             }
         })
+
+      # Load the states list
+
+      states_file = results_errors.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file")
+
+      with open(states_file, 'r', newline='') as csv_file:
+
+        states_content = csv.DictReader(csv_file, delimiter=';')
+        states_list = list(states_content)
+        states_header = states_content.fieldnames
 
       # Load the transitions list
 
