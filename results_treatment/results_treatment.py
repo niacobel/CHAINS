@@ -150,6 +150,10 @@ def main():
 
     columns, rows = shutil.get_terminal_size()
 
+    # Define a dictionary for correct English spelling during printing
+
+    special_numbers = {1:"st", 2:"nd", 3:"rd"}
+
     # Output Header
 
     print("".center(columns,"*"))
@@ -355,6 +359,10 @@ def main():
       atoms.insert(0, atoms.pop(atoms.index("Si")))
 
       mol_group = ''.join(atoms)
+
+      if mol_group == 'SiC':
+        if chemical_formula["H"] == 3*chemical_formula["C"]:
+          mol_group = "SiC (100 %)"
 
       # ========================================================= #
       # Total number of atoms                                     #
@@ -812,6 +820,19 @@ def main():
         states_list = list(states_content)
         states_header = states_content.fieldnames
 
+      # Check the states list
+
+      required_keys = frozenset({"Label"})
+
+      for state in states_list:
+
+        # Check if all the required keys are present
+
+        for key in required_keys:
+          if key not in state:
+            state_number = states_list.index(state) + 1
+            raise results_errors.ResultsError ('ERROR: There is no defined "%s" key for the %s%s state in the states list file.' % (key, state_number, ("th" if not state_number in special_numbers else special_numbers[state_number])))
+
       # Load the transitions list
 
       transitions_file = results_errors.check_abspath(os.path.join(data_dir, "transitions.csv"),"Transitions file","file")
@@ -822,10 +843,34 @@ def main():
         transitions_list = list(transitions_content)
         transitions_header = transitions_content.fieldnames
 
+      # Check the transitions list
+
+      required_keys = frozenset({'Label', 'Energy (Ha)', 'Initial state number', 'Target state number', 'Transition dipole moments matrix'})
+
       for transition in transitions_list:
-        transition["Energy (Ha)"] = float(transition["Energy (Ha)"])
+
+        # Check if all the required keys are present
+
+        for key in required_keys:
+          if key not in transition:
+            transition_number = transitions_list.index(transition) + 1
+            raise results_errors.ResultsError ('ERROR: There is no defined "%s" key for the %s%s transition in the transitions list file.' % (key, transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number])))
+
+      # Convert some data types for easy handling later on
+
+      for transition in transitions_list:
+        transition['Energy (Ha)'] = float(transition["Energy (Ha)"])
         transition['Initial state number'] = int(transition['Initial state number'])
         transition['Target state number'] = int(transition['Target state number'])
+
+      # Load the transition dipole moment matrices
+
+      momdip_mtx_keys = list(set([transition["Transition dipole moments matrix"] for transition in transitions_list])) # Use the set function to get rid of duplicates (https://stackoverflow.com/questions/7961363/removing-duplicates-in-lists)
+
+      momdip_mtx = {}
+      for key in momdip_mtx_keys:
+        file = results_errors.check_abspath(os.path.join(data_dir, "momdip_es_mtx_" + key),"Transition dipole moment matrix associated with the %s key" % key,"file")
+        momdip_mtx[key] = np.loadtxt(file)
 
       # Look for directories in the results CONTROL directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
 
@@ -858,6 +903,11 @@ def main():
 
               print ("{:<133}".format("\n\tTreating the %s transition with the '%s' config ..." % (transition["Label"], config)), end="")
 
+              # Get the orientation of the laser (momdip_key) and the transition dipole moment of this specific transition
+              
+              momdip_key = transition["Transition dipole moments matrix"]
+              momdip = float(momdip_mtx[momdip_key][transition['Initial state number']][transition['Target state number']])
+              
               # Get the number of iterations and final fidelity
 
               iter_file = results_errors.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
@@ -889,6 +939,8 @@ def main():
                 "Initial state" : states_list[transition['Initial state number']]["Label"],
                 "Target state" : states_list[transition['Target state number']]["Label"],
                 "Energy (Ha)" : transition["Energy (Ha)"],
+                "Orientation" : momdip_key,
+                "Transition dipole moment (a.u.)" : momdip,
                 "Nb iterations" : niter,
                 "Fidelity" : fidelity
               })
