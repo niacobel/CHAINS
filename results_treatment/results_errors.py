@@ -91,3 +91,48 @@ def check_abspath(path:str,context:str,type="either"):
     abspath = os.path.abspath(path)
 
     return abspath
+
+def check_keys(keys:list,dicts,context:str):
+    """Checks if a list of keys is present in a dictionary or list of dictionaries.
+
+    Parameters
+    ----------
+    keys : list
+        The list of required keys.
+    dicts : list or dict
+        The dictionary or list of dictionaries that need to be checked.
+    context : str
+        Message describing the dictionary or dictionaries being checked (shown on screen in case of a missing key).
+
+    Raises
+    ------
+    ResultsError
+        If one of the keys is missing.
+    ValueError
+        If dicts is neither a dictionary nor a list of dictionaries
+    """
+
+    # Define a dictionary for correct English spelling during printing
+
+    special_numbers = {1:"st", 2:"nd", 3:"rd"}
+
+    # Case 1: dicts is a dictionary
+
+    if isinstance(dicts, dict):
+      for key in keys:
+        if key not in dicts:
+          raise ResultsError ('\nContext: %s \nERROR: There is no defined "%s" key.' % (context, key))
+
+    # Case 2: dicts is a list of dictionaries
+
+    elif isinstance(dicts, list) and all(isinstance(single_dict, dict) for single_dict in dicts):
+      for single_dict in dicts:
+        for key in keys:
+          if key not in single_dict:
+            idx = dicts.index(single_dict) + 1
+            raise ResultsError ('\nContext: %s \nERROR: There is no defined "%s" key for the %s%s dictionary in the list.' % (context, key, idx, ("th" if not idx in special_numbers else special_numbers[idx])))
+
+    # If dicts is neither a dictionary nor a list of dictionaries, raise an exception
+
+    else:
+      raise ValueError ("The type of the 'dicts' argument with which the check_keys has been called is neither a dictionary nor a list of dictionaries.")

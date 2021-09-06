@@ -150,10 +150,6 @@ def main():
 
     columns, rows = shutil.get_terminal_size()
 
-    # Define a dictionary for correct English spelling during printing
-
-    special_numbers = {1:"st", 2:"nd", 3:"rd"}
-
     # Output Header
 
     print("".center(columns,"*"))
@@ -822,16 +818,8 @@ def main():
 
       # Check the states list
 
-      required_keys = frozenset({"Label"})
-
-      for state in states_list:
-
-        # Check if all the required keys are present
-
-        for key in required_keys:
-          if key not in state:
-            state_number = states_list.index(state) + 1
-            raise results_errors.ResultsError ('ERROR: There is no defined "%s" key for the %s%s state in the states list file.' % (key, state_number, ("th" if not state_number in special_numbers else special_numbers[state_number])))
+      required_keys = ['Label']
+      results_errors.check_keys(required_keys,states_list,"States list file at %s" % states_file)
 
       # Load the transitions list
 
@@ -845,16 +833,8 @@ def main():
 
       # Check the transitions list
 
-      required_keys = frozenset({'Label', 'Energy (Ha)', 'Initial state number', 'Target state number', 'Transition dipole moments matrix'})
-
-      for transition in transitions_list:
-
-        # Check if all the required keys are present
-
-        for key in required_keys:
-          if key not in transition:
-            transition_number = transitions_list.index(transition) + 1
-            raise results_errors.ResultsError ('ERROR: There is no defined "%s" key for the %s%s transition in the transitions list file.' % (key, transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number])))
+      required_keys = ['Label', 'Energy (Ha)', 'Initial state number', 'Target state number', 'Transition dipole moments matrix']
+      results_errors.check_keys(required_keys,transitions_list,"Transitions list file at %s" % transitions_file)
 
       # Convert some data types for easy handling later on
 
