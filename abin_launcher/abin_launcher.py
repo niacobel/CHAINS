@@ -212,31 +212,19 @@ def main():
     if job_scales_tmp is None:
       raise abin_errors.AbinError ("ERROR: There is no defined job scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
 
-    # Defined the required keys in our job scales
-
-    required_keys = frozenset({"label", "scale_limit", "time", "cores", "mem_per_cpu" })
-
-    # Define an array for correct English spelling during printing
-
-    special_numbers = {1:"st", 2:"nd", 3:"rd"}
-
     # Initialize the final dictionary where the job scales will be sorted by their upper limit
 
     job_scales = {}
 
     # Check the job scales
 
+    required_keys = ["label", "scale_limit", "time", "cores", "mem_per_cpu"]
+    abin_errors.check_keys(required_keys,job_scales_tmp,"Job scales of the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+
+    # Extract the scale upper limit from the job scales
+
     for scale in job_scales_tmp:
-
-      # Check if all the required keys are present
-
-      for key in required_keys:
-        if key not in scale:
-          scale_number = job_scales_tmp.index(scale) + 1
-          raise abin_errors.AbinError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, scale_number, ("th" if not scale_number in special_numbers else special_numbers[scale_number]), profile, cluster_name))           
-
-      # Extract the scale upper limit from the job scales
-
+  
       scale_limit = scale.pop('scale_limit')
       job_scales[scale_limit] = scale
 

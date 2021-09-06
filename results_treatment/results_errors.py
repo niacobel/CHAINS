@@ -93,7 +93,7 @@ def check_abspath(path:str,context:str,type="either"):
     return abspath
 
 def check_keys(keys:list,dicts,context:str):
-    """Checks if a list of keys is present in a dictionary or list of dictionaries.
+    """Checks if a list of keys is present in a dictionary or list of dictionaries. In the latter case, this function also checks that each item of the list is indeed a dictionary.
 
     Parameters
     ----------
@@ -107,9 +107,9 @@ def check_keys(keys:list,dicts,context:str):
     Raises
     ------
     ResultsError
-        If one of the keys is missing.
+        If one of the keys is missing or if one of the items of the 'dicts' list is not a dictionary.
     ValueError
-        If dicts is neither a dictionary nor a list of dictionaries
+        If dicts is neither a dictionary nor a list.
     """
 
     # Define a dictionary for correct English spelling during printing
@@ -125,14 +125,16 @@ def check_keys(keys:list,dicts,context:str):
 
     # Case 2: dicts is a list of dictionaries
 
-    elif isinstance(dicts, list) and all(isinstance(single_dict, dict) for single_dict in dicts):
+    elif isinstance(dicts, list):
       for single_dict in dicts:
+        idx = dicts.index(single_dict) + 1
+        if not isinstance(single_dict, dict):
+          raise ResultsError ('\nContext: %s \nERROR: The %s%s item in the list is not a dictionary.' % (context, idx, ("th" if not idx in special_numbers else special_numbers[idx]))) 
         for key in keys:
           if key not in single_dict:
-            idx = dicts.index(single_dict) + 1
             raise ResultsError ('\nContext: %s \nERROR: There is no defined "%s" key for the %s%s dictionary in the list.' % (context, key, idx, ("th" if not idx in special_numbers else special_numbers[idx])))
 
-    # If dicts is neither a dictionary nor a list of dictionaries, raise an exception
+    # If dicts is neither a dictionary nor a list, raise an exception
 
     else:
-      raise ValueError ("The type of the 'dicts' argument with which the check_keys has been called is neither a dictionary nor a list of dictionaries.")
+      raise ValueError ("The type of the 'dicts' argument with which the check_keys function has been called is neither a dictionary nor a list.")

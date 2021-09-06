@@ -208,27 +208,19 @@ def main():
     if job_scales_tmp is None:
       raise control_errors.ControlError ("ERROR: There is no defined job scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
 
-    # Defined the required keys in our job scales
-
-    required_keys = frozenset({"label", "scale_limit", "time", "memory" })
-
     # Initialize the final dictionary where the job scales will be sorted by their upper limit
 
     job_scales = {}
 
     # Check the job scales
 
+    required_keys = ["label", "scale_limit", "time", "memory"]
+    control_errors.check_keys(required_keys,job_scales_tmp,"Job scales of the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+
+    # Extract the scale upper limit from the job scales
+
     for scale in job_scales_tmp:
-
-      # Check if all the required keys are present
-
-      for key in required_keys:
-        if key not in scale:
-          scale_number = job_scales_tmp.index(scale) + 1
-          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s job scale of the %s profile in the %s cluster in the clusters configuration file.' % (key, scale_number, ("th" if not scale_number in special_numbers else special_numbers[scale_number]), profile, cluster_name))           
-
-      # Extract the scale upper limit from the job scales
-
+  
       scale_limit = scale.pop('scale_limit')
       job_scales[scale_limit] = scale
 
@@ -402,29 +394,19 @@ def main():
 
     # Check the system dictionary
 
-    required_keys = frozenset({"states_list", "mime", "momdip_mtx"})
-
     if not isinstance(system, dict):
       raise control_errors.ControlError ('ERROR: The "system" variable returned by the %s parsing function is not a dictionary.' % parsing_fct) 
 
-    for key in required_keys:
-      if key not in system:
-        raise control_errors.ControlError ('ERROR: There is no defined "%s" key in the system dictionary returned by the %s parsing function.' % (key, parsing_fct))  
+    required_keys = ["states_list", "mime", "momdip_mtx"]
+    control_errors.check_keys(required_keys,system,"The 'system' dictionary returned by the %s parsing function." % parsing_fct)
 
     # Check the states list
-
-    states_keys = frozenset({"number", "type", "label", "energy"})
 
     if not isinstance(system["states_list"], list):
       raise control_errors.ControlError ('ERROR: The "states_list" value in the system dictionary returned by the %s parsing function is not a list.' % parsing_fct)
 
-    for state in system["states_list"]:
-      state_number = system["states_list"].index(state) + 1
-      if not isinstance(state, dict):
-        raise control_errors.ControlError ('ERROR: The %s%s state in the states list returned by the %s parsing function is not a dictionary.' % (state_number, ("th" if not state_number in special_numbers else special_numbers[state_number]), parsing_fct)) 
-      for key in states_keys:
-        if key not in state:
-          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s state in the states list returned by the %s parsing function.' % (key, state_number, ("th" if not state_number in special_numbers else special_numbers[state_number]), parsing_fct))  
+    required_keys = ["number", "type", "label", "energy"]
+    control_errors.check_keys(required_keys,system["states_list"],"The 'states_list' list of the 'system' dictionary returned by the %s parsing function." % parsing_fct)
 
     # Check the MIME and the dipole moments matrices
 
@@ -883,22 +865,13 @@ def main():
 
     transitions_list = eval("transition_fcts." + transition_fct)(system)
 
-    # Defined the required keys in the transitions_list dictionaries
-
-    required_keys = frozenset({"label","init_state","target_state","energy","init_file","init_content","target_file","target_content","momdip_key"})
-
     # Check the transitions list
 
     if not isinstance(transitions_list, list):
       raise control_errors.ControlError ('ERROR: The transitions_list returned by the %s transition function is not a list.' % transition_fct) 
 
-    for key in required_keys:
-      for transition in transitions_list:
-        transition_number = transitions_list.index(transition) + 1 
-        if not isinstance(transition, dict):
-          raise control_errors.ControlError ('ERROR: The %s%s transition in the transitions list returned by the %s transition function is not a dictionary.' % (transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number]), transition_fct))  
-        if key not in transition:  
-          raise control_errors.ControlError ('ERROR: There is no defined "%s" key for the %s%s transition in the transitions list returned by the %s transition function.' % (key, transition_number, ("th" if not transition_number in special_numbers else special_numbers[transition_number]), transition_fct))  
+    required_keys = ["label","init_state","target_state","energy","init_file","init_content","target_file","target_content","momdip_key"]
+    control_errors.check_keys(required_keys,transitions_list,"Transitions list returned by the %s transition function" % transition_fct)
  
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     

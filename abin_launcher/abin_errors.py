@@ -91,3 +91,50 @@ def check_abspath(path:str,context:str,type="either"):
     abspath = os.path.abspath(path)
 
     return abspath
+
+def check_keys(keys:list,dicts,context:str):
+    """Checks if a list of keys is present in a dictionary or list of dictionaries. In the latter case, this function also checks that each item of the list is indeed a dictionary.
+
+    Parameters
+    ----------
+    keys : list
+        The list of required keys.
+    dicts : list or dict
+        The dictionary or list of dictionaries that need to be checked.
+    context : str
+        Message describing the dictionary or dictionaries being checked (shown on screen in case of a missing key).
+
+    Raises
+    ------
+    AbinError
+        If one of the keys is missing or if one of the items of the 'dicts' list is not a dictionary.
+    ValueError
+        If dicts is neither a dictionary nor a list.
+    """
+
+    # Define a dictionary for correct English spelling during printing
+
+    special_numbers = {1:"st", 2:"nd", 3:"rd"}
+
+    # Case 1: dicts is a dictionary
+
+    if isinstance(dicts, dict):
+      for key in keys:
+        if key not in dicts:
+          raise AbinError ('\nContext: %s \nERROR: There is no defined "%s" key.' % (context, key))
+
+    # Case 2: dicts is a list of dictionaries
+
+    elif isinstance(dicts, list):
+      for single_dict in dicts:
+        idx = dicts.index(single_dict) + 1
+        if not isinstance(single_dict, dict):
+          raise AbinError ('\nContext: %s \nERROR: The %s%s item in the list is not a dictionary.' % (context, idx, ("th" if not idx in special_numbers else special_numbers[idx]))) 
+        for key in keys:
+          if key not in single_dict:
+            raise AbinError ('\nContext: %s \nERROR: There is no defined "%s" key for the %s%s dictionary in the list.' % (context, key, idx, ("th" if not idx in special_numbers else special_numbers[idx])))
+
+    # If dicts is neither a dictionary nor a list, raise an exception
+
+    else:
+      raise ValueError ("The type of the 'dicts' argument with which the check_keys function has been called is neither a dictionary nor a list.")
