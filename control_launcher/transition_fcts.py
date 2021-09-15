@@ -49,7 +49,7 @@ def build_transition(init_state:int,target_state:int,init_label:str,target_label
 
     # Defining the initial population file name and content
 
-    init_file = init_label + "_"
+    init_file = "I_" + init_label + "_"
 
     init_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
 
@@ -57,7 +57,7 @@ def build_transition(init_state:int,target_state:int,init_label:str,target_label
 
     # Defining the target population file name and content
     
-    target_file = target_label + "_"
+    target_file = "T_" + target_label + "_"
 
     target_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
 
@@ -89,8 +89,8 @@ def build_transition(init_state:int,target_state:int,init_label:str,target_label
 # =================================================================== #
 # =================================================================== #
 
-def brightests_to_darkests(system:dict):
-    """Determines the transition files needed by QOCT-RA for the transition between each of the first B brightest states and each of the first D darkest states. The brightest states are identified by their transition dipole moment with the ground state while the darkest states are identified by their radiative lifetime. B and D are fixed parameters that can easily be changed at the beginning of the function definition.
+def brightests_to_darkests_and_reverse(system:dict):
+    """Determines the transition files needed by QOCT-RA for the transition between each of the first B brightest states and each of the first D darkest states, and vice versa. The brightest states are identified by their transition dipole moment with the ground state while the darkest states are identified by their radiative lifetime. B and D are fixed parameters that can easily be changed at the beginning of the function definition.
 
     Parameters
     ----------
@@ -199,7 +199,36 @@ def brightests_to_darkests(system:dict):
           print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
           print(''.center(50, '-'))
 
-          # Add the transition to the transitions list, before proceeding with the next darkest state (or the next brightest state, if this was the last one)
+          # Add the transition to the transitions list
+
+          transitions_list.append(transition)
+
+          # ========================================================= #
+          #        Building the reverse transition dictionary         #
+          # ========================================================= #
+
+          # Call the build_transition function but inverting the initial and target state
+
+          transition = build_transition(dark_index,bright_index,dark_label,bright_label,momdip_key,system)
+
+          # Update the label to something less generic and more informative
+          # e.g. R_X_2D1B_E2-E8 indicates a "reverse" transition based on the transition dipole moments matrix associated with the "X" key (X axis), involving the second darkest state (2D) and the brightest state (1B), the labels of those states being E2 and E8, respectively.
+
+          transition_label = "R_" + momdip_key + "_" + str(iter_dark+1) + "D" + str(iter_bright+1) + "B_" + dark_label + "-" +  bright_label
+          transition.update({ "label": transition_label}) 
+
+          # Pretty recap for the log file
+
+          print("")
+          print(''.center(50, '-'))
+          print("{:<20} {:<30}".format("Label: ", transition["label"]))
+          print(''.center(50, '-'))
+          print("{:<20} {:<30}".format("Initial state: ", "%s" % bright_label))
+          print("{:<20} {:<30}".format("Target state: ", "%s" % dark_label))
+          print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
+          print(''.center(50, '-'))
+
+          # Add the reverse transition to the transitions list, before proceeding with the next darkest state (or the next brightest state, if this was the last one)
 
           transitions_list.append(transition)
 
