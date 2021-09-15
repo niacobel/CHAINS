@@ -140,14 +140,15 @@ dragon2:
           partition_name: debug  
         - 
           label: small
-          scale_limit: 500
-          time: 4-00:00:00
+          scale_limit: 400
+          time: 5-00:00:00
           cores: 8
           mem_per_cpu: 1000 # in MB
         - 
           label: medium
           scale_limit: 1000
-          time: 5-00:00:00
+          partition_name: long
+          time: 8-00:00:00
           cores: 12
           mem_per_cpu: 3000 # in MB
           delay_command: --begin=now+60
