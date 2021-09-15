@@ -30,7 +30,7 @@ echo -e "=======================================================================
 
 SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
 
-echo -e "Creating temporary directory $SCRATCH for handling temporary files."
+echo -e "Creating temporary directory ${SCRATCH} on node(s) ${SLURM_JOB_NODELIST} for handling temporary files."
 
 mkdir -p $SCRATCH || exit $?
 
@@ -48,14 +48,14 @@ mkdir -p Verif # Strangely needed by QOCT-RA
 # Compile the code (cluster dependent)
 
 echo -e ">>> Start of QOCT-RA compilation"
-gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
+gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
 rm mymod.mod  
 echo -e ">>> End of QOCT-RA compilation"
 
 # First execution to get the optimal pulse
 
 echo -e "\n================= First QOCT-RA execution begins now =================="
-./Controle.out {{ rendered_param }} $QOCT_RA_DIR || (cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "A problem has occcured during the first execution of QOCT-RA" && rm -rf $SCRATCH && exit $?)
+./Controle.out {{ rendered_param }} $QOCT_RA_DIR || { echo "ERROR: A problem has occcured during the first execution of QOCT-RA" && exit $?; }
 echo -e "\n================= First QOCT-RA execution ends now =================="
 
 # Second execution to test the optimal pulse (PCP mode)
@@ -65,15 +65,16 @@ mv Controle.out $SCRATCH/PCP/
 cd $SCRATCH/PCP/
 
 echo -e "\n================= PCP QOCT-RA execution begins now =================="
-./Controle.out $SCRATCH/{{ rendered_param_PCP }} $QOCT_RA_DIR || (cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "A problem has occcured during the PCP execution of QOCT-RA" && rm -rf $SCRATCH && exit $?)
+./Controle.out $SCRATCH/{{ rendered_param_PCP }} $QOCT_RA_DIR || { echo "ERROR: A problem has occcured during the PCP execution of QOCT-RA" && exit $?; }
 rm Controle.out
 echo -e "\n================= PCP QOCT-RA execution ends now =================="
 
 echo -e "\nCopying output files to the submit directory."
-cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || (echo "Unable to copy SCRATCH directory in the SLURM_SUBMIT_DIR" && exit $?)
+rm -r $SCRATCH/Pulse/Pulse_iter*
+cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/  || { echo "ERROR: Unable to copy SCRATCH directory in the SLURM_SUBMIT_DIR" && exit $?; }
 
 echo -e "\nRemoving ${SCRATCH} directory."
-rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
+rm -rf $SCRATCH || echo "ERROR: A problem might have occurred when trying to remove temporary files."
 
 echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
@@ -117,7 +118,7 @@ if [ $(cat {{ mol_dir }}/$finish_file | wc -l) -eq {{ nb_transitions }} ]; then
 
     echo -e "\tCopying job files to ${res_dir}."
     mkdir -p $res_dir
-    cp *.nml {{ job_script }} slurm_output.log obj.res $res_dir
+    cp {{ rendered_param }} {{ rendered_param_PCP }} {{ guess_pulse }} {{ job_script }} slurm_output.log obj.res $res_dir
 
     echo -e "\tCopying and renaming pulse files to ${res_dir}/Pulse."
     mkdir -p $res_dir/Pulse
@@ -130,6 +131,10 @@ if [ $(cat {{ mol_dir }}/$finish_file | wc -l) -eq {{ nb_transitions }} ]; then
     cp obj.res pop1 popzero1 popzero_Sch1 $res_dir/PCP/
 
   done
+
+  # Remove the finish file
+
+  rm {{ mol_dir }}/$finish_file
 
 fi
 {%- endif %}
