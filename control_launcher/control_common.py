@@ -175,7 +175,7 @@ def energy_unit_conversion(value:float,init:str,target:str) -> float:
       "Ha" : 1,
       "cm-1" : 2.1947463136320e+05,
       "eV" : 27.211386245988,
-      "nm" : 2.1947463136320e+05 / 1e+07,
+      "nm" : 45.56337117,
       "Hz" : 6.579683920502e+15,
       "J" : 4.3597447222071e-18
       }
@@ -195,7 +195,12 @@ def energy_unit_conversion(value:float,init:str,target:str) -> float:
     
     # Convert the value
 
-    conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
+    if target_low == 'nm':
+      conv_value = conv_factors_low['nm'] / (value / conv_factors_low[init_low])
+    elif init_low == 'nm':
+      conv_value = (conv_factors_low['nm'] / value) * conv_factors_low[target_low]
+    else:
+      conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
 
     return conv_value
 

@@ -16,19 +16,36 @@ general:
 qoctra:
   process: OPC                                    # Nature of the process: [OPC] Optimal control, [OPM] Optimal control with multiple constraints; [PCP] Post-control with pulse [PCL] Free post-control
   control:
-    time_step: 0.41d0                             # Duration of a time step (a.u. of time)
+    time_step: 5.0d0                              # Duration of a time step (a.u. of time)
     max_iter: 3000                                # Maximum number of iterations
     threshold: 0.9999d0                           # Convergence threshold for the fidelity
   opc:
-    nb_steps: 10000                               # Number of time steps
     alpha: 250.0d0                                # Constraint on the field amplitude
-    write_freq: 30                                # Number of iterations between each writing of the field
+    write_freq: 1                                 # Number of iterations between each writing of the field
+    bandwidth: 375.57                             # Spectral bandwidth of the pulse, in cm-1 (duration_FWM = 100 fs => full bandwidth = 375.57 cm-1)
+    amplitude_filter: false                       # True if you want to limit the maximum amplitude of the pulse (derived from the ionization potential of the molecule)
+    bandwidth_filter: false                       # True if you want to limit the spectral bandwidth of the pulse
   guess_pulse:
     pulse_type: SIM                               # Type of starting guess pulse
     subpulse_type: gau                            # Type of subpulses ([sin], [pip] ou [gau])
-    tbp: 0.44                                     # Time-bandwidth product of the pulse (Gaussian = 0.44)
-    amplitude: 1.9447d-5                          # Amplitude of the subpulses (in atomic units, 1.9447d-12 u.a. = 1 V/m)
+    amplitude: 1.0d-06                            # Amplitude of the subpulses, in atomic units | Ignored if amplitude_filter = True (amplitude is then fixed at 0.01 * max amplitude)
     phase_change: 0.d0                            # Dephasing
     sign: 1                                       # Sign
   post_control:
     analy_freq: 1000                              # Number of steps between each analysis of the populations, phases, positions and energies
+
+# /!\ OPC only /!\
+# Reference for the total duration of the pulse, given by https://fastlite.com/produits/dazzler-ultrafast-pulse-shaper/ 
+# Information is given in the form key = frequency (in nm) and value = duration (in ps)
+
+ref_duration:
+  250: 4                                        # DAZZLER Qz-250-400 - 4.0 ps at 250 nm (for OPA & NOPA)
+  400: 2.9                                      # DAZZLER Qz-250-400 - 2.9 ps at 400 nm (for OPA & NOPA)
+  500: 9                                        # DAZZLER WR-460-740 - 9 ps at 500 nm (for OPA & NOPA)
+  700: 7                                        # DAZZLER WR-460-740 - 7 ps at 700 nm (for OPA & NOPA)
+  900: 14                                       # DAZZLER HR45-650-1100 - 14 ps at 900 nm (for OPCPA)
+  1550: 7                                       # DAZZLER HR 1550 - 7 ps at 1550 nm (for CPA & FCPA)
+  1700: 13                                      # DAZZLER HR45-1100-2200 - 13 ps at 1700 nm (for OPCPA)
+  2100: 5.5                                     # DAZZLER WB45-1450-3000 - 5.5 ps at 2100 nm (for OPA & NOPA)
+  2800: 5.5                                     # DAZZLER WB45-2000-3700 - 5.5 ps at 2800 nm (for OPCPA)
+  5000: 4                                       # DAZZLER UWB-3500-7000 - 4 ps at 5000 nm (for OPA & NOPA)

@@ -11,7 +11,7 @@ shared:
   profiles:
     qoctra: &qoctra
       parsing_function: qchem_tddft
-      transition_function: brightests_to_darkests
+      transition_function: brightests_to_darkests_and_reverse
       rendering_function: chains_qoctra_render                
       job_scales:
         - 
@@ -54,3 +54,4 @@ nic5:
         - module --force purge
         - module load releases/2019b
         - module load OpenBLAS/0.3.7-GCC-8.3.0
+        - module load Python/3.7.4-GCCcore-8.3.0

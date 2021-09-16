@@ -18,34 +18,38 @@
   guess_pulse = "{{ guess_pulse }}"             ! Path towards the guess pulse file
 /
 
-{% if process == "OPC" -%}
 &OPC
-  nb_steps = {{ nb_steps }},                    ! Number of time steps
-  alpha = {{ alpha }},                          ! Constraint on the field amplitude
-  write_freq = {{ write_freq }}                 ! Number of iterations between each writing of the field
-/
+{%- if process == "OPC" %}
+  nb_steps = {{ nb_steps }},                               ! Number of time steps
+  alpha = {{ alpha }},                                     ! Constraint on the field amplitude
+  write_freq = {{ write_freq }},                           ! Number of iterations between each writing of the field
+{% if bandwidth_filter is sameas true -%}
+  bandwidth_filter = "{{ omegazero }} {{ bandwidth }}",    ! Bandwidth filtering option, must be a string of the form "central_frequency full_bandwidth" (in atomic units)
+{%- endif -%}
+{% if amplitude_filter is sameas true -%}
+  amplitude_filter = {{ max_strength }}                    ! Amplitude filtering option, in atomic units of electric field strength
+{%- endif -%}
 {%- endif %}
+/
 
 {% if process == "OPM" -%}
 &OPM
   numberofpixels = {{ numberofpixels }},
-  inputenergy = {{ inputenergy }},                     ! in microjoule per cm2
-  widthhalfmax = {{ widthhalfmax }},                   ! in spectrum, in cm-1
-  omegazero = {{ omegazero }}                          ! in spectrum, in cm-1
+  inputenergy = {{ inputenergy }},                         ! in microjoule per cm2
+  widthhalfmax = {{ widthhalfmax }},                       ! in spectrum, in cm-1
+  omegazero = {{ omegazero }}                              ! in spectrum, in cm-1
 /
 {%- endif %}
 
-{% if process == "PCP" -%}
 &POST_CONTROL
+{% if process == "PCP" -%}
   analy_freq = {{ analy_freq }},                ! Number of steps between each analysis of the populations, phases, positions and energies
   conv_mtx = "{{ mat_et0_path }}",              ! Conversion matrix, from eigenstates to zero order states
   init_time = 20661110.d0                       ! PCL temps initial (phase)
-/
 {% else -%}
-&POST_CONTROL
   conv_mtx = "{{ mat_et0_path }}"               ! Conversion matrix, from eigenstates to zero order states
-/
 {%- endif %}
+/
 
 &OPTIONS
   pulses = 2                     ! Enable writing of the pulses ([2] = every iteration)
