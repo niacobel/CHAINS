@@ -415,8 +415,6 @@ def main():
 
       for line in file_data['atomic_coordinates']:
 
-        # Extract coordinates of first atom
-
         match = coord_pattern.match(line)
 
         x1 = float(match.group('coord_x'))/10
@@ -907,7 +905,8 @@ def main():
               iter_data = rx_iter_line.match(last_line)
               if iter_data is not None:
                 niter = int(iter_data.group("niter"))
-                fidelity = float(iter_data.group("fidelity").replace("D","E"))
+                fidelity_raw = iter_data.group("fidelity")
+                fidelity = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fidelity_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
               else:
                 raise results_errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
 
