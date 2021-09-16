@@ -38,7 +38,7 @@ class ControlError(Error):
 # =================================================================== #
 
 def check_abspath(path:str,context:str,type="either"):
-    """Checks if a path towards a file or directory exists and is of the correct type. If it is, the function returns its absolute version.
+    """Checks if a path towards a file or directory exists and is of the correct type. If it's a path towards a file, the function also checks that the file is not empty. If all goes well, the function then returns the absolute version of the path.
 
     Parameters
     ----------
@@ -60,7 +60,7 @@ def check_abspath(path:str,context:str,type="either"):
     ValueError
         If the specified type when calling the function is not 'file', 'directory' or 'either'.
     ControlError
-        If the type does not match what is given in the path, or if the path does not exist.
+        If the type does not match what is given in the path, or if the path does not exist, or it's an empty file.
     """
 
     # Check "type" argument
@@ -79,12 +79,16 @@ def check_abspath(path:str,context:str,type="either"):
     elif type == "file":
       if not os.path.isfile(path):
         raise ControlError (msg + "ERROR: %s is not a file" % path)
+      elif os.stat(path).st_size == 0:
+        raise ControlError (msg + "ERROR: %s is an empty file" % path)
     elif type == "directory":
       if not os.path.isdir(path):
         raise ControlError (msg + "ERROR: %s is not a directory" % path)
     elif type == "either":
       if not os.path.isdir(path) and not os.path.isfile(path):
         raise ControlError (msg + "ERROR: %s is neither a file nor a directory" % path)
+      elif os.path.isfile(path) and os.stat(path).st_size == 0:
+        raise ControlError (msg + "ERROR: %s is an empty file" % path)
 
     # If everything went well, get the normalized absolute version of the path
     
