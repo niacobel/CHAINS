@@ -10,7 +10,7 @@ import os
 
 import numpy as np
 
-import control_errors
+import control_common
 
 
 def build_transition(init_state:int,target_state:int,init_label:str,target_label:str,momdip_key:str,system:dict):

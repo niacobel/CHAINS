@@ -10,58 +10,7 @@ import re
 
 import numpy as np
 
-import control_errors
-
-
-def energy_unit_conversion(value:float,init:str,target:str) -> float:
-    """|  Converts an energy value from an initial unit to a target unit by using atomic units of energy (Hartree) as an intermediary.
-    |  Currently supported units: Hartree, cm\ :sup:`-1`\ , eV, nm, Hz and Joules
-
-    Parameters
-    ----------
-    value : float
-        The energy value we need to convert.
-    init : str
-        The unit of the value we need to convert.
-    target : str
-        The unit we must convert the value to.
-    
-    Returns
-    -------
-    conv_value : float
-        The converted energy value.
-    """
-
-    # Define the dictionary of conversion factors, from atomic units (Hartree) to any unit you want. - Taken from the NIST website (https://physics.nist.gov/)
-
-    conv_factors = {
-      # 1 Hartree equals:
-      "Ha" : 1,
-      "cm-1" : 2.1947463136320e+05,
-      "eV" : 27.211386245988,
-      "nm" : 2.1947463136320e+05 / 1e+07,
-      "Hz" : 6.579683920502e+15,
-      "J" : 4.3597447222071e-18
-      }
-
-    # Put everything in lower cases, to make it case insensitive
-
-    init_low = init.lower()
-    target_low = target.lower()
-    conv_factors_low = dict((key.lower(), value) for key, value in conv_factors.items())
-
-    # Check if the desired units are supported
-
-    if init_low not in conv_factors_low.keys():
-      raise control_errors.ControlError ("ERROR: The unit of the value you want to convert (%s) is currently not supported. Supported values include: %s" % (init, ', '.join(unit for unit in conv_factors.keys())))
-    elif target_low not in conv_factors_low.keys():
-      raise control_errors.ControlError ("ERROR: The unit you want to convert the value to (%s) is currently not supported. Supported values include: %s" % (target, ', '.join(unit for unit in conv_factors.keys())))
-    
-    # Convert the value
-
-    conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
-
-    return conv_value
+import control_common
 
 # =================================================================== #
 # =================================================================== #
@@ -155,7 +104,7 @@ def qchem_tddft(source_content:list):
     # Raise an exception if the number of roots has not been found
 
     if not nb_roots:
-      raise control_errors.ControlError ("ERROR: Unable to find the number of roots in the source file")
+      raise control_common.ControlError ("ERROR: Unable to find the number of roots in the source file")
 
     print("{:<50} {:<10}".format("\nNumber of roots: ",nb_roots))
 
@@ -238,25 +187,25 @@ def qchem_tddft(source_content:list):
           cnt = cnt_singlet
 
         else:
-          raise control_errors.ControlError ("ERROR: Multiplicity of the %s%s state is of unknown value (%s)" % (exc_state, ("th" if not exc_state in special_numbers else special_numbers[exc_state]),multiplicity))
+          raise control_common.ControlError ("ERROR: Multiplicity of the %s%s state is of unknown value (%s)" % (exc_state, ("th" if not exc_state in special_numbers else special_numbers[exc_state]),multiplicity))
 
         # Append information about the current state to the states_list variable
 
-        system['states_list'].append({'number': exc_state, 'type': state_type, 'label': (first_letter + str(cnt)), 'energy': energy_unit_conversion(exc_energy,"ev","cm-1")})
+        system['states_list'].append({'number': exc_state, 'type': state_type, 'label': (first_letter + str(cnt)), 'energy': control_common.energy_unit_conversion(exc_energy,"ev","cm-1")})
 
     # Raise an exception if the section has not been found
 
     if not section_found:
-      raise control_errors.ControlError ("ERROR: Unable to find the 'TDDFT/TDA Excitation Energies' section in the source file")
+      raise control_common.ControlError ("ERROR: Unable to find the 'TDDFT/TDA Excitation Energies' section in the source file")
 
     # Raise an exception if not all the values have been found
 
     if cnt_state != 2*nb_roots:
-      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of excited states in the source file (%s of the %s expected states have been found)" % (cnt_state,2*nb_roots))
+      raise control_common.ControlError ("ERROR: The parsing function could not find the right number of excited states in the source file (%s of the %s expected states have been found)" % (cnt_state,2*nb_roots))
     if cnt_triplet != nb_roots:
-      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of excited triplet states in the source file (%s of the %s expected triplet states have been found)" % (cnt_triplet,nb_roots))
+      raise control_common.ControlError ("ERROR: The parsing function could not find the right number of excited triplet states in the source file (%s of the %s expected triplet states have been found)" % (cnt_triplet,nb_roots))
     if cnt_singlet != nb_roots:
-      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of excited singlet states in the source file (%s of the %s expected singlet states have been found)" % (cnt_singlet,nb_roots))
+      raise control_common.ControlError ("ERROR: The parsing function could not find the right number of excited singlet states in the source file (%s of the %s expected singlet states have been found)" % (cnt_singlet,nb_roots))
 
     print("[ DONE ]")
 
@@ -323,7 +272,7 @@ def qchem_tddft(source_content:list):
             state_1 = state['number']
             break
         if not state_1:
-          raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % label_1)
+          raise control_common.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % label_1)
 
       # Get the number and label of the second state and the corresponding SOC value, before adding the data to the soc_list
 
@@ -340,7 +289,7 @@ def qchem_tddft(source_content:list):
             state_2 = state['number']
             break
         if not state_2:
-          raise control_errors.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % label_2)
+          raise control_common.ControlError ("ERROR: Unknown excited state (%s) has been catched during the SOC parsing." % label_2)
 
         # Add the information to the soc_list
 
@@ -350,13 +299,13 @@ def qchem_tddft(source_content:list):
     # Raise an exception if the section has not been found
 
     if not section_found:
-      raise control_errors.ControlError ("ERROR: Unable to find the 'SPIN-ORBIT COUPLING' section in the source file")
+      raise control_common.ControlError ("ERROR: Unable to find the 'SPIN-ORBIT COUPLING' section in the source file")
 
     # Raise an exception if not all the values have been found
 
     nb_soc = nb_roots/2 + (3/2 * (nb_roots**2)) # Ground to Triplet (nb_roots) + Triplet to Triplet (nb_roots*(nb_roots-1)/2) + Singlet to Triplet (nb_roots**2)
     if len(soc_list) != nb_soc:
-      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of spin-orbit couplings in the source file (%s of the %s expected values have been found)" % (len(soc_list),nb_soc))
+      raise control_common.ControlError ("ERROR: The parsing function could not find the right number of spin-orbit couplings in the source file (%s of the %s expected values have been found)" % (len(soc_list),nb_soc))
 
     print("[ DONE ]")
 
@@ -386,7 +335,7 @@ def qchem_tddft(source_content:list):
 
     # Convert the MIME to Hartree units
 
-    system['mime'] = system['mime'] * energy_unit_conversion(1,"cm-1","ha")
+    system['mime'] = system['mime'] * control_common.energy_unit_conversion(1,"cm-1","ha")
 
     print("[ DONE ]")
 
@@ -448,13 +397,13 @@ def qchem_tddft(source_content:list):
     # Raise an exception if the section has not been found
 
     if not section_found:
-      raise control_errors.ControlError ("ERROR: Unable to find the 'STATE-TO-STATE TRANSITION MOMENTS' section in the source file")
+      raise control_common.ControlError ("ERROR: Unable to find the 'STATE-TO-STATE TRANSITION MOMENTS' section in the source file")
 
     # Raise an exception if not all the values have been found
 
     nb_momdip = nb_roots * (nb_roots+1) # Ground to Singlet (nb_roots) + Ground to Triplet (nb_roots) + Singlet to Singlet (nb_roots*(nb_roots-1)/2) + Triplet to Triplet (nb_roots*(nb_roots-1)/2)
     if len(momdip_list) != nb_momdip:
-      raise control_errors.ControlError ("ERROR: The parsing function could not find the right number of state-to-state transition moments in the source file (%s of the %s expected values have been found)" % (len(momdip_list),nb_momdip))
+      raise control_common.ControlError ("ERROR: The parsing function could not find the right number of state-to-state transition moments in the source file (%s of the %s expected values have been found)" % (len(momdip_list),nb_momdip))
 
     print("[ DONE ]")
 
@@ -519,7 +468,7 @@ def qchem_tddft(source_content:list):
 
           # Compute and convert the energy difference
 
-          energy_diff = energy_unit_conversion(state['energy'],"cm-1","ha") - energy_unit_conversion(other_state['energy'],"cm-1","ha")
+          energy_diff = control_common.energy_unit_conversion(state['energy'],"cm-1","ha") - control_common.energy_unit_conversion(other_state['energy'],"cm-1","ha")
 
           # Compute the square of the transition dipole moment
 
@@ -553,7 +502,7 @@ def qchem_tddft(source_content:list):
     print("{:<10} {:<15} {:<10} {:<15} {:<15} {:<15}".format('Number','Type','Label','Energy (cm-1)','Energy (Ha)','Lifetime (a.u.)'))
     print(''.center(85, '-'))
     for state in system['states_list']:
-      print("{:<10} {:<15} {:<10} {:<15.2f} {:<15.5f} {:<15.5e}".format(state['number'],state['type'],state['label'],state['energy'],energy_unit_conversion(state['energy'],"cm-1","ha"),state['lifetime']))
+      print("{:<10} {:<15} {:<10} {:<15.2f} {:<15.5f} {:<15.5e}".format(state['number'],state['type'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"cm-1","ha"),state['lifetime']))
     print(''.center(85, '-'))
 
     # Printing the SOC list
@@ -594,6 +543,6 @@ def qchem_tddft(source_content:list):
     # Converting the states energy from cm-1 to Ha
 
     for state in system['states_list']:
-      state['energy'] = energy_unit_conversion(state['energy'],"cm-1","ha")
+      state['energy'] = control_common.energy_unit_conversion(state['energy'],"cm-1","ha")
 
     return system

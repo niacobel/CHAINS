@@ -25,7 +25,7 @@ import yaml
 
 # Subscripts (files that end with .py and must be placed in the same directory as this script)
 
-import control_errors
+import control_common
 import control_renderer
 import source_parser
 import transition_fcts
@@ -134,7 +134,7 @@ def main():
 
     # Loading the clusters_file 
 
-    clusters_file = control_errors.check_abspath(os.path.join(code_dir,"clusters.yml"),"YAML clusters configuration file","file")
+    clusters_file = control_common.check_abspath(os.path.join(code_dir,"clusters.yml"),"YAML clusters configuration file","file")
     print ("{:<80}".format('\nLoading the clusters configuration file "clusters.yml" ...'), end="")
     with open(clusters_file, 'r') as f_clusters:
       clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
@@ -143,7 +143,7 @@ def main():
     # Check the name of the cluster
 
     if cluster_name not in clusters_cfg:
-      raise control_errors.ControlError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name)
+      raise control_common.ControlError ("ERROR: There is no information about the %s cluster in the clusters configuration file. Please add relevant information or change the cluster before proceeding further." % cluster_name)
 
     print ("{:<40} {:<100}".format('\nCluster name:',cluster_name))
 
@@ -152,15 +152,15 @@ def main():
     submit_command = clusters_cfg[cluster_name].get("submit_command")
 
     if submit_command is None:
-      raise control_errors.ControlError ("ERROR: There is no defined submit_command for the %s cluster in the clusters configuration file." % cluster_name) 
+      raise control_common.ControlError ("ERROR: There is no defined submit_command for the %s cluster in the clusters configuration file." % cluster_name) 
 
     # Check if the profile exists 
 
     if "profiles" not in clusters_cfg[cluster_name]:
-      raise control_errors.ControlError ('ERROR: There is no "profiles" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name)    
+      raise control_common.ControlError ('ERROR: There is no "profiles" key defined for the %s cluster in the clusters configuration file. Consult official documentation for details.' % cluster_name)    
 
     if profile not in clusters_cfg[cluster_name]["profiles"]:
-      raise control_errors.ControlError ("ERROR: The specified profile (%s) is unknown on this cluster. Possible profiles include: %s \nPlease use one of those, change cluster or add information for this profile to the clusters configuration file." % (profile, ', '.join(profile for profile in clusters_cfg[cluster_name]["profiles"].keys())))
+      raise control_common.ControlError ("ERROR: The specified profile (%s) is unknown on this cluster. Possible profiles include: %s \nPlease use one of those, change cluster or add information for this profile to the clusters configuration file." % (profile, ', '.join(profile for profile in clusters_cfg[cluster_name]["profiles"].keys())))
     
     print ("{:<40} {:<100}".format('\nProfile:',profile))
 
@@ -169,9 +169,9 @@ def main():
     parsing_fct = clusters_cfg[cluster_name]["profiles"][profile].get("parsing_function")
 
     if parsing_fct is None:
-      raise control_errors.ControlError ("ERROR: There is no defined parsing function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+      raise control_common.ControlError ("ERROR: There is no defined parsing function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
     if (parsing_fct) not in dir(source_parser) or not callable(getattr(source_parser, parsing_fct)):
-      raise control_errors.ControlError ("ERROR: There is no parsing function named %s defined in source_parser.py." % parsing_fct)
+      raise control_common.ControlError ("ERROR: There is no parsing function named %s defined in source_parser.py." % parsing_fct)
 
     print ("{:<40} {:<100}".format('\nParsing function for that profile:',parsing_fct))
 
@@ -180,9 +180,9 @@ def main():
     transition_fct = clusters_cfg[cluster_name]["profiles"][profile].get("transition_function")
 
     if transition_fct is None:
-      raise control_errors.ControlError ("ERROR: There is no defined transition function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+      raise control_common.ControlError ("ERROR: There is no defined transition function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
     if (transition_fct) not in dir(transition_fcts) or not callable(getattr(transition_fcts, transition_fct)):
-      raise control_errors.ControlError ("ERROR: There is no transition function named %s defined in transition_fcts.py." % transition_fct)
+      raise control_common.ControlError ("ERROR: There is no transition function named %s defined in transition_fcts.py." % transition_fct)
 
     print ("{:<40} {:<100}".format('\nTransition function for that profile:',transition_fct))
 
@@ -191,9 +191,9 @@ def main():
     render_fct = clusters_cfg[cluster_name]["profiles"][profile].get("rendering_function")
 
     if render_fct is None:
-      raise control_errors.ControlError ("ERROR: There is no defined rendering function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+      raise control_common.ControlError ("ERROR: There is no defined rendering function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
     if (render_fct) not in dir(control_renderer) or not callable(getattr(control_renderer, render_fct)):
-      raise control_errors.ControlError ("ERROR: There is no rendering function named %s defined in renderer.py." % render_fct)
+      raise control_common.ControlError ("ERROR: There is no rendering function named %s defined in renderer.py." % render_fct)
 
     print ("{:<40} {:<100}".format('\nRendering function for that profile:',render_fct))
 
@@ -206,7 +206,7 @@ def main():
     job_scales_tmp = clusters_cfg[cluster_name]['profiles'][profile].get('job_scales')
 
     if job_scales_tmp is None:
-      raise control_errors.ControlError ("ERROR: There is no defined job scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
+      raise control_common.ControlError ("ERROR: There is no defined job scales for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name)) 
 
     # Initialize the final dictionary where the job scales will be sorted by their upper limit
 
@@ -215,7 +215,7 @@ def main():
     # Check the job scales
 
     required_keys = ["label", "scale_limit", "time", "memory"]
-    control_errors.check_keys(required_keys,job_scales_tmp,"Job scales of the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+    control_common.check_keys(required_keys,job_scales_tmp,"Job scales of the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
 
     # Extract the scale upper limit from the job scales
 
@@ -241,7 +241,7 @@ def main():
     # Check other arguments                                     #
     # ========================================================= #
 
-    out_dir = control_errors.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
+    out_dir = control_common.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
     print ("{:<40} {:<100}".format('\nJobs main directory:',out_dir))
 
     # Check source file
@@ -249,7 +249,7 @@ def main():
 
     # Check the existence of the source file, then get its name and the name of the directory where it is located
 
-    source = control_errors.check_abspath(source,"Command line argument -s / --source","file")
+    source = control_common.check_abspath(source,"Command line argument -s / --source","file")
     print ("{:<40} {:<100}".format('\nSource file:',source))
 
     source_path = os.path.dirname(source)
@@ -259,7 +259,7 @@ def main():
     # Check config file(s)
     # ====================
 
-    config_inp = control_errors.check_abspath(config_inp,"Command line argument -cf / --config")
+    config_inp = control_common.check_abspath(config_inp,"Command line argument -cf / --config")
 
     # If the argument config_inp is a directory, we need to look for every YAML configuration file in that directory.
 
@@ -279,7 +279,7 @@ def main():
       config_inp_list = [config for config in os.listdir(config_inp) if (rule.match(config) or rule2.match(config))]
 
       if config_inp_list == []:
-        raise control_errors.ControlError ("ERROR: Can't find any .yml or .yaml file in %s" % config_inp_path)
+        raise control_common.ControlError ("ERROR: Can't find any .yml or .yaml file in %s" % config_inp_path)
 
       print('%12s' % "[ DONE ]")
 
@@ -290,7 +290,7 @@ def main():
       print ("{:<40} {:<100}".format('\nConfiguration file:',config_inp))
 
       if os.path.isfile(config_inp) and os.path.splitext(config_inp)[-1].lower() != (".yml") and os.path.splitext(config_inp)[-1].lower() != (".yaml"):
-        raise control_errors.ControlError ("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
+        raise control_common.ControlError ("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
 
       config_inp_path = os.path.dirname(config_inp)
       config_inp_file = os.path.basename(config_inp)
@@ -308,7 +308,7 @@ def main():
   # Exception handling for the preparation step               #
   # ========================================================= #
 
-  except control_errors.ControlError as error:
+  except control_common.ControlError as error:
     print("")
     print(error)
     exit(-1)
@@ -395,30 +395,30 @@ def main():
     # Check the system dictionary
 
     if not isinstance(system, dict):
-      raise control_errors.ControlError ('ERROR: The "system" variable returned by the %s parsing function is not a dictionary.' % parsing_fct) 
+      raise control_common.ControlError ('ERROR: The "system" variable returned by the %s parsing function is not a dictionary.' % parsing_fct) 
 
     required_keys = ["states_list", "mime", "momdip_mtx"]
-    control_errors.check_keys(required_keys,system,"The 'system' dictionary returned by the %s parsing function." % parsing_fct)
+    control_common.check_keys(required_keys,system,"The 'system' dictionary returned by the %s parsing function." % parsing_fct)
 
     # Check the states list
 
     if not isinstance(system["states_list"], list):
-      raise control_errors.ControlError ('ERROR: The "states_list" value in the system dictionary returned by the %s parsing function is not a list.' % parsing_fct)
+      raise control_common.ControlError ('ERROR: The "states_list" value in the system dictionary returned by the %s parsing function is not a list.' % parsing_fct)
 
     required_keys = ["number", "type", "label", "energy"]
-    control_errors.check_keys(required_keys,system["states_list"],"The 'states_list' list of the 'system' dictionary returned by the %s parsing function." % parsing_fct)
+    control_common.check_keys(required_keys,system["states_list"],"The 'states_list' list of the 'system' dictionary returned by the %s parsing function." % parsing_fct)
 
     # Check the MIME and the dipole moments matrices
 
     if not isinstance(system["mime"], (list, np.ndarray)):
-      raise control_errors.ControlError ('ERROR: The "mime" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % parsing_fct)
+      raise control_common.ControlError ('ERROR: The "mime" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % parsing_fct)
 
     if not isinstance(system["momdip_mtx"], dict):
-      raise control_errors.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s parsing function is not a dictionary.' % parsing_fct)
+      raise control_common.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s parsing function is not a dictionary.' % parsing_fct)
 
     for momdip_key in system["momdip_mtx"]:
       if not isinstance(system["momdip_mtx"][momdip_key], (list, np.ndarray)):
-        raise control_errors.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (momdip_key, parsing_fct))
+        raise control_common.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (momdip_key, parsing_fct))
 
     print("\nThe source file has been succesfully parsed.")
 
@@ -868,10 +868,10 @@ def main():
     # Check the transitions list
 
     if not isinstance(transitions_list, list):
-      raise control_errors.ControlError ('ERROR: The transitions_list returned by the %s transition function is not a list.' % transition_fct) 
+      raise control_common.ControlError ('ERROR: The transitions_list returned by the %s transition function is not a list.' % transition_fct) 
 
     required_keys = ["label","init_state","target_state","energy","init_file","init_content","target_file","target_content","momdip_key"]
-    control_errors.check_keys(required_keys,transitions_list,"Transitions list returned by the %s transition function" % transition_fct)
+    control_common.check_keys(required_keys,transitions_list,"Transitions list returned by the %s transition function" % transition_fct)
  
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
@@ -916,7 +916,7 @@ def main():
 
     if os.path.exists(data_dir):
       if not overwrite:
-        raise control_errors.ControlError ("ERROR: A data directory for the %s source file already exists in %s !" % (source_name, out_dir))
+        raise control_common.ControlError ("ERROR: A data directory for the %s source file already exists in %s !" % (source_name, out_dir))
       else:
         print("\n/!\ Deleting the old %s data directory ..." % data_dir, end="")
         shutil.rmtree(data_dir)
@@ -1100,7 +1100,7 @@ def main():
         break
 
     if not jobscale:
-      raise control_errors.ControlError ("ERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name)
+      raise control_common.ControlError ("ERROR: The number of states is too big for this cluster (%s). Please change cluster." % cluster_name)
 
     # Obtaining the information associated to our job scale
 
@@ -1139,7 +1139,7 @@ def main():
   # Exception handling for the data files generation          #
   # ========================================================= #
 
-  except control_errors.ControlError as error:
+  except control_common.ControlError as error:
     sys.stdout = original_stdout                        # Reset the standard output to its original value
     print(error)
     os.remove(os.path.join(out_dir,data_log_name))      # Remove the log file since there was a problem
@@ -1188,7 +1188,7 @@ def main():
         job_dir = os.path.join(mol_dir,job_dirname)
 
         if os.path.exists(job_dir) and not overwrite:
-          raise control_errors.ControlError ("ERROR: A directory for the %s transition with the '%s' configuration already exists in %s !" % (transition["label"], config_name, mol_dir))
+          raise control_common.ControlError ("ERROR: A directory for the %s transition with the '%s' configuration already exists in %s !" % (transition["label"], config_name, mol_dir))
 
         # ========================================================= #
         # Rendering the templates                                   #
@@ -1270,12 +1270,12 @@ def main():
         try:
           rendered_content, rendered_script = eval("control_renderer." + render_fct)(clusters_cfg, config, system, data, job_specs, misc)
         except KeyError as error:
-          raise control_errors.ControlError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the '%s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
+          raise control_common.ControlError ("ERROR: The '%s' rendering function tried to access an unknown key (%s). \nCheck your clusters configuration file ('clusters.yml') and the '%s' configuration file, as well as the spelling and definition of your variables in the rendering function." % (render_fct,error,config_filename))
 
         # Check the rendered_content dictionary
 
         if not isinstance(rendered_content, dict):
-          raise control_errors.ControlError ('ERROR: The "rendered_content" returned by the %s rendering function is not a dictionary.' % render_fct) 
+          raise control_common.ControlError ('ERROR: The "rendered_content" returned by the %s rendering function is not a dictionary.' % render_fct) 
 
         print("\nAll the templates have been succesfully rendered.")
 
@@ -1372,7 +1372,7 @@ def main():
 
       # In case of an error specific to the configuration file, skip it and do not archive the source file even if arch_src was set.
 
-      except control_errors.ControlError as error:
+      except control_common.ControlError as error:
         sys.stdout = original_stdout                            # Reset the standard output to its original value
         print(error)
         print("Skipping configuration '%s'" % config_name)
