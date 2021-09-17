@@ -14,6 +14,7 @@ import numpy as np
 import yaml
 from jinja2 import Environment, FileSystemLoader
 from scipy.spatial import ConvexHull, distance
+from scipy import constants
 
 import control_common
 
@@ -226,7 +227,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     # Fix the duration of the pulse using that reference
 
     duration_s = config['ref_duration'][closest_ref] * 1e-12
-    duration = control_common.atomic_unit_conversion(duration_s,'si','time')
+    duration = duration_s / constants.value('atomic unit of time')
 
     # Defining the specific Jinja variables
     # =====================================
@@ -348,11 +349,6 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
         # Determine the maximum field strength
         # ------------------------------------
 
-        # Constants taken from the NIST website (https://physics.nist.gov/)
-
-        light_speed = 299792458         # speed of light in vacuum (in m/s)
-        vac_permit = 8.8541878128e-12   # vacuum electric permittivity (in F/m)
-
         # Get the ionization potential
 
         ip = -1
@@ -376,8 +372,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
         # Compute the maximum field strength then convert it to atomic units
 
-        max_strength = math.sqrt( (2 * energy) / (light_speed * vac_permit * area * duration_s) )
-        max_strength_au = control_common.atomic_unit_conversion(max_strength,'si','electric field')
+        max_strength = math.sqrt( (2 * energy) / (constants.value('speed of light in vacuum') * constants.value('vacuum electric permittivity') * area * duration_s) )
+        max_strength_au = max_strength / constants.value('atomic unit of electric field')
 
         # Store the value
 
@@ -522,7 +518,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       # Nyquist–Shannon sampling theorem: check if the sampling rate is bigger than the double of the highest frequency
 
-      sampling_freq = 1 / control_common.atomic_unit_conversion(time_step,'au','time')
+      sampling_freq = 1 / (time_step * constants.value('atomic unit of time'))
       max_freq = control_common.energy_unit_conversion(max_energy_diff,'ha','hz')
       
       if not sampling_freq > 2*max_freq:
@@ -644,7 +640,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     print("{:<30} {:<30}".format("Duration (a.u.): ", "{:.4e}".format(duration)))
     print("{:<30} {:<30}".format("Duration (s): ", "{:.4e}".format(duration_s)))
-    print("{:<30} {:<30}".format("Initial strength (V/m): ", "{:.4e}".format(control_common.atomic_unit_conversion(init_strength,'au','electric field'))))
+    print("{:<30} {:<30}".format("Initial strength (V/m): ", "{:.4e}".format(init_strength * constants.value('atomic unit of electric field'))))
     print("{:<30} {:<30}".format("Initial strength (a.u.): ", "{:.4e}".format(init_strength)))
     print("{:<30} {:<30}".format("Bandwidth (a.u.): ", "{:.4e}".format(bandwidth)))
     print("{:<30} {:<30}".format("Bandwidth (cm^-1): ", "{:.4e}".format(control_common.energy_unit_conversion(bandwidth,'ha','cm-1'))))    

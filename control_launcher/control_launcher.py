@@ -22,6 +22,7 @@ from inspect import getsourcefile
 import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
 import numpy as np
 import yaml
+from scipy import constants
 
 # Subscripts (files that end with .py and must be placed in the same directory as this script)
 
@@ -770,10 +771,9 @@ def main():
     # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
     # Note that this calculation is performed using atomic units, which means the Planck constant equals 2*pi and the vacuum permittivity equals 1/(4*pi)
 
-    # Constants taken from the NIST website (https://physics.nist.gov/)
+    # Constants
 
-    light_speed = 299792458         # in m/s (in vacuum)
-    au_velocity = 2.18769126364e6   # in m/s
+    light_speed_au = constants.value('speed of light in vacuum') / constants.value('atomic unit of velocity')
 
     # Iterate over each excited state
 
@@ -806,7 +806,7 @@ def main():
 
         # Calculate the A Einstein Coefficient          
 
-        einstein_coeff = (eigenstate_n['degeneracy']/eigenstate_m['degeneracy']) * (4/3) * square_dipole * (energy_diff**3) / ((light_speed/au_velocity)**3)
+        einstein_coeff = (eigenstate_n['degeneracy']/eigenstate_m['degeneracy']) * (4/3) * square_dipole * (energy_diff**3) / (light_speed_au**3)
         sum_einstein_coeffs += einstein_coeff
 
       # Compute the radiative lifetime
