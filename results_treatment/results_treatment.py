@@ -23,63 +23,13 @@ import numpy as np
 import yaml
 from scipy.spatial import ConvexHull, distance
 
-import results_errors
+import results_common
 
 # =================================================================== #
 # =================================================================== #
 #                        FUNCTIONS DEFINITIONS                        #
 # =================================================================== #
 # =================================================================== #
-
-def energy_unit_conversion(value:float,init:str,target:str) -> float:
-    """|  Converts an energy value from an initial unit to a target unit by using atomic units of energy (Hartree) as an intermediary.
-    |  Currently supported units: Hartree, cm\ :sup:`-1`\ , eV, nm, Hz and Joules
-
-    Parameters
-    ----------
-    value : float
-        The energy value we need to convert.
-    init : str
-        The unit of the value we need to convert.
-    target : str
-        The unit we must convert the value to.
-    
-    Returns
-    -------
-    conv_value : float
-        The converted energy value.
-    """
-
-    # Define the dictionary of conversion factors, from atomic units (Hartree) to any unit you want. - Taken from the NIST website (https://physics.nist.gov/)
-
-    conv_factors = {
-      # 1 Hartree equals:
-      "Ha" : 1,
-      "cm-1" : 2.1947463136320e+05,
-      "eV" : 27.211386245988,
-      "nm" : 2.1947463136320e+05 * 1e+07,
-      "Hz" : 6.579683920502e+15,
-      "J" : 4.3597447222071e-18
-      }
-
-    # Put everything in lower cases, to make it case insensitive
-
-    init_low = init.lower()
-    target_low = target.lower()
-    conv_factors_low = dict((key.lower(), value) for key, value in conv_factors.items())
-
-    # Check if the desired units are supported
-
-    if init_low not in conv_factors_low.keys():
-      raise results_errors.ResultsError ("ERROR: The unit of the value you want to convert (%s) is currently not supported. Supported values include: %s" % (init, ', '.join(unit for unit in conv_factors.keys())))
-    elif target_low not in conv_factors_low.keys():
-      raise results_errors.ResultsError ("ERROR: The unit you want to convert the value to (%s) is currently not supported. Supported values include: %s" % (target, ', '.join(unit for unit in conv_factors.keys())))
-    
-    # Convert the value
-
-    conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
-
-    return conv_value
 
 def import_path(fullpath:str):
     """ 
@@ -193,7 +143,7 @@ def main():
     # =======================
 
     if config_file: 
-      config_file = results_errors.check_abspath(config_file,"Command line argument -cf / --config","file")
+      config_file = results_common.check_abspath(config_file,"Command line argument -cf / --config","file")
     else:
       # If no value has been provided through the command line, take the results_config.yml file in the same directory as this script 
       config_file = os.path.join(code_dir, "results_config.yml")
@@ -207,7 +157,7 @@ def main():
     # ==============================
 
     chains_path = os.path.dirname(code_dir) 
-    chains_config_file = results_errors.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
+    chains_config_file = results_common.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
 
     print ("{:<140}".format("\nLoading CHAINS configuration YAML file ..."), end="")
     with open(chains_config_file, 'r') as chains:
@@ -217,7 +167,7 @@ def main():
     # Ionization potentials CSV file
     # ==============================
 
-    ip_file = results_errors.check_abspath(chains_config['ip_file'],"Ionization potentials CSV file","file")
+    ip_file = results_common.check_abspath(chains_config['ip_file'],"Ionization potentials CSV file","file")
 
     print ("{:<140}".format("\nLoading ionization potentials CSV file ..."), end="")
     with open(ip_file, 'r', newline='') as csv_file:
@@ -249,7 +199,7 @@ def main():
 
     if multiple_mol:
 
-      multiple_mol = results_errors.check_abspath(multiple_mol,"Command line argument -m / --multiple","directory")
+      multiple_mol = results_common.check_abspath(multiple_mol,"Command line argument -m / --multiple","directory")
       mol_inp_path = multiple_mol
 
       print("{:<40} {:<99}".format("\nLooking for every molecule directory in", mol_inp_path + " ..."), end="")
@@ -258,13 +208,13 @@ def main():
       mol_inp_list = [dir.name for dir in os.scandir(mol_inp_path) if dir.is_dir()]
 
       if mol_inp_list == []:
-        raise results_errors.ResultsError ("ERROR: Can't find any directory in %s" % mol_inp_path)
+        raise results_common.ResultsError ("ERROR: Can't find any directory in %s" % mol_inp_path)
       
       print('%12s' % "[ DONE ]")
 
     else:
 
-      single_mol = results_errors.check_abspath(single_mol,"Command line argument -s / --single","directory")
+      single_mol = results_common.check_abspath(single_mol,"Command line argument -s / --single","directory")
       print ("{:<40} {:<100}".format('\nMolecule directory:',single_mol))
 
       mol_inp_path = os.path.dirname(single_mol)
@@ -284,7 +234,7 @@ def main():
   # Exception handling for the preparation step               #
   # ========================================================= #
 
-  except results_errors.ResultsError as error:
+  except results_common.ResultsError as error:
     print("")
     print(error)
     exit(-1)
@@ -332,7 +282,7 @@ def main():
       # Check the optimized geometry file
 
       gaussian_dir = os.path.join(mol_dir, "GAUSSIAN")
-      opt_geom_file = results_errors.check_abspath(os.path.join(gaussian_dir, mol_name + ".xyz"),"Optimized geometry file","file")
+      opt_geom_file = results_common.check_abspath(os.path.join(gaussian_dir, mol_name + ".xyz"),"Optimized geometry file","file")
 
       # Load the XYZ geometry file
 
@@ -465,7 +415,7 @@ def main():
     # Exception handling for the identification                 #
     # ========================================================= #
 
-    except results_errors.ResultsError as error:
+    except results_common.ResultsError as error:
       print(error)
       print("Skipping %s molecule" % mol_name)
       continue
@@ -488,7 +438,7 @@ def main():
       print ("{:<133}".format('\n\tLoading QCHEM output file ...'), end="")
 
       qchem_dir = os.path.join(mol_dir, "QCHEM")
-      qchem_file = results_errors.check_abspath(os.path.join(qchem_dir, mol_name + ".out"),"QCHEM output file","file")
+      qchem_file = results_common.check_abspath(os.path.join(qchem_dir, mol_name + ".out"),"QCHEM output file","file")
 
       with open(qchem_file, 'r') as out_file:
         qchem_content = out_file.read().splitlines()
@@ -537,10 +487,10 @@ def main():
       # Raise an exception if the symmetry has not been found
 
       if not sym_group:
-        raise results_errors.ResultsError ("ERROR: Unable to find the molecule point group in the QCHEM output file")
+        raise results_common.ResultsError ("ERROR: Unable to find the molecule point group in the QCHEM output file")
 
       if not sym_subgroup:
-        raise results_errors.ResultsError ("ERROR: Unable to find the largest abelian subgroup in the QCHEM output file")
+        raise results_common.ResultsError ("ERROR: Unable to find the largest abelian subgroup in the QCHEM output file")
 
       # Add the data to the structure subdictionary for this molecule
 
@@ -595,12 +545,12 @@ def main():
       # Raise an exception if the section has not been found
 
       if not section_found:
-        raise results_errors.ResultsError ("ERROR: Unable to find the 'Dipole Moment (Debye)' line in the QCHEM output file")
+        raise results_common.ResultsError ("ERROR: Unable to find the 'Dipole Moment (Debye)' line in the QCHEM output file")
 
       # Raise an exception if the energies of the orbitals have not been found
 
       if mu == "N/A":
-        raise results_errors.ResultsError ("ERROR: Unable to find the value of the permanent dipole moment in the QCHEM output file")
+        raise results_common.ResultsError ("ERROR: Unable to find the value of the permanent dipole moment in the QCHEM output file")
 
       # Store the value
 
@@ -676,15 +626,15 @@ def main():
       # Raise an exception if the section has not been found
 
       if not section_found:
-        raise results_errors.ResultsError ("ERROR: Unable to find the 'Orbital Energies (a.u.)' section in the QCHEM output file")
+        raise results_common.ResultsError ("ERROR: Unable to find the 'Orbital Energies (a.u.)' section in the QCHEM output file")
 
       # Raise an exception if the energies of the orbitals have not been found
 
       if occ_orb == []:
-        raise results_errors.ResultsError ("ERROR: Unable to find the energies of the occupied orbitals in the QCHEM output file")
+        raise results_common.ResultsError ("ERROR: Unable to find the energies of the occupied orbitals in the QCHEM output file")
 
       if virt_orb == []:
-        raise results_errors.ResultsError ("ERROR: Unable to find the energies of the virtual orbitals in the QCHEM output file")
+        raise results_common.ResultsError ("ERROR: Unable to find the energies of the virtual orbitals in the QCHEM output file")
 
       # Store the energies of the orbitals as a big string where values are delimited by ";"
 
@@ -765,7 +715,7 @@ def main():
     # Exception handling for the characterization results       #
     # ========================================================= #
 
-    except results_errors.ResultsError as error:
+    except results_common.ResultsError as error:
       print(error)
       print("Skipping %s molecule" % mol_name)
       continue
@@ -783,11 +733,11 @@ def main():
 
       # Check the data directory
 
-      data_dir = results_errors.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
+      data_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
 
       # Load the eigenvalues list
 
-      eigenvalues_file = results_errors.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file")
+      eigenvalues_file = results_common.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file")
       
       with open(eigenvalues_file, 'r', newline='') as ev_file:
 
@@ -806,7 +756,7 @@ def main():
 
       # Load the states list
 
-      states_file = results_errors.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file")
+      states_file = results_common.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file")
 
       with open(states_file, 'r', newline='') as csv_file:
 
@@ -817,11 +767,11 @@ def main():
       # Check the states list
 
       required_keys = ['Label']
-      results_errors.check_keys(required_keys,states_list,"States list file at %s" % states_file)
+      results_common.check_keys(required_keys,states_list,"States list file at %s" % states_file)
 
       # Load the transitions list
 
-      transitions_file = results_errors.check_abspath(os.path.join(data_dir, "transitions.csv"),"Transitions file","file")
+      transitions_file = results_common.check_abspath(os.path.join(data_dir, "transitions.csv"),"Transitions file","file")
 
       with open(transitions_file, 'r', newline='') as csv_file:
 
@@ -832,7 +782,7 @@ def main():
       # Check the transitions list
 
       required_keys = ['Label', 'Energy (Ha)', 'Initial state number', 'Target state number', 'Transition dipole moments matrix']
-      results_errors.check_keys(required_keys,transitions_list,"Transitions list file at %s" % transitions_file)
+      results_common.check_keys(required_keys,transitions_list,"Transitions list file at %s" % transitions_file)
 
       # Convert some data types for easy handling later on
 
@@ -847,7 +797,7 @@ def main():
 
       momdip_mtx = {}
       for key in momdip_mtx_keys:
-        file = results_errors.check_abspath(os.path.join(data_dir, "momdip_es_mtx_" + key),"Transition dipole moment matrix associated with the %s key" % key,"file")
+        file = results_common.check_abspath(os.path.join(data_dir, "momdip_es_mtx_" + key),"Transition dipole moment matrix associated with the %s key" % key,"file")
         momdip_mtx[key] = np.loadtxt(file)
 
       # Look for directories in the results CONTROL directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
@@ -888,7 +838,7 @@ def main():
               
               # Get the number of iterations and final fidelity
 
-              iter_file = results_errors.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
+              iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
 
               # Go straight to the last line of the iterations file (see https://stackoverflow.com/questions/46258499/read-the-last-line-of-a-file-in-python for reference)
               with open(iter_file, 'rb') as f:
@@ -908,7 +858,7 @@ def main():
                 fidelity_raw = iter_data.group("fidelity")
                 fidelity = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fidelity_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
               else:
-                raise results_errors.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
+                raise results_common.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
 
               # Store information specific to this transition
 
@@ -928,19 +878,19 @@ def main():
 
               break # No need to consider the other transitions for this directory
 
-        except results_errors.ResultsError as error:
+        except results_common.ResultsError as error:
           print(error)
           print("Skipping %s directory" % dirname)
           continue
 
       if dir_list == []:
-        raise results_errors.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % os.path.join(mol_dir,"CONTROL"))
+        raise results_common.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % os.path.join(mol_dir,"CONTROL"))
    
     # ========================================================= #
     #    Exception handling for the control results             #
     # ========================================================= #
 
-    except results_errors.ResultsError as error:
+    except results_common.ResultsError as error:
       print(error)
       print("Skipping %s molecule" % mol_name)
       continue

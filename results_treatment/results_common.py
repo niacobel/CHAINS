@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 ################################################################################################################################################
-##                                                Errors and exceptions of Results Treatments                                                 ##
+##                                            Common functions and exceptions of Results Treatment                                            ##
 ##                                                                                                                                            ##
-##                            This script contains all the custom exceptions and functions built to handle errors                             ##
-##                                         of the Results Treatment python script and its subscripts.                                         ##
+##                                 This script contains all the custom exceptions and functions common to the                                 ##
+##                                            Results Treatment python script and its subscripts.                                             ##
 ################################################################################################################################################
 
 import os
@@ -18,6 +18,8 @@ import os
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
+
+#######################################################################
 
 class ResultsError(Error):
     """Exception raised for errors specific to certain instructions in this script and its subscripts.
@@ -96,6 +98,8 @@ def check_abspath(path:str,context:str,type="either"):
 
     return abspath
 
+#######################################################################
+
 def check_keys(keys:list,dicts,context:str):
     """Checks if a list of keys is present in a dictionary or list of dictionaries. In the latter case, this function also checks that each item of the list is indeed a dictionary.
 
@@ -142,3 +146,65 @@ def check_keys(keys:list,dicts,context:str):
 
     else:
       raise ValueError ("The type of the 'dicts' argument with which the check_keys function has been called is neither a dictionary nor a list.")
+
+#######################################################################
+
+def energy_unit_conversion(value:float,init:str,target:str) -> float:
+    """|  Converts an energy value from an initial unit to a target unit by using atomic units of energy (Hartree) as an intermediary.
+    |  Currently supported units: Hartree, cm\ :sup:`-1`\ , eV, nm, Hz and Joules
+
+    Parameters
+    ----------
+    value : float
+        The energy value we need to convert.
+    init : str
+        The unit of the value we need to convert.
+    target : str
+        The unit we must convert the value to.
+    
+    Returns
+    -------
+    conv_value : float
+        The converted energy value.
+
+    Raises
+    ------
+    ResultsError
+        If either the initial or target unit are not supported.
+    """
+
+    # Define the dictionary of conversion factors, from atomic units (Hartree) to any unit you want. - Taken from the NIST website (https://physics.nist.gov/)
+
+    conv_factors = {
+      # 1 Hartree equals:
+      "Ha" : 1,
+      "cm-1" : 2.1947463136320e+05,
+      "eV" : 27.211386245988,
+      "nm" : 45.56337117,
+      "Hz" : 6.579683920502e+15,
+      "J" : 4.3597447222071e-18
+      }
+
+    # Put everything in lower cases, to make it case insensitive
+
+    init_low = init.lower()
+    target_low = target.lower()
+    conv_factors_low = dict((key.lower(), value) for key, value in conv_factors.items())
+
+    # Check if the desired units are supported
+
+    if init_low not in conv_factors_low.keys():
+      raise ResultsError ("ERROR: The unit of the value you want to convert (%s) is currently not supported. Supported values include: %s" % (init, ', '.join(unit for unit in conv_factors.keys())))
+    elif target_low not in conv_factors_low.keys():
+      raise ResultsError ("ERROR: The unit you want to convert the value to (%s) is currently not supported. Supported values include: %s" % (target, ', '.join(unit for unit in conv_factors.keys())))
+    
+    # Convert the value
+
+    if target_low == 'nm':
+      conv_value = conv_factors_low['nm'] / (value / conv_factors_low[init_low])
+    elif init_low == 'nm':
+      conv_value = (conv_factors_low['nm'] / value) * conv_factors_low[target_low]
+    else:
+      conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
+
+    return conv_value

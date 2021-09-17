@@ -20,63 +20,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 import matplotlib.mathtext
 
-import results_errors
-
-# =================================================================== #
-# =================================================================== #
-#                        FUNCTIONS DEFINITIONS                        #
-# =================================================================== #
-# =================================================================== #
-
-def energy_unit_conversion(value:float,init:str,target:str) -> float:
-    """|  Converts an energy value from an initial unit to a target unit by using atomic units of energy (Hartree) as an intermediary.
-    |  Currently supported units: Hartree, cm\ :sup:`-1`\ , eV, nm, Hz and Joules
-
-    Parameters
-    ----------
-    value : float
-        The energy value we need to convert.
-    init : str
-        The unit of the value we need to convert.
-    target : str
-        The unit we must convert the value to.
-    
-    Returns
-    -------
-    conv_value : float
-        The converted energy value.
-    """
-
-    # Define the dictionary of conversion factors, from atomic units (Hartree) to any unit you want. - Taken from the NIST website (https://physics.nist.gov/)
-
-    conv_factors = {
-      # 1 Hartree equals:
-      "Ha" : 1,
-      "cm-1" : 2.1947463136320e+05,
-      "eV" : 27.211386245988,
-      "nm" : 2.1947463136320e+05 * 1e+07,
-      "Hz" : 6.579683920502e+15,
-      "J" : 4.3597447222071e-18
-      }
-
-    # Put everything in lower cases, to make it case insensitive
-
-    init_low = init.lower()
-    target_low = target.lower()
-    conv_factors_low = dict((key.lower(), value) for key, value in conv_factors.items())
-
-    # Check if the desired units are supported
-
-    if init_low not in conv_factors_low.keys():
-      raise results_errors.ResultsError ("ERROR: The unit of the value you want to convert (%s) is currently not supported. Supported values include: %s" % (init, ', '.join(unit for unit in conv_factors.keys())))
-    elif target_low not in conv_factors_low.keys():
-      raise results_errors.ResultsError ("ERROR: The unit you want to convert the value to (%s) is currently not supported. Supported values include: %s" % (target, ', '.join(unit for unit in conv_factors.keys())))
-    
-    # Convert the value
-
-    conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
-
-    return conv_value
+import results_common
 
 # =================================================================== #
 # =================================================================== #
@@ -156,7 +100,7 @@ def main():
     # ========================================================= #
 
     if config_file: 
-      config_file = results_errors.check_abspath(config_file,"Command line argument -cf / --config","file")
+      config_file = results_common.check_abspath(config_file,"Command line argument -cf / --config","file")
     else:
       # If no value has been provided through the command line, take the results_config.yml file in the same directory as this script 
       config_file = os.path.join(code_dir, "results_config.yml")
@@ -170,7 +114,7 @@ def main():
     # Check and load the YAML input file                        #
     # ========================================================= #
 
-    inp_yml = results_errors.check_abspath(inp_yml,"Command line argument -i / --inp_yml","file")
+    inp_yml = results_common.check_abspath(inp_yml,"Command line argument -i / --inp_yml","file")
 
     print ("{:<40} {:<99}".format('\nLoading the YAML input file',inp_yml + " ..."), end="")
     with open(inp_yml, 'r') as f_yml:
@@ -181,14 +125,14 @@ def main():
     # Check other arguments                                     #
     # ========================================================= #
 
-    out_dir = results_errors.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
+    out_dir = results_common.check_abspath(out_dir,"Command line argument -o / --out_dir","directory")
     print ("{:<40} {:<100}".format('\nOutput directory:',out_dir))
 
   # ========================================================= #
   # Exception handling for the preparation step               #
   # ========================================================= #
 
-  except results_errors.ResultsError as error:
+  except results_common.ResultsError as error:
     print("")
     print(error)
     exit(-1)
@@ -238,9 +182,9 @@ def main():
   for mol in yml_sorted['Si']:
     if yml_sorted['Si'][mol].get('Energy gaps (Ha)'):
       nb_si_atoms = yml_sorted['Si'][mol]['Structure']['Nb Si atoms']
-      hl_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
-      opt_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
-      st_gap = energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
+      hl_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
+      opt_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
+      st_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
       si_gaps.append((nb_si_atoms,hl_gap,opt_gap,st_gap))
 
   si_gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
@@ -266,9 +210,9 @@ def main():
 
           # Get the gaps values
 
-          hl_gap = energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
-          opt_gap = energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
-          st_gap = energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
+          hl_gap = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
+          opt_gap = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
+          st_gap = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
 
           # Use the TAG key to find the corresponding Si QD and fetch its number of Si atoms
 
@@ -543,17 +487,17 @@ def main():
 
           # Get the IPs values and add them to their corresponding lists
 
-          ip_koop = energy_unit_conversion(yml_sorted[mol_group][mol]['IPs (Ha)']['Koopmans'],"ha","ev")
+          ip_koop = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['IPs (Ha)']['Koopmans'],"ha","ev")
           ips_koop.append((nb_si_atoms,ip_koop))
 
           ip_vert = yml_sorted[mol_group][mol]['IPs (Ha)']['Vertical']
           if ip_vert != 'N/A':
-             ip_vert = energy_unit_conversion(ip_vert,"ha","ev")
+             ip_vert = results_common.energy_unit_conversion(ip_vert,"ha","ev")
              ips_vert.append((nb_si_atoms,ip_vert))
 
           ip_adiab = yml_sorted[mol_group][mol]['IPs (Ha)']['Adiabatic']
           if ip_adiab != 'N/A':
-             ip_adiab = energy_unit_conversion(ip_adiab,"ha","ev")
+             ip_adiab = results_common.energy_unit_conversion(ip_adiab,"ha","ev")
              ips_adiab.append((nb_si_atoms,ip_adiab))       
 
       # Sort the values by number of Si atoms
