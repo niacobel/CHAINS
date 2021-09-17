@@ -166,6 +166,11 @@ def energy_unit_conversion(value:float,init:str,target:str) -> float:
     -------
     conv_value : float
         The converted energy value.
+
+    Raises
+    ------
+    ControlError
+        If either the initial or target unit are not supported.
     """
 
     # Define the dictionary of conversion factors, from atomic units (Hartree) to any unit you want. - Taken from the NIST website (https://physics.nist.gov/)
