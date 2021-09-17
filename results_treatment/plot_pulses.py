@@ -211,7 +211,7 @@ def main():
 
       # Check the states list
 
-      required_keys = ['Label']
+      required_keys = ['Number','Label']
       results_common.check_keys(required_keys,states_list,"States list file at %s" % states_file)
 
       # Load the transitions list
@@ -282,6 +282,7 @@ def main():
             iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
             guess_pulse_file = results_common.check_abspath(os.path.join(control_dir, dirname, "Pulse", "Pulse_init"),"Guess pulse file","file")
             pulse_file = results_common.check_abspath(os.path.join(control_dir, dirname, "Pulse", "Pulse"),"Final pulse file","file")
+            pcp_file = results_common.check_abspath(os.path.join(control_dir, dirname, "PCP", "pop1"),"PCP eigenstates populations file","file")
 
             # =================================================================== #
             # =================================================================== #
@@ -351,9 +352,9 @@ def main():
 
             # Plot the temporal profile
 
-            ax_gpulse_time.plot(time,amplitude)
-            ax_gpulse_time.set_title("Temporal profile of the guess pulse")
-            ax_gpulse_time.set_xlabel("Time (s)")
+            ax_gpulse_time.plot(time * 1e12,amplitude)
+            ax_gpulse_freq.set_yscale('log')
+            ax_gpulse_time.set_xlabel("Time (ps)")
             ax_gpulse_time.set_ylabel("Amplitude (V/m)")
 
             # Compute the FFT (see tutorial at https://realpython.com/python-scipy-fft/)
@@ -364,9 +365,8 @@ def main():
             # Plot the spectral profile
 
             ax_gpulse_freq.plot(freq,np.abs(intensity))
-            ax_gpulse_freq.set_title("Spectral profile of the guess pulse")
             ax_gpulse_freq.set_xlabel("Frequencies (Hz)")
-            ax_gpulse_freq.set_ylabel("Spectral intensity")
+            ax_gpulse_freq.set_ylabel("Intensity")
 
             print('%12s' % "[ DONE ]")
 
@@ -393,9 +393,8 @@ def main():
 
             # Plot the temporal profile
 
-            ax_pulse_time.plot(time,amplitude)
-            ax_pulse_time.set_title("Temporal profile of the final pulse")
-            ax_pulse_time.set_xlabel("Time (s)")
+            ax_pulse_time.plot(time * 1e12,amplitude)
+            ax_pulse_time.set_xlabel("Time (ps)")
             ax_pulse_time.set_ylabel("Amplitude (V/m)")
 
             # Compute the FFT (see tutorial at https://realpython.com/python-scipy-fft/)
@@ -406,9 +405,9 @@ def main():
             # Plot the spectral profile
 
             ax_pulse_freq.plot(freq,np.abs(intensity))
-            ax_pulse_freq.set_title("Spectral profile of the guess pulse")
+            ax_pulse_freq.set_yscale('log')
             ax_pulse_freq.set_xlabel("Frequencies (Hz)")
-            ax_pulse_freq.set_ylabel("Spectral intensity")
+            ax_pulse_freq.set_ylabel("Intensity")
 
             print('%12s' % "[ DONE ]")
 
@@ -419,6 +418,9 @@ def main():
             # =================================================================== #
 
             print ("{:<133}".format('\n\tTreating the post-controle values ...'), end="")
+
+            ax_pcp.set_xlabel("Time (ps)")
+            ax_pcp.set_ylabel("Population")
 
             # =================================================================== #
             # =================================================================== #
@@ -457,7 +459,6 @@ def main():
             # Plot the evolution of fidelity over iterations
 
             ax_fidel.plot(iterations,fidelities)
-            ax_fidel.set_title("Evolution of fidelity over iterations")
             ax_fidel.set_xlabel("Number of iterations")
             ax_fidel.set_ylabel("Fidelity")
 
@@ -469,7 +470,7 @@ def main():
             # =================================================================== #
             # =================================================================== #
 
-            fig.set_size_inches(6, 8)
+            fig.set_size_inches(8, 10)
             plt.tight_layout()
             plt.savefig(os.path.join(out_dir,'%s_%s.png' % (mol_name,dirname)),dpi=200)
             plt.close()
