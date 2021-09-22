@@ -199,20 +199,20 @@ def main():
 
       data_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
 
-      # Load the states list
+      # Load the eigenstates list
 
-      states_file = results_common.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file")
+      eigenstates_file = results_common.check_abspath(os.path.join(data_dir, "eigenstates.csv"),"Eigenstates file","file")
 
-      with open(states_file, 'r', newline='') as csv_file:
+      with open(eigenstates_file, 'r', newline='') as csv_file:
 
-        states_content = csv.DictReader(csv_file, delimiter=';')
-        states_list = list(states_content)
-        states_header = states_content.fieldnames
+        eigenstates_content = csv.DictReader(csv_file, delimiter=';')
+        eigenstates_list = list(eigenstates_content)
+        eigenstates_header = eigenstates_content.fieldnames
 
-      # Check the states list
+      # Check the eigenstates list
 
       required_keys = ['Number','Label']
-      results_common.check_keys(required_keys,states_list,"States list file at %s" % states_file)
+      results_common.check_keys(required_keys,eigenstates_list,"Eigenstates list file at %s" % eigenstates_file)
 
       # Load the transitions list
 
@@ -282,7 +282,7 @@ def main():
             iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
             guess_pulse_file = results_common.check_abspath(os.path.join(control_dir, dirname, "Pulse", "Pulse_init"),"Guess pulse file","file")
             pulse_file = results_common.check_abspath(os.path.join(control_dir, dirname, "Pulse", "Pulse"),"Final pulse file","file")
-            pcp_file = results_common.check_abspath(os.path.join(control_dir, dirname, "PCP", "pop1"),"PCP eigenstates populations file","file")
+            pop_file = results_common.check_abspath(os.path.join(control_dir, dirname, "PCP", "pop1"),"PCP eigenstates populations file","file")
 
             # =================================================================== #
             # =================================================================== #
@@ -333,7 +333,7 @@ def main():
 
             # Define the figure that will host the six graphs for this specific '<transition>_<config>' directory
 
-            fig, ((ax_gpulse_time,ax_gpulse_freq),(ax_pulse_time,ax_pulse_freq),(ax_pcp,ax_fidel)) = plt.subplots(nrows=3,ncols=2)
+            fig, ((ax_gpulse_time,ax_gpulse_freq),(ax_pulse_time,ax_pulse_freq),(ax_pop,ax_fidel)) = plt.subplots(nrows=3,ncols=2)
 
             print ("{:<133}".format('\n\tTreating the guess pulse values ...'), end="")
 
@@ -344,7 +344,7 @@ def main():
             amplitude_au = guess_pulse[:,1]
             time_step_au = time_au[1] - time_au[0]
 
-            # Convert them from SI units to atomic units
+            # Convert them from atomic units to SI units
 
             time = time_au * constants.value('atomic unit of time')
             amplitude = amplitude_au * constants.value('atomic unit of electric field')
@@ -385,7 +385,7 @@ def main():
             amplitude_au = pulse[:,1]
             time_step_au = time_au[1] - time_au[0]
 
-            # Convert them from SI units to atomic units
+            # Convert them from atomic units to SI units
 
             time = time_au * constants.value('atomic unit of time')
             amplitude = amplitude_au * constants.value('atomic unit of electric field')
@@ -419,8 +419,30 @@ def main():
 
             print ("{:<133}".format('\n\tTreating the post-controle values ...'), end="")
 
-            ax_pcp.set_xlabel("Time (ps)")
-            ax_pcp.set_ylabel("Population")
+            # Load the populations file
+
+            pop_file_content = np.loadtxt(pop_file)
+
+            # Import the time values and convert them to seconds
+            
+            time_au = pop_file_content[:,0]
+            time = time_au * constants.value('atomic unit of time')
+
+            # Iterate over each state and plot the populations
+
+            current_column = 0
+
+            for eigenstate in eigenstates_list:
+              current_column += 1
+              ax_pop.plot(time * 1e12,pop_file_content[:,current_column],label=eigenstate['Label'])
+
+            # Legend the graph
+
+            ax_pop.set_xlabel("Time (ps)")
+            ax_pop.set_ylabel("Population")
+            ax_pop.legend()
+
+            print('%12s' % "[ DONE ]")
 
             # =================================================================== #
             # =================================================================== #
