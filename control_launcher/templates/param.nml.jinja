@@ -19,7 +19,7 @@
 /
 
 &OPC
-{%- if process == "OPC" %}
+{% if process == "OPC" %}
   nb_steps = {{ nb_steps }},                               ! Number of time steps
   alpha = {{ alpha }},                                     ! Constraint on the field amplitude
   write_freq = {{ write_freq }},                           ! Number of iterations between each writing of the field
@@ -42,7 +42,7 @@
 {%- endif %}
 
 &POST_CONTROL
-{% if process == "PCP" -%}
+{% if process == "PCP" %}
   analy_freq = {{ analy_freq }},                ! Number of steps between each analysis of the populations, phases, positions and energies
   conv_mtx = "{{ mat_et0_path }}",              ! Conversion matrix, from eigenstates to zero order states
   init_time = 20661110.d0                       ! PCL temps initial (phase)
