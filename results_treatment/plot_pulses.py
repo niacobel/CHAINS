@@ -327,13 +327,17 @@ def main():
 
             # =================================================================== #
             # =================================================================== #
-            #                        GUESS PULSE TREATMENT                        #
+            #                          PULSES TREATMENT                           #
             # =================================================================== #
             # =================================================================== #
 
-            # Define the figure that will host the six graphs for this specific '<transition>_<config>' directory
+            # Define the figure that will host the six pulse graphs for this specific '<transition>_<config>' directory
 
-            fig, ((ax_gpulse_time,ax_gpulse_freq),(ax_pulse_time,ax_pulse_freq),(ax_pop,ax_fidel)) = plt.subplots(nrows=3,ncols=2)
+            fig, ((ax_gpulse_time,ax_pulse_time),(ax_gpulse_freq,ax_pulse_freq),(ax_gpulse_logfreq,ax_pulse_logfreq)) = plt.subplots(nrows=3,ncols=2)
+
+            # ========================================================= #
+            # Guess pulse treatment                                     #
+            # ========================================================= #
 
             print ("{:<133}".format('\n\tTreating the guess pulse values ...'), end="")
 
@@ -353,7 +357,6 @@ def main():
             # Plot the temporal profile
 
             ax_gpulse_time.plot(time * 1e12,amplitude)
-            ax_gpulse_freq.set_yscale('log')
             ax_gpulse_time.set_xlabel("Time (ps)")
             ax_gpulse_time.set_ylabel("Amplitude (V/m)")
 
@@ -361,20 +364,26 @@ def main():
 
             intensity = rfft(amplitude)
             freq = rfftfreq(len(time),time_step)
+            freq = results_common.energy_unit_conversion(freq,'Hz','cm-1')
 
             # Plot the spectral profile
 
             ax_gpulse_freq.plot(freq,np.abs(intensity))
-            ax_gpulse_freq.set_xlabel("Frequencies (Hz)")
+            ax_gpulse_freq.set_xlabel("Frequencies (cm-1)")
             ax_gpulse_freq.set_ylabel("Intensity")
+
+            # Plot the logarithmic spectral profile
+
+            ax_gpulse_logfreq.plot(freq,np.abs(intensity))
+            ax_gpulse_logfreq.set_yscale('log')
+            ax_gpulse_logfreq.set_xlabel("Frequencies (cm-1)")
+            ax_gpulse_logfreq.set_ylabel("Intensity")            
 
             print('%12s' % "[ DONE ]")
 
-            # =================================================================== #
-            # =================================================================== #
-            #                        FINAL PULSE TREATMENT                        #
-            # =================================================================== #
-            # =================================================================== #
+            # ========================================================= #
+            # Final pulse treatment                                     #
+            # ========================================================= #
 
             print ("{:<133}".format('\n\tTreating the final pulse values ...'), end="")
 
@@ -401,21 +410,39 @@ def main():
 
             intensity = rfft(amplitude)
             freq = rfftfreq(len(time),time_step)
+            freq = results_common.energy_unit_conversion(freq,'Hz','cm-1')
 
             # Plot the spectral profile
 
             ax_pulse_freq.plot(freq,np.abs(intensity))
-            ax_pulse_freq.set_yscale('log')
-            ax_pulse_freq.set_xlabel("Frequencies (Hz)")
+            ax_pulse_freq.set_xlabel("Frequencies (cm-1)")
             ax_pulse_freq.set_ylabel("Intensity")
 
+            # Plot the logarithmic spectral profile
+
+            ax_pulse_logfreq.plot(freq,np.abs(intensity))
+            ax_pulse_logfreq.set_yscale('log')
+            ax_pulse_logfreq.set_xlabel("Frequencies (cm-1)")
+            ax_pulse_logfreq.set_ylabel("Intensity") 
+
             print('%12s' % "[ DONE ]")
+
+            # Save the figure
+
+            fig.set_size_inches(8, 10)
+            plt.tight_layout()
+            plt.savefig(os.path.join(out_dir,'%s_%s_pulses.png' % (mol_name,dirname)),dpi=200)
+            plt.close()
 
             # =================================================================== #
             # =================================================================== #
             #                        POPULATIONS TREATMENT                        #
             # =================================================================== #
             # =================================================================== #
+
+            # Define the figure that will host the population graph and the fidelity graph for this specific '<transition>_<config>' directory
+
+            fig2, (ax_pop,ax_fidel) = plt.subplots(nrows=2,ncols=1)
 
             print ("{:<133}".format('\n\tTreating the post-controle values ...'), end="")
 
@@ -486,15 +513,11 @@ def main():
 
             print('%12s' % "[ DONE ]")
 
-            # =================================================================== #
-            # =================================================================== #
-            #                       CREATE THE FIGURE FILE                        #
-            # =================================================================== #
-            # =================================================================== #
+            # Save the figure
 
-            fig.set_size_inches(8, 10)
+            fig2.set_size_inches(8, 10)
             plt.tight_layout()
-            plt.savefig(os.path.join(out_dir,'%s_%s.png' % (mol_name,dirname)),dpi=200)
+            plt.savefig(os.path.join(out_dir,'%s_%s_pop_fid.png' % (mol_name,dirname)),dpi=200)
             plt.close()
 
       # ========================================================= #
