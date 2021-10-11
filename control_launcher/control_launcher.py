@@ -22,6 +22,7 @@ from inspect import getsourcefile
 import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
 import numpy as np
 import yaml
+import scipy
 from scipy import constants
 
 # Subscripts (files that end with .py and must be placed in the same directory as this script)
@@ -451,10 +452,12 @@ def main():
     # Diagonalization
     # ===============
 
-    # Use NumPy to diagonalize the matrix (see https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html for reference)  
+    # Use SciPy to diagonalize the matrix (see https://personal.math.ubc.ca/~pwalls/math-python/linear-algebra/eigenvalues-eigenvectors/ for reference)  
      
     print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
-    eigenvalues, eigenvectors = np.linalg.eig(system['mime'])
+    eigenvalues, eigenvectors_mtx = scipy.linalg.eig(system['mime'])
+    eigenvalues = eigenvalues.real                      # A symmetric matrix has real eigenvalues
+    eigenvectors_list = np.transpose(eigenvectors_mtx)  # Transpose the eigenvectors matrix so that each eigenvector is a line (rather than a column), for easier handling later on
     print("[ DONE ]")
 
     # Assign the eigenstates to the zero order states
@@ -464,7 +467,7 @@ def main():
 
     # Initialize the variables
 
-    eigenvectors = eigenvectors.tolist()
+    eigenvectors_list = eigenvectors_list.tolist()
     eigenvalues = eigenvalues.tolist()
     system['eigenstates_list'] = []
     for state in range(len(eigenvalues)):
@@ -477,15 +480,15 @@ def main():
 
     # Assign according to the major contributor amongst the zero order states
 
-    for eigenvector in eigenvectors:
+    for eigenvector in eigenvectors_list:
 
       # Initialize important variables
 
-      looking_for_home = True
+      unassigned = True
       current_vector = eigenvector
-      current_value = eigenvalues[eigenvectors.index(eigenvector)]
+      current_value = eigenvalues[eigenvectors_list.index(eigenvector)]
 
-      while looking_for_home:
+      while unassigned:
 
         # Sort the indices by decreasing order of the square values of their corresponding coefficients in the vector
         # e.g. if eigenvector = [-10, 50, -30, 40, 20], then contributions = [100, 2500, 900, 1600, 400] then max_indices = [1, 3, 2, 4, 0]
@@ -510,7 +513,7 @@ def main():
 
             # Proceed to the next eigenvector
 
-            looking_for_home = False
+            unassigned = False
             break
 
           # Second case: conflict (spot already taken), but the maximum of the newcomer is equal or lower than the one of the current resident
@@ -539,7 +542,7 @@ def main():
             current_value = temp_value
             break
 
-    # Comment on the conflicts that have been encountered and resolved along the way to keep trace of it in the log file (printed later on in the script)
+    # Comment on the conflicts that have been encountered and resolved along the way to keep track of it in the log file (printed later on in the script)
 
     for eigenstate in system['eigenstates_list']:
 
@@ -572,26 +575,32 @@ def main():
 
     print("[ DONE ]")
 
-    # Transpose the eigenvectors matrix
-    # =================================
+    # Transpose the eigenvectors list
+    # ===============================
 
-    # Using NumPy to transpose the eigenvectors matrix (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference)
+    # Using NumPy to transpose the eigenvectors list (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference) so that each column of this matrix corresponds to an eigenvector
 
-    print("{:<50}".format("\nTransposing eigenvectors matrix ..."), end="")
+    print("{:<50}".format("\nTransposing eigenvectors list ..."), end="")
     system['transpose'] = np.transpose(system['eigenvectors'])
     print("[ DONE ]")
 
     # Evaluate the diagonalization
     # ============================
 
+    # Compute the inverse of the transpose matrix
+    transpose_inv = scipy.linalg.inv(system['transpose'])
+
     # Using NumPy to convert the MIME from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
-    system['mime_diag'] = np.matmul(np.matmul(system['transpose'],system['mime']),system['eigenvectors'])
+    system['mime_diag'] = np.matmul(np.matmul(transpose_inv,system['mime']),system['transpose'])
+
+    # Get the absolute value of the matrix
+    abs_mime_diag = np.abs(system['mime_diag'])
 
     # Average the diagonal elements
-    diag_mean = np.mean(np.trace(system['mime_diag']))
+    diag_mean = np.mean(np.trace(abs_mime_diag))
 
     # Average the non-diagonal elements (sum everything minus the trace and divide by n*(n-1), where n is the number of states)
-    nondiag_mean = (np.sum(system['mime_diag']) - np.trace(system['mime_diag'])) / (len(system['eigenvectors']) * (len(system['eigenvectors']) - 1))
+    nondiag_mean = (np.sum(abs_mime_diag) - np.trace(abs_mime_diag)) / (len(system['eigenvectors']) * (len(system['eigenvectors']) - 1))
 
     # Evaluate the ratio of the diagonalization
     ratio = nondiag_mean / diag_mean
@@ -610,7 +619,7 @@ def main():
 
     for momdip_key in system["momdip_mtx"]:
 
-      system['momdip_es_mtx'][momdip_key] = np.matmul(np.matmul(system['transpose'],system['momdip_mtx'][momdip_key]),system['eigenvectors'])
+      system['momdip_es_mtx'][momdip_key] = np.matmul(np.matmul(transpose_inv,system['momdip_mtx'][momdip_key]),system['transpose'])
           
     # ========================================================= #
     # Handling eigenstates degeneracies                         #
