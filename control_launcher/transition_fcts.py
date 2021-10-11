@@ -171,6 +171,13 @@ def brightests_to_darkests_and_reverse(system:dict):
         # iter_dark is the number of the current iteration of this loop, e.g if dmax = 2, then iter_dark will be 0, then 1. (useful to label the transition)
         # dark_index is the number of the state currently considered, e.g. if dark_max_indices = [4, 3, 2, 1] and iter_bright = 0, then dark_index = 4.
 
+          # Exit if both states are the same (that transition will be skipped)
+          if bright_index == dark_index:
+            state_label = system['eigenstates_list'][bright_index]["label"]
+            transition_label = momdip_key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D"
+            print("\nNOTICE: The transition %s will be skipped since both states are the same (%s)." % (transition_label,state_label))
+            continue
+
           # ========================================================= #
           #            Building the transition dictionary             #
           # ========================================================= #
@@ -223,8 +230,8 @@ def brightests_to_darkests_and_reverse(system:dict):
           print(''.center(50, '-'))
           print("{:<20} {:<30}".format("Label: ", transition["label"]))
           print(''.center(50, '-'))
-          print("{:<20} {:<30}".format("Initial state: ", "%s" % bright_label))
-          print("{:<20} {:<30}".format("Target state: ", "%s" % dark_label))
+          print("{:<20} {:<30}".format("Initial state: ", "%s" % dark_label))
+          print("{:<20} {:<30}".format("Target state: ", "%s" % bright_label))
           print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
           print(''.center(50, '-'))
 
