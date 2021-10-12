@@ -436,7 +436,8 @@ def main():
     # Set other parameters
 
     ax.tick_params(top=False, right=False, bottom=False)
-    plt.xticks(ticks=xticks,labels=xlabels)
+    plt.xticks(ticks=xticks, labels=xlabels, rotation=45)
+    plt.axhline(y=0, color='grey', linestyle='--')
     plt.tight_layout()
 
     params = {'mathtext.default': 'regular' }          
