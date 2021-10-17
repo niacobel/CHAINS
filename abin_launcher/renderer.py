@@ -104,10 +104,12 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
     if not isinstance(copy_files, bool):
       raise abin_errors.AbinError ('ERROR: The "copy_files" value given in the "gaussian" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
 
-    cation_energy = str(config['gaussian'].get('cation_energy')).lower()
-
-    if cation_energy not in ["none","sp","opt"]:
-      raise abin_errors.AbinError ('ERROR: The "cation_energy" value given in the "gaussian" block of the "%s" configuration file is neither "None", "SP" nor "Opt" (This is not case sensitive).' % misc['config_name'])
+    if copy_files:
+      ip_calc = str(config['gaussian'].get('ip_calc')).lower()
+      if ip_calc not in ["none","vertical","adiabatic"]:
+        raise abin_errors.AbinError ('ERROR: The "ip_calc" value given in the "gaussian" block of the "%s" configuration file is neither "None", "Vertical" nor "Adiabatic" (This is not case sensitive).' % misc['config_name'])
+    else:
+      ip_calc = None
 
     # Define the templates
     # ====================
@@ -115,7 +117,6 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
     # Define the names of the templates.
 
     template_input = "gaussian.com.jinja"
-
     template_script = "gaussian_job.sh.jinja"
 
     # Check if the specified templates exist in the "templates" directory of ABIN LAUNCHER.
@@ -151,7 +152,7 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
       "mem_total" : job_specs['cores'] * job_specs['mem_per_cpu'],
       "job_cores" : job_specs['cores'],
       "coordinates" : file_data['atomic_coordinates'],
-      "cation_energy" : cation_energy # Associated with the config file, but it has already been verified
+      "ip_calc" : ip_calc # Associated with the config file, but it has already been verified
     }
 
     # Variables associated with the "general" block of the config file
@@ -185,9 +186,9 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
     # Defining the specific Jinja variables
     # =====================================
 
-    # Variables specific to the cation_energy portion of the template
+    # Variables specific to the ip_calc == vertical portion of the template
 
-    if cation_energy != "none":
+    if ip_calc == "vertical":
 
       # Determine the new charge and multiplicity of the cation
 
@@ -241,6 +242,7 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
 
     script_render_vars = {  
       "mol_name" : misc['mol_name'],
+      "config_file" : misc['config_name'],
       "job_walltime" : job_specs['walltime'],
       "job_cores" : job_specs['cores'],
       "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
@@ -284,8 +286,7 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
       # Variables not associated with the config file
 
       script_render_vars.update({
-        "config_file" : misc['config_name'],
-        "cation_energy" : cation_energy, # Associated with the config file, but it has already been verified
+        "ip_calc" : ip_calc, # Associated with the config file, but it has already been verified
         "job_script" : rendered_script
       })
 
@@ -293,13 +294,268 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
 
       try:
         script_render_vars.update({
-          "ip_file" : chains_config['ip_file'],
           "output_dir" : chains_config['output_gaussian'],
           "results_dir" : chains_config['results_dir']
         })
 
+        if ip_calc == 'vertical' or ip_calc == 'adiabatic':
+          script_render_vars.update({
+            "ip_file" : chains_config['ip_file']
+          })
+
       except KeyError as error:
         raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the CHAINS configuration file (chains_config.yml).' % error)
+
+    # Variables specific to the benchmarking template
+   
+    if benchmark:
+
+      script_render_vars.update({
+        "benchmark_path" : "${CECIHOME}/BENCHMARK",
+        "prefix": job_specs['profile'] + "_" + job_specs['cluster_name'],
+        "profile" : job_specs['profile'],
+        "cluster_name" : job_specs['cluster_name'],
+        "jobscale_label" : job_specs['scale_label'],
+        "job_walltime" : job_specs['walltime'],
+        "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+        "scaling_function" : job_specs['scaling_fct'],
+        "scale_index" : job_specs['scale_index']
+      })
+    
+    # Rendering the file
+    # ==================
+
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    return rendered_content, rendered_script
+
+
+######################################################################################################################################
+
+
+def chains_gaussian_cation_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
+    """Renders the job script and the input file associated with cation calculations using the GAUSSIAN program in CHAINS.
+
+    Parameters
+    ----------
+    mendeleev : dict
+        Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
+        Unused in this function.
+    clusters_cfg : dict
+        Content of the YAML clusters configuration file.
+    config : dict
+        Content of the YAML configuration file.
+    file_data : dict
+        Information extracted by the scanning function from the geometry file.
+    job_specs : dict
+        Contains all information related to the job.
+    misc : dict
+        Contains all the additional variables that did not pertain to the other arguments.
+
+    Returns
+    -------
+    rendered_content : dict
+        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
+    rendered_script : str
+        Name of the rendered job script, necessary to launch the job.
+    
+    Notes
+    -----
+    Pay a particular attention to the render_vars dictionaries, they contain all the definitions of the variables appearing in your Jinja templates.
+    """
+
+    # ========================================================= #
+    #                      Preparation step                     #
+    # ========================================================= #
+
+    # Check config file
+    # =================
+
+    # Check if a "general" block has been defined in the config file
+
+    if not config.get('general'):
+      raise abin_errors.AbinError ('ERROR: There is no "general" key defined in the "%s" configuration file.' % misc['config_name'])     
+
+    # Check if a "gaussian" block has been defined in the config file
+
+    if not config.get('gaussian'):
+      raise abin_errors.AbinError ('ERROR: There is no "gaussian" key defined in the "%s" configuration file.' % misc['config_name'])      
+
+    # Check the options defined in the config file
+
+    benchmark = config['gaussian'].get('benchmark',False)
+
+    if not isinstance(benchmark, bool):
+      raise abin_errors.AbinError ('ERROR: The "benchmark" value given in the "gaussian" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    # Define the templates
+    # ====================
+
+    # Define the names of the templates.
+
+    template_input = "gaussian_cation.com.jinja"
+    template_script = "gaussian_cation_job.sh.jinja"
+
+    # Check if the specified templates exist in the "templates" directory of ABIN LAUNCHER.
+    
+    abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_input),"Jinja template for the gaussian cation input file","file")
+    abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the gaussian cation job script","file")
+
+    # Define rendered files
+    # =====================
+
+    # Define the names of the rendered files.
+
+    rendered_input = misc['mol_name'] + ".com"
+    rendered_script = "gaussian_cation_job.sh"
+
+    # Initialize the dictionary that will be returned by the function
+
+    rendered_content = {}
+
+    # ========================================================= #
+    #                  Rendering the input file                 #
+    # ========================================================= #
+  
+    print("{:<80}".format("\nRendering the jinja template for the gaussian cation input file ...  "), end="")
+
+    # Defining the mandatory Jinja variables
+    # ======================================
+
+    # Variables not associated with the config file
+
+    input_render_vars = {
+      "mol_name" : misc['mol_name'],
+      "mem_total" : job_specs['cores'] * job_specs['mem_per_cpu'],
+      "job_cores" : job_specs['cores'],
+      "coordinates" : file_data['atomic_coordinates']
+    }
+
+    # Variables associated with the "general" block of the config file
+
+    try:
+      charge = int(config['general']['charge'])
+      multiplicity = int(config['general']['multiplicity'])
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Determine the new charge and multiplicity of the cation
+
+    charge_cation = charge + 1
+
+    if multiplicity == 1: # In the case of a singlet ground state, we break a pair of electrons and thus "create" a new unpaired electron
+      multiplicity_cation = 2
+    else:
+      multiplicity_cation = multiplicity - 1 # We removed one unpaired electron
+
+    # Add the new variables
+
+    input_render_vars.update({
+      "charge" : charge,
+      "multiplicity" : multiplicity,
+      "charge_cation" : charge_cation,
+      "multiplicity_cation" : multiplicity_cation
+    })
+
+    # Check if a "keywords" block has been defined in the "gaussian" block of the config file
+
+    if not config['gaussian'].get('keywords'):
+      raise abin_errors.AbinError ('ERROR: There is no "keywords" key in the "gaussian" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "keywords" block of the "gaussian" block in the config file
+
+    try:
+      input_render_vars.update({
+        "method" : config['gaussian']['keywords']['method'],
+        "basis_set" : config['gaussian']['keywords']['basis_set'],
+        "other" : config['gaussian']['keywords']['other']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "keywords" block of the "gaussian" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Rendering the file
+    # ==================
+     
+    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, input_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #                  Rendering the job script                 #
+    # ========================================================= #
+
+    # Get the path to the "check_scripts" directory because the job script needs to execute gaussian_check.py
+
+    chains_path = os.path.dirname(misc['code_dir'])  
+    check_script_path = os.path.join(chains_path,"check_scripts")
+
+    # Load the CHAINS configuration file to get the path towards the IP file
+
+    chains_config_file = abin_errors.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
+
+    print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+    with open(chains_config_file, 'r') as chains:
+      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
+    print("{:<80}".format("\nRendering the jinja template for the gaussian job script ..."), end="")
+
+    # Defining the mandatory Jinja variables
+    # ======================================
+
+    # Variables not associated with the config file
+
+    script_render_vars = {  
+      "mol_name" : misc['mol_name'],
+      "config_file" : misc['config_name'],
+      "job_walltime" : job_specs['walltime'],
+      "job_cores" : job_specs['cores'],
+      "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+      "cluster_name" : job_specs['cluster_name'],
+      "partition" : job_specs['partition'],     
+      "chains_dir" : chains_path,
+      "check_dir" : check_script_path,
+      "benchmark" : benchmark    # Associated with the config file, but it has already been verified
+    }
+
+    # Variables associated with the "general" block of the config file
+
+    try:
+      script_render_vars.update({
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Variables associated with the clusters configuration file
+
+    try:
+      script_render_vars.update({
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
+        "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "%s" profile of the clusters configuration file.' % (error,job_specs['profile']))
+
+    # Variables associated with the CHAINS configuration file
+
+    try:
+      script_render_vars.update({
+        "ip_file" : chains_config['ip_file']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the CHAINS configuration file (chains_config.yml).' % error)
+
+    # Defining the specific Jinja variables
+    # =====================================
 
     # Variables specific to the benchmarking template
    
@@ -505,6 +761,7 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
 
     script_render_vars = {  
       "mol_name" : misc['mol_name'],
+      "config_file" : misc['config_name'],
       "job_walltime" : job_specs['walltime'],
       "job_cores" : job_specs['cores'],
       "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
@@ -547,7 +804,6 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
       # Variables not associated with the config file
 
       script_render_vars.update({
-        "config_file" : misc['config_name'],
         "job_script" : rendered_script
       })
 

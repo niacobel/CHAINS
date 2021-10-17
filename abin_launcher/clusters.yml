@@ -140,6 +140,46 @@ dragon2:
           partition_name: debug  
         - 
           label: small
+          scale_limit: 500
+          time: 3-00:00:00
+          cores: 8
+          mem_per_cpu: 1000 # in MB
+        - 
+          label: medium
+          scale_limit: 1000
+          time: 5-00:00:00
+          cores: 12
+          mem_per_cpu: 3000 # in MB
+          delay_command: --begin=now+60
+        - 
+          label: big
+          scale_limit: 1500
+          partition_name: long
+          time: 10-00:00:00
+          cores: 16  
+          mem_per_cpu: 4000 # in MB
+          delay_command: --begin=now+120
+        - 
+          label: very big
+          scale_limit: 2500
+          partition_name: long
+          time: 21-00:00:00
+          cores: 20
+          mem_per_cpu: 6000 # in MB  
+          delay_command: --begin=now+180
+    gaussian_cation:
+      rendering_function: chains_gaussian_cation_render
+      set_env:
+        - module --force purge
+        - module load gaussian/16_A03
+      command: g16
+      scaling_function: *scl_gauss
+      job_scales:
+        - 
+          <<: *tiny_gauss
+          partition_name: debug  
+        - 
+          label: small
           scale_limit: 400
           time: 5-00:00:00
           cores: 8
