@@ -410,6 +410,8 @@ def main():
     required_keys = ["number", "type", "label", "energy"]
     control_common.check_keys(required_keys,system["states_list"],"The 'states_list' list of the 'system' dictionary returned by the %s parsing function." % parsing_fct)
 
+    control_common.is_consecutive([state['number'] for state in system['states_list']],"Excited state numbers from the source file")
+
     # Check the MIME and the dipole moments matrices
 
     if not isinstance(system["mime"], (list, np.ndarray)):
@@ -879,7 +881,7 @@ def main():
     if not isinstance(transitions_list, list):
       raise control_common.ControlError ('ERROR: The transitions_list returned by the %s transition function is not a list.' % transition_fct) 
 
-    required_keys = ["label","init_state","target_state","energy","init_file","init_content","target_file","target_content","momdip_key"]
+    required_keys = ["label","init_states","target_states","init_file","init_content","target_file","target_content","momdip_key"]
     control_common.check_keys(required_keys,transitions_list,"Transitions list returned by the %s transition function" % transition_fct)
  
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
@@ -945,7 +947,7 @@ def main():
     with open(os.path.join(data_dir,state_file), "w") as f:
       print("Number;Type;Label;Energy (Ha)", file = f)
       for state in system['states_list']:
-        state_line = ";".join((str(state['number']),state['type'],state['label'],"{:.5e}".format(state['energy'])))
+        state_line = ";".join((str(state['number']),state['type'],state['label'],str(state['energy'])))
         print(state_line, file = f)
     print("    ├── The states list file ('%s') has been created into the directory" % state_file)
 
@@ -970,7 +972,7 @@ def main():
       print("Number;Label;Energy (Ha);Degeneracy;Main Contributor;Lifetime (a.u.)", file = f)
       # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
       for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['number']):
-        eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:.5e}".format(eigenstate['energy']),str(eigenstate['degeneracy']),eigenstate['main_cont'],"{:.5e}".format(eigenstate['lifetime'])))
+        eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],str(eigenstate['energy']),str(eigenstate['degeneracy']),eigenstate['main_cont'],str(eigenstate['lifetime'])))
         print(eigenstate_line, file = f)
     print("    ├── The eigenstates list file ('%s') has been created into the directory" % eigenstate_file)
 
@@ -1004,9 +1006,9 @@ def main():
 
     transitions_file = "transitions.csv"
     with open(os.path.join(data_dir,transitions_file), "w") as f:
-      print("Label;Initial state number;Target state number;Energy (Ha);Transition dipole moments matrix", file = f)
+      print("Label;Initial states;Target states;Transition dipole moments matrix", file = f)
       for transition in transitions_list:
-        transition_line = ";".join((transition['label'],str(transition['init_state']),str(transition['target_state']),"{:.5e}".format(transition['energy']),transition['momdip_key']))
+        transition_line = ";".join((transition['label'],str(transition['init_states']),str(transition['target_states']),transition['momdip_key']))
         print(transition_line, file = f)
     print("    ├── The transitions list file ('%s') has been created into the directory" % transitions_file)
 
@@ -1023,7 +1025,7 @@ def main():
             for val in line:
               print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
             print('', file = f)
-        print("    ├── The %s initial state file has been created into the directory" % init_filename)
+        print("    ├── The %s initial states file has been created into the directory" % init_filename)
       
       target_filename = transition["target_file"] + "1"
       if not os.path.exists(os.path.join(data_dir, target_filename)):
@@ -1032,7 +1034,7 @@ def main():
             for val in line:
               print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
             print('', file = f)
-        print("    ├── The %s target state file has been created into the directory" % target_filename)
+        print("    ├── The %s target states file has been created into the directory" % target_filename)
 
     # ========================================================= #
     # Other files                                               #

@@ -1,0 +1,19 @@
+user_email: nicolas.iacobellis@ulb.be
+mail_type: FAIL
+control:
+  time_step: 2.0d0                              # Duration of a time step (a.u. of time)
+  max_iter: 200                                 # Maximum number of iterations
+  threshold: 1.0d0                              # Convergence threshold for the fidelity
+opc:
+  nb_steps: 500000                              # Number of time steps
+  alpha: 5.0d+01                                # Constraint on the field amplitude
+  write_freq: 20                                # Number of iterations between each writing of the field
+guess_pulse:
+  pulse_type: SIM                               # Type of starting guess pulse
+  subpulse_type: sin                            # Type of subpulses ([sin], [pip] ou [gau])
+  amplitude: 1.9447d-05                         # Amplitude of the subpulses, in atomic units
+  phase_change: 0.d0                            # Dephasing
+  sign: 1                                       # Sign
+post_control:
+  analy_freq: 100                               # Number of steps between each analysis of the populations, phases, positions and energies
+

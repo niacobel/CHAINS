@@ -149,6 +149,34 @@ def check_keys(keys:list,dicts,context:str):
 
 #######################################################################
 
+def is_consecutive(numbers:list, context:str):
+    """Check if a list of numbers contains consecutive values or not and if those values start at 0.
+
+    Parameters
+    ----------
+    numbers : list
+        List of numbers that need to be checked.
+    context : str
+        Message describing the list of numbers being checked (shown on screen in case of an exception).
+    
+    Raises
+    ------
+    ControlError
+        If the values are not consecutive, or if the lowest value is not 0.
+
+    """
+
+    min_val = min(numbers)
+    max_val = max(numbers)
+
+    if min_val != 0:
+      raise ControlError ('\nContext: %s \nList: %s \nERROR: The minimum value of this list (%s) is not 0.' % (context, numbers, min_val))
+
+    if sorted(numbers) != list(range(min_val, max_val+1)):
+      raise ControlError ('\nContext: %s \nSorted list: %s \nERROR: The values are not consecutive.' % (context, sorted(numbers)))      
+
+#######################################################################
+
 def energy_unit_conversion(value:float,init:str,target:str) -> float:
     """|  Converts an energy value from an initial unit to a target unit by using atomic units of energy (Hartree) as an intermediary.
     |  Currently supported units: Hartree, cm\ :sup:`-1`\ , eV, nm, Hz and Joules

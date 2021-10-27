@@ -44,6 +44,12 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
     
     return output_text
 
+# =================================================================== #
+# =================================================================== #
+#                         Rendering functions                         #
+# =================================================================== #
+# =================================================================== #
+
 def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
     """Renders the job script and the two parameters files (OPM & PCP) associated with the QOCT-RA program in CHAINS.
 
@@ -216,9 +222,15 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     # Pulse duration
     # ~~~~~~~~~~~~~~
     
+    # Compute the transition energy that will act as the central frequency
+
+    init_number = misc['transition']['init_states'].index(max(misc['transition']['init_states']))
+    target_number = misc['transition']['target_states'].index(max(misc['transition']['target_states']))
+    omegazero = abs(system['eigenstates_list'][init_number]['energy'] - system['eigenstates_list'][target_number]['energy'])
+
     # Convert the central frequency to nanometers
 
-    omegazero_nm = control_common.energy_unit_conversion(misc['transition']['energy'],'ha','nm')
+    omegazero_nm = control_common.energy_unit_conversion(omegazero,'ha','nm')
 
     # Find the closest reference to our central frequency (see https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value)
 
@@ -262,7 +274,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
         if bandwidth_filter:
           param_render_vars.update({
             # OPC
-            "omegazero" : misc['transition']['energy'],
+            "omegazero" : omegazero,
             "bandwidth" : bandwidth
           })
 
@@ -485,8 +497,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       # Determine the frequency range of subpulses (delimited by the spectral bandwidth, centered around the transition energy)
 
-      upper_limit = misc['transition']['energy'] + bandwidth/2
-      lower_limit = misc['transition']['energy'] - bandwidth/2
+      upper_limit = omegazero + bandwidth/2
+      lower_limit = omegazero - bandwidth/2
 
       # Initialize the variables 
 
@@ -524,13 +536,12 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       if not sampling_freq > 2*max_freq:
         raise control_common.ControlError ('ERROR: The time step value (%s a.u.) is too big for this transition. The sampling rate (%e Hz) is not bigger than the double of the highest frequency of the signal (%e Hz).' % (time_step,sampling_freq, max_freq))
 
-      # Check if the total duration of the pulse is not too long compared to the lifetime of our target state
+      # Check if the total duration of the pulse is not too long compared to the lifetime of our most populated target state
 
-      target_index = misc['transition']['target_state']
-      time_limit = 0.01 * system['eigenstates_list'][target_index]['lifetime']
+      time_limit = 0.01 * system['eigenstates_list'][target_number]['lifetime']
 
       if duration > time_limit:
-        raise control_common.ControlError ('ERROR: The duration of the pulse (%s a.u.) is too long compared to the radiative lifetime of this excited state (%s a.u.).' % (duration,system['eigenstates_list'][target_index]['lifetime']))
+        raise control_common.ControlError ('ERROR: The duration of the pulse (%s a.u.) is too long compared to the radiative lifetime of this excited state (%s a.u.).' % (duration,system['eigenstates_list'][target_number]['lifetime']))
 
       #! Correct the values rather than raise an exception? Or calculate the values based on nstep (user-supplied) and time_limit (duration = time_limit and time_step = time_limit / nstep, then check against NYQ-SHA and decrease time_step and duration if necessary.)
 
@@ -644,8 +655,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     print("{:<30} {:<30}".format("Initial strength (a.u.): ", "{:.4e}".format(init_strength)))
     print("{:<30} {:<30}".format("Bandwidth (a.u.): ", "{:.4e}".format(bandwidth)))
     print("{:<30} {:<30}".format("Bandwidth (cm^-1): ", "{:.4e}".format(control_common.energy_unit_conversion(bandwidth,'ha','cm-1'))))    
-    print("{:<30} {:<30}".format("Central frequency (a.u.): ", "{:.4e}".format(misc['transition']['energy']))) 
-    print("{:<30} {:<30}".format("Central frequency (cm^-1): ", "{:.4e}".format(control_common.energy_unit_conversion(misc['transition']['energy'],'ha','cm-1')))) 
+    print("{:<30} {:<30}".format("Central frequency (a.u.): ", "{:.4e}".format(omegazero))) 
+    print("{:<30} {:<30}".format("Central frequency (cm^-1): ", "{:.4e}".format(control_common.energy_unit_conversion(omegazero,'ha','cm-1')))) 
     print("{:<30} {:<30}".format("Nb subpulses: ", len(subpulses)))
 
     if amplitude_filter:
@@ -655,5 +666,210 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       print("{:<30} {:<30}".format("Maximum strentgh (a.u.): ", "{:.4e}".format(max_strength_au)))
 
     print(''.center(60, '-'))
+
+    return rendered_content, rendered_script
+
+
+######################################################################################################################################
+
+
+def basic_opc_pcp_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
+    """Renders the job script and the two parameters files (OPC & PCP) associated with the QOCT-RA program in CHAINS.
+
+    Parameters
+    ----------
+    clusters_cfg : dict
+        Content of the YAML clusters configuration file.
+    config : dict
+        Content of the YAML configuration file.
+    system : dict
+        Information extracted by the parsing function and derived from it.
+    data : dict
+        Data directory path and the name of its files.
+    job_specs : dict
+        Contains all information related to the job.
+    misc : dict
+        Contains all the additional variables that did not pertain to the other arguments.
+
+    Returns
+    -------
+    rendered_content : dict
+        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
+    rendered_script : str
+        Name of the rendered job script, necessary to launch the job.
+    
+    Notes
+    -----
+    Pay a particular attention to the render_vars dictionaries, they contain all the definitions of the variables appearing in your Jinja templates.
+    """
+    # ========================================================= #
+    #                      Preparation step                     #
+    # ========================================================= #
+
+    # Define the names of the templates
+
+    template_param = "param.nml.jinja"
+    template_script = "basic_opc_pcp_job.sh.jinja"
+    template_pulse = "guess_pulse_OPC.jinja"
+
+    # Check if the specified templates exist in the "templates" directory of CONTROL LAUNCHER.
+    
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_param),"Jinja template for the qoctra parameters files","file")
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the qoctra job script","file")
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_pulse),"Jinja template for the OPC guess pulse","file")
+
+    # Define the names of the rendered files.
+
+    rendered_script = "basic_opc_pcp_job.sh"
+    rendered_pulse = "guess_pulse"
+    rendered_param = "param_" + misc['transition']['label'] + ".nml"
+    rendered_param_pcp = "param_" + misc['transition']['label'] + "_PCP.nml"
+
+    # Initialize the dictionary that will be returned by the function
+
+    rendered_content = {}
+
+    # ===================================================== #
+    #           Rendering the OPC parameters file           #
+    # ===================================================== #
+
+    print("{:<80}".format("\nRendering the jinja template for the OPC parameters file ...  "), end="")
+
+    # Defining the Jinja variables
+    # ============================
+
+    param_render_vars = {
+      # GENERAL
+      "source_name" : misc['source_name'],
+      "process" : "OPC",
+      # DATA FILES
+      "energies_file_path" : data['eigenvalues_path'],
+      "momdip_e_path" : data['momdip_es_mtx_path'],
+      "init_file_path" : data['init_path'],
+      "target_file_path" : data['target_path'],
+      # CONTROL
+      "max_iter" : config['control']['max_iter'],
+      "threshold" : config['control']['threshold'],
+      "time_step" : config['control']['time_step'],
+      "start_pulse" : " ",
+      "guess_pulse" : rendered_pulse,
+      # OPC
+      "nb_steps" : config['opc']['nb_steps'],
+      "alpha" : config['opc']['alpha'],
+      "write_freq" : config['opc']['write_freq'],
+      #! Temporary
+      # POST CONTROL
+      "mat_et0_path" : data['eigenvectors_path']
+    }
+
+    # Rendering the file
+    # ==================
+     
+    rendered_content[rendered_param] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #             Rendering the PCP parameters file             #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the PCP parameters file ...  "), end="")
+
+    # Defining the Jinja variables (via updating the dictionary from the OPC parameters file)
+    # ============================
+
+    param_render_vars.update({
+      # GENERAL
+      "process" : "PCP",
+      # CONTROL
+      "start_pulse" : "../Pulse/Pulse",
+      # POST CONTROL
+      "analy_freq" : config['post_control']['analy_freq'],
+      "mat_et0_path" : data['eigenvectors_path']
+    })
+
+    # Rendering the file
+    # ==================
+     
+    rendered_content[rendered_param_pcp] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #              Rendering the guess pulse file               #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the guess pulse file ...  "), end="")
+
+    # Defining the generic Jinja variables
+    # ====================================
+
+    pulse_render_vars = {
+      "basis" : data['eigenvalues_path'],
+      "pulse_type" : config['guess_pulse']['pulse_type'],
+      "subpulse_type" : config['guess_pulse']['subpulse_type'],
+      "init_strength" : config['guess_pulse']['amplitude'],
+      "phase_change" : config['guess_pulse']['phase_change'],
+      "sign" : config['guess_pulse']['sign']       
+    }
+
+    # Determine the subpulses constituting the guess pulse
+    # ====================================================
+
+    # Initialize the variable
+
+    subpulses = []
+
+    # Add all transitions from the ground state to each of the excited eigenstates
+
+    for state in range(1, len(system['eigenstates_list'])): # Starting at 1 to exclude the ground state 
+
+      subpulses.append("1 \t " + str(state + 1)) # +1 because Fortran starts numbering at 1 while Python starts at 0.
+
+    # Set the other variables associated with the subpulses
+    # =====================================================
+
+    pulse_render_vars.update({
+      "nb_subpulses" : len(subpulses),
+      "subpulses" : subpulses
+    })
+
+    # Rendering the file
+    # ==================
+     
+    rendered_content[rendered_pulse] = jinja_render(misc['templates_dir'], template_pulse, pulse_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #                  Rendering the job script                 #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the qoctra job script ..."), end="")
+
+    # Defining the Jinja variables
+    # ============================
+
+    script_render_vars = {
+      "source_name" : misc['source_name'],
+      "transition" : misc['transition']['label'],
+      "config_name" : misc['config_name'],
+      "user_email" : config['user_email'],
+      "mail_type" : config['mail_type'],
+      "job_walltime" : job_specs['walltime'],
+      "job_memory" : job_specs['memory'], # in MB
+      "partition" : job_specs['partition'],
+      "rendered_param" : rendered_param,
+      "rendered_param_PCP" : rendered_param_pcp,
+      "guess_pulse" : rendered_pulse,
+      "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env']
+    }
+
+    # Rendering the file
+    # ==================
+
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
+
+    print('%12s' % "[ DONE ]")
 
     return rendered_content, rendered_script

@@ -1,0 +1,81 @@
+#!/bin/bash
+
+{# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
+#SBATCH --output=slurm_output.log
+#SBATCH --job-name={{ source_name }}_{{ transition }}_{{ config_name }}
+#SBATCH --mail-user={{ user_email }}
+#SBATCH --mail-type={{ mail_type }}
+#SBATCH --time={{ job_walltime }}
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu={{ job_memory }}
+{% if partition != None -%}
+#SBATCH --partition={{ partition }}
+{%- endif %}
+
+# Job preparation
+# ===============
+
+cd $SLURM_SUBMIT_DIR
+
+# Define the QOCT-RA directory here
+QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
+
+# A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
+# See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
+
+SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
+
+echo -e "Creating temporary directory ${SCRATCH} on node(s) ${SLURM_JOB_NODELIST} for handling temporary files."
+
+mkdir -p $SCRATCH || exit $?
+
+cp $SLURM_SUBMIT_DIR/{{ rendered_param }} $SLURM_SUBMIT_DIR/{{ rendered_param_PCP }} $SLURM_SUBMIT_DIR/{{ guess_pulse }} $SCRATCH/ || exit $?
+
+cd $SCRATCH
+mkdir -p Verif # Strangely needed by QOCT-RA
+
+# Load the necessary modules
+
+{% for set_env_line in set_env -%}
+{{ set_env_line }}
+{% endfor %}
+
+# Compile the code (cluster dependent)
+
+echo -e ">>> Start of QOCT-RA compilation"
+gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
+rm mymod.mod  
+echo -e ">>> End of QOCT-RA compilation"
+
+# First execution to get the optimal pulse
+# ========================================
+
+echo -e "\n================= First QOCT-RA execution begins now =================="
+
+./Controle.out {{ rendered_param }} $QOCT_RA_DIR || { echo "ERROR: A problem has occcured during the first execution of QOCT-RA" && exit $?; }
+
+echo -e "\n================= First QOCT-RA execution ends now =================="
+
+# Second execution to test the optimal pulse (PCP mode)
+# =====================================================
+
+mkdir $SCRATCH/PCP
+mv Controle.out $SCRATCH/PCP/
+cd $SCRATCH/PCP/
+
+echo -e "\n================= PCP QOCT-RA execution begins now =================="
+
+./Controle.out $SCRATCH/{{ rendered_param_PCP }} $QOCT_RA_DIR || { echo "ERROR: A problem has occcured during the PCP execution of QOCT-RA" && exit $?; }
+rm Controle.out
+
+echo -e "\n================= PCP QOCT-RA execution ends now =================="
+
+# End of the job
+# ==============
+
+echo -e "\nCopying output files to the submit directory."
+rm -r $SCRATCH/Pulse/Pulse_iter*
+cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/  || { echo "ERROR: Unable to copy SCRATCH directory in the SLURM_SUBMIT_DIR" && exit $?; }
+
+echo -e "\nRemoving ${SCRATCH} directory."
+rm -rf $SCRATCH || echo "ERROR: A problem might have occurred when trying to remove temporary files."

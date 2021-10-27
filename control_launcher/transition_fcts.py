@@ -13,67 +13,70 @@ import numpy as np
 import control_common
 
 
-def build_transition(init_state:int,target_state:int,init_label:str,target_label:str,momdip_key:str,system:dict):
-    """Build the transition dictionary and the transition files for the transition going from the first given state to the second one.
+def build_transition(init_states:list,target_states:list,init_label:str,target_label:str,momdip_key:str):
+    """Build the transition dictionary and the transition files for the transition going from the first superposition of states to the second one.
 
     Parameters
     ----------
-    init_state : int
-        Number of the initial state.
-    target_state : int
-        Number of the target state.
+    init_states : list
+        List of population values for each of the states at the beginning of the operation.
+    target_states : list
+        List of desired population values for each of the states at the end of the operation.
     init_label : str
         Label of the initial state.
     target_label : str
         Label of the target state.
     momdip_key : str
         Key of the transition dipole moments matrix used for this transition.
-    system : dict
-        Information extracted by the parsing function and derived from it.
 
     Returns
     -------
     transition : dict
-        Dictionary containing nine keys:
+        Dictionary containing eight keys:
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
-          - ``init_state`` is the number of the initial state.
-          - ``target_state`` is the number of the target state.
-          - ``energy`` is the transition energy between the two states.
-          - ``init_file`` is the name of the initial state file, minus the number at the end.
-          - ``init_content`` is the content of the initial state file.
-          - ``target_file`` is the name of the target state file, minus the number at the end.
-          - ``target_content`` is the content of the target state file.
+          - ``init_states`` is the same as the one given in the parameters.
+          - ``target_states`` is the same as the one given in the parameters.
+          - ``init_file`` is the name of the initial states file, minus the number at the end.
+          - ``init_content`` is the content of the initial states file.
+          - ``target_file`` is the name of the target states file, minus the number at the end.
+          - ``target_content`` is the content of the target states file.
           - ``momdip_key`` is the key of the transition dipole moments matrix used for this transition.
     """
 
+    # Check that the length of both init_states and target_states are the same
+
+    if len(init_states) != len(target_states):
+      raise control_common.ControlError ('ERROR: The number of states is not the same between the initial and target states list (%s vs %s).' % (len(init_states),len(target_states)))
+
     # Defining the initial population file name and content
 
-    init_file = "I_" + init_label + "_"
+    init_file = init_label + "_"
 
-    init_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+    init_content = np.zeros((len(init_states), len(init_states)),dtype=complex)  # Quick init of a zero-filled matrix
 
-    init_content[init_state][init_state] = 1 + 0j
+    idx = 0
+    for pop in init_states:
+      init_content[idx][idx] = complex(pop)
+      idx += 1
 
     # Defining the target population file name and content
     
-    target_file = "T_" + target_label + "_"
+    target_file = target_label + "_"
 
-    target_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+    target_content = np.zeros((len(target_states), len(target_states)),dtype=complex)  # Quick init of a zero-filled matrix
 
-    target_content[target_state][target_state] = 1 + 0j
-
-    # Calculate the transition energy (in Ha)
-
-    energy = abs(system['eigenstates_list'][init_state]['energy'] - system['eigenstates_list'][target_state]['energy'])
+    idx = 0
+    for pop in target_states:
+      target_content[idx][idx] = complex(pop)
+      idx += 1
 
     # Building the transition dictionary
 
     transition = {
       "label" : momdip_key + "_" + init_label + "-" + target_label,
-      "init_state" : init_state,
-      "target_state" : target_state,
-      "energy" : energy,
+      "init_states" : init_states,
+      "target_states" : target_states,
       "init_file" : init_file,
       "init_content" : init_content,
       "target_file" : target_file,
@@ -100,12 +103,11 @@ def brightests_to_darkests_and_reverse(system:dict):
     Returns
     -------
     transitions_list : list
-        List of dictionaries containing nine keys each: 
+        List of dictionaries containing eight keys each: 
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
-          - ``init_state`` is the number of the initial state.
-          - ``target_state`` is the number of the target state.
-          - ``energy`` is the transition energy between the two states.
+          - ``init_states`` is the list of population values for each of the states at the beginning of the operation.
+          - ``target_states`` is the list of desired population values for each of the states at the end of the operation.
           - ``init_file`` is the name of the initial state file, minus the number at the end.
           - ``init_content`` is the content of the initial state file.
           - ``target_file`` is the name of the target state file, minus the number at the end.
@@ -120,8 +122,8 @@ def brightests_to_darkests_and_reverse(system:dict):
     # Set the number of bright and dark states to consider
     #! Keep in mind that you will end up with a total number of transitions corresponding to bmax * dmax * the number of transition dipole moments matrices!
 
-    bmax = 2 # Maximum number of bright states to consider (e.g. if bmax = 2, then only the two brightest states will be considered)
-    dmax = 2 # Maximum number of dark states to consider (e.g. if dmax = 2, then only the two darkest states will be considered)
+    bmax = 1 # Maximum number of bright states to consider (e.g. if bmax = 2, then only the two brightest states will be considered)
+    dmax = 1 # Maximum number of dark states to consider (e.g. if dmax = 2, then only the two darkest states will be considered)
 
     # ========================================================= #
     #                   Defining transitions                    #
@@ -162,6 +164,11 @@ def brightests_to_darkests_and_reverse(system:dict):
       # iter_bright is the number of the current iteration of this loop, e.g if bmax = 3, then iter_bright will be 0, then 1, then 2. (useful to label the transition)
       # bright_index is the number of the state currently considered, e.g. if bright_max_indices = [5, 7, 6, 8] and iter_bright = 1, then bright_index = 7.
 
+        # Build the initial states list
+
+        init_states = list(0 for x in range(len(system['eigenstates_list'])))
+        init_states[bright_index] = 1
+
         # Iterate over the dark states
         # ============================
 
@@ -178,6 +185,11 @@ def brightests_to_darkests_and_reverse(system:dict):
             print("\nNOTICE: The transition %s will be skipped since both states are the same (%s)." % (transition_label,state_label))
             continue
 
+          # Build the target states list
+
+          target_states = list(0 for x in range(len(system['eigenstates_list'])))
+          target_states[dark_index] = 1
+
           # ========================================================= #
           #            Building the transition dictionary             #
           # ========================================================= #
@@ -187,24 +199,23 @@ def brightests_to_darkests_and_reverse(system:dict):
 
           # Call the build_transition function using the current information for this transition
 
-          transition = build_transition(bright_index,dark_index,bright_label,dark_label,momdip_key,system)
+          transition = build_transition(init_states,target_states,bright_label,dark_label,momdip_key)
 
           # Update the label to something less generic and more informative
           # e.g. X_1B2D_E8-E2 indicates a transition based on the transition dipole moments matrix associated with the "X" key (X axis), involving the brightest state (1B) and the second darkest state (2D), the labels of those states being E8 and E2, respectively.
 
-          transition_label = momdip_key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label 
+          transition_label = momdip_key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label
           transition.update({ "label": transition_label}) 
 
           # Pretty recap for the log file
 
           print("")
-          print(''.center(50, '-'))
-          print("{:<20} {:<30}".format("Label: ", transition["label"]))
-          print(''.center(50, '-'))
-          print("{:<20} {:<30}".format("Initial state: ", "%s" % bright_label))
-          print("{:<20} {:<30}".format("Target state: ", "%s" % dark_label))
-          print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
-          print(''.center(50, '-'))
+          print(''.center(80, '-'))
+          print("{:<20} {:<60}".format("Label: ", transition["label"]))
+          print(''.center(80, '-'))
+          print("{:<20} {:<60}".format("Initial states: ", "%s (%s)" % (init_states,bright_label)))
+          print("{:<20} {:<60}".format("Target states: ", "%s (%s)" % (target_states,dark_label)))
+          print(''.center(80, '-'))
 
           # Add the transition to the transitions list
 
@@ -216,7 +227,7 @@ def brightests_to_darkests_and_reverse(system:dict):
 
           # Call the build_transition function but inverting the initial and target state
 
-          transition = build_transition(dark_index,bright_index,dark_label,bright_label,momdip_key,system)
+          transition = build_transition(target_states,init_states,dark_label,bright_label,momdip_key)
 
           # Update the label to something less generic and more informative
           # e.g. R_X_2D1B_E2-E8 indicates a "reverse" transition based on the transition dipole moments matrix associated with the "X" key (X axis), involving the second darkest state (2D) and the brightest state (1B), the labels of those states being E2 and E8, respectively.
@@ -227,19 +238,20 @@ def brightests_to_darkests_and_reverse(system:dict):
           # Pretty recap for the log file
 
           print("")
-          print(''.center(50, '-'))
-          print("{:<20} {:<30}".format("Label: ", transition["label"]))
-          print(''.center(50, '-'))
-          print("{:<20} {:<30}".format("Initial state: ", "%s" % dark_label))
-          print("{:<20} {:<30}".format("Target state: ", "%s" % bright_label))
-          print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
-          print(''.center(50, '-'))
+          print(''.center(80, '-'))
+          print("{:<20} {:<60}".format("Label: ", transition["label"]))
+          print(''.center(80, '-'))
+          print("{:<20} {:<60}".format("Initial states: ", "%s (%s)" % (target_states,dark_label)))
+          print("{:<20} {:<60}".format("Target states: ", "%s (%s)" % (init_states,bright_label)))
+          print(''.center(80, '-'))
 
           # Add the reverse transition to the transitions list, before proceeding with the next darkest state (or the next brightest state, if this was the last one)
 
           transitions_list.append(transition)
 
     return transitions_list
+
+#######################################################################
 
 def closest_bright_to_dark(system:dict):
     """Determines the transition files needed by QOCT-RA for the transition between the bright and dark states with the lowest transition energy between themselves, in the eigenstates basis set.
@@ -318,6 +330,83 @@ def closest_bright_to_dark(system:dict):
       transitions_list.append(transition)
 
     return transitions_list
+
+#######################################################################
+
+def dark_zero_order(system:dict):
+    """Determines the transition files needed by QOCT-RA for the transition between the ground state and each dark zero order state, expressed as a linear combination of eigenstates. Note: the handling of degenerated states must be turned off during execution of CONTROL LAUNCHER (the -dt / --degen_tresh command line argument must have a negative value).
+
+    Parameters
+    ----------
+    system : dict
+        Information extracted by the parsing function and derived from it.
+
+    Returns
+    -------
+    transitions_list : list
+        List of dictionaries containing eight keys each: 
+
+          - ``label`` is the label of the transition, which will be used for the name of the job directories.
+          - ``init_states`` is the list of population values for each of the states at the beginning of the operation.
+          - ``target_states`` is the list of desired population values for each of the states at the end of the operation.
+          - ``init_file`` is the name of the initial state file, minus the number at the end.
+          - ``init_content`` is the content of the initial state file.
+          - ``target_file`` is the name of the target state file, minus the number at the end.
+          - ``target_content`` is the content of the target state file.
+          - ``momdip_key`` is the key of the transition dipole moments matrix used for this transition.
+    """  
+
+    # Initialize the dictionary that will be returned by the function
+
+    transitions_list = []
+
+    # Identify the dark zero order states and their associated linear combinations of eigenstates
+
+    dark_states = {}
+
+    for state in system['states_list']:
+      if state['number'] == 0:
+        continue # exclude the ground state
+      elif state['type'].lower() == "dark":
+        dark_states[state['label']] = system['transpose'][state['number']].tolist()
+
+    # Build the initial states list
+
+    gs_state = [state for state in system['states_list'] if state['number'] == 0][0]
+
+    init_states = list(0 for x in range(len(system['states_list'])))
+    init_states[gs_state['number']] = 1
+
+    # Iterate over the dark zero order states
+    
+    for dark_label, dark_combi in dark_states.items():
+
+      # Build the target states list
+
+      target_states = [coeff **2 for coeff in dark_combi]
+
+      # Building the transition dictionary (one for each transition dipole moment matrix)
+
+      for momdip_key in system['momdip_mtx']:
+
+        # Call the build_transition function using the current information for this transition
+
+        transition = build_transition(init_states,target_states,gs_state['label'],dark_label,momdip_key)
+
+        # Pretty recap for the log file
+
+        print("")
+        print(''.center(80, '-'))
+        print("{:<20} {:<60}".format("Label: ", transition["label"]))
+        print(''.center(80, '-'))
+        print("{:<20} {:<60}".format("Initial states: ", "%s (%s)" % (init_states,gs_state['label'])))
+        print("{:<20} {:<60}".format("Target states: ", "%s (%s)" % (target_states,dark_label)))
+        print(''.center(80, '-'))
+
+        transitions_list.append(transition)
+
+    return transitions_list
+
 
 def brightests_to_coupled_darks(system:dict):
     """Determines the transition files needed by QOCT-RA for transitions going from the brightest states of the molecule to their most coupled ('brightest') dark states.

@@ -208,6 +208,10 @@ def qchem_tddft(source_content:list):
     if cnt_singlet != nb_roots:
       raise control_common.ControlError ("ERROR: The parsing function could not find the right number of excited singlet states in the source file (%s of the %s expected singlet states have been found)" % (cnt_singlet,nb_roots))
 
+    # Raise an exception if the state numbers are not consecutive and starting at 0
+
+    control_common.is_consecutive([state['number'] for state in system['states_list']],"Excited state numbers from the QCHEM output file")
+
     print("[ DONE ]")
 
     # ========================================================= #
@@ -544,5 +548,444 @@ def qchem_tddft(source_content:list):
 
     for state in system['states_list']:
       state['energy'] = control_common.energy_unit_conversion(state['energy'],"cm-1","ha")
+
+    return system
+
+# =================================================================== #
+# =================================================================== #
+#                     Custom File Parsing Function                    #
+# =================================================================== #
+# =================================================================== #
+
+def custom_file(source_content:list):
+    """Parses the content of a custom source file, looking to build the MIME and the transition dipole moments matrices of the molecule. Consult the official documentation for more information on the format of the custom file.
+
+    Parameters
+    ----------
+    source_content : list
+        Content of the custom file. Each element of the list is a line of the file.
+    
+    Returns
+    -------
+    system : dict
+        The extracted information of the source file. It contains three keys and their associated values: ``states_list``, ``mime`` and ``momdip_mtx`` where
+        
+        - ``states_list`` is a list of dictionaries containing four keys each: ``number``, ``type``, ``label`` and ``energy`` where
+
+          - ``number`` is the number of the state, starting at 0 (which is the ground state).
+          - ``type`` reflects the selection rule for transitions going from the ground state to this state, i.e. either "Bright" or "Dark".
+          - ``energy`` is the excitation energy of the state, in Ha.
+          - ``label`` is the label of the state, as specified in the custom file.
+
+        - ``mime`` is a NumPy array, representing the Matrix Image of the MoleculE which acts as an effective Hamiltonian. It contains the state energies on the diagonal elements, and the state couplings on the non-diagonal elements (in Hartree).
+
+        - ``momdip_mtx`` is a dictionary containing the transition dipole moments matrix (in atomic units).
+
+    Raises
+    ------
+    ControlError
+        If some of the needed values are missing or unknown.
+
+    """
+
+    # Initialize the system dictionary that will be returned by the function
+
+    system = {}
+
+    # ========================================================= #
+    #                        States List                        #
+    # ========================================================= #
+
+    print("{:<50}".format("\nParsing the states list ...  "), end="")
+
+    # Initialization of the variables
+
+    section_found = False
+    system['states_list'] = []
+
+    # Define the expression patterns for the lines containing information about the states
+
+    states_rx = {
+
+      # Pattern for finding the "  1. States list" line (which marks the start of the section)
+      'start': re.compile(r'^\s*1\.\s+States\s+list\s*$'),
+
+      # Pattern for finding lines looking like 'Number      Type        Label       Energy (cm-1)'
+      'unit_line': re.compile(r'^\s*Number\s+Type\s+Label\s+Energy\s+\((?P<unit>[a-zA-Z_0-9\-]+)\)\s*$'),
+
+      # Pattern for finding lines looking like '1           Bright      EA          4375.800918'
+      'state_line': re.compile(r'^\s*(?P<number>\d+)\s+(?P<type>[a-zA-Z_0-9\-]+)\s+(?P<label>[a-zA-Z_0-9\-]+)\s+(?P<energy>\d+|\d+\.\d+|\d+\.\d+E[-+]\d+)\s*$'),
+
+      # Pattern for finding the "  2. Couplings" line (which marks the end of the section)
+      'end': re.compile(r'^\s*2\.\s+Couplings\s*$')
+
+    }
+
+    # Parse the source file to get the information and build the states list
+
+    for line in source_content:
+
+      # Define when the section begins and ends
+
+      if not section_found:
+        if states_rx['start'].match(line):
+          section_found = True
+    
+      elif section_found and states_rx['end'].match(line):
+        break
+        
+      # Get the energy unit
+
+      elif states_rx['unit_line'].match(line):
+        energy_unit = states_rx['unit_line'].match(line).group("unit")
+            
+      # Extract the values of each state line
+
+      elif states_rx['state_line'].match(line):
+
+        state_number = int(states_rx['state_line'].match(line).group("number"))
+        state_type = states_rx['state_line'].match(line).group("type")
+        state_label = states_rx['state_line'].match(line).group("label")
+        state_energy = float(states_rx['state_line'].match(line).group("energy"))
+
+        # Convert the energy value to Ha
+
+        state_energy = control_common.energy_unit_conversion(state_energy,energy_unit,'Ha')
+
+        # Append information about the current state to the states_list variable
+
+        system['states_list'].append({'number': state_number, 'type': state_type, 'label': state_label, 'energy': state_energy})
+
+    # Raise an exception if the section has not been found
+
+    if not section_found:
+      raise control_common.ControlError ("ERROR: Unable to find the 'States list' section in the source file")
+
+    # Raise an exception if the state numbers are not consecutive and starting at 0
+
+    control_common.is_consecutive([state['number'] for state in system['states_list']],"Excited state numbers from the source file")
+
+    print("[ DONE ]")
+
+    # ========================================================= #
+    #                       Couplings List                      #
+    # ========================================================= #
+
+    print("{:<50}".format("\nParsing the coupling values ...  "), end="")
+
+    # Initialization of the variables
+
+    section_found = False
+    coupling_list = []
+    
+    # Define the expression patterns for the lines containing information about the couplings
+    
+    coupling_rx = {
+
+      # Pattern for finding the "  2. Couplings" line (which marks the start of the section)
+      'start': re.compile(r'^\s*2\.\s+Couplings\s*$'),
+
+      # Pattern for finding lines looking like 'State 1     State 2     Value (cm-1)'
+      'unit_line': re.compile(r'^\s*State\s+1\s+State\s+2\s+Value\s+\((?P<unit>[a-zA-Z_0-9\-]+)\)\s*$'),
+
+      # Pattern for finding lines looking like '2           3          -4.669548'
+      'coupling_line': re.compile(r'^\s*(?P<state_1>\d+)\s+(?P<state_2>\d+)\s+(?P<coupling>[-]?\d+|[-]?\d+\.\d+|[-]?\d+\.\d+E[-+]\d+)\s*$'),
+
+      # Pattern for finding the "  3. Transition dipole moments" line (which marks the end of the section)
+      'end': re.compile(r'^\s*3\.\s+Transition\s+dipole\s+moments\s*$')
+
+    }
+
+    # Parse the source file to get the information and build the SOC list
+
+    for line in source_content:
+
+      # Define when the section begins and ends
+
+      if not section_found:
+        if coupling_rx['start'].match(line):
+          section_found = True
+    
+      elif section_found and coupling_rx['end'].match(line):
+        break
+
+      # Get the energy unit
+
+      elif coupling_rx['unit_line'].match(line):
+        coupling_unit = coupling_rx['unit_line'].match(line).group("unit")
+            
+      # Extract the values of each coupling line
+
+      elif coupling_rx['coupling_line'].match(line):
+
+        state_1 = int(coupling_rx['coupling_line'].match(line).group("state_1"))
+        state_2 = int(coupling_rx['coupling_line'].match(line).group("state_2"))
+        coupling_energy = float(coupling_rx['coupling_line'].match(line).group("coupling"))
+
+        # Raise an exception if one of the state numbers has not been registered previously
+
+        if state_1 not in [state['number'] for state in system['states_list']]:
+          raise control_common.ControlError ("ERROR: One of the 'State 1' numbers in the 'Couplings' section of the source file does not appear in the 'States list' section")
+
+        if state_2 not in [state['number'] for state in system['states_list']]:
+          raise control_common.ControlError ("ERROR: One of the 'State 2' numbers in the 'Couplings' section of the source file does not appear in the 'States list' section")
+
+        # Convert the coupling value to Ha
+
+        coupling_energy = control_common.energy_unit_conversion(coupling_energy,coupling_unit,'Ha')
+
+        # Append information about the current coupling to the coupling_list variable
+
+        coupling_list.append((state_1,state_2,coupling_energy))
+
+    # Raise an exception if the section has not been found
+
+    if not section_found:
+      raise control_common.ControlError ("ERROR: Unable to find the 'Couplings' section in the source file")
+
+    print("[ DONE ]")
+
+    # ========================================================= #
+    #                       MIME Creation                       #
+    # ========================================================= #
+
+    print("{:<50}".format("\nBuilding the MIME ... "), end="")   
+
+    # Initialize the MIME as a zero-filled matrix
+
+    system['mime'] = np.zeros((len(system['states_list']), len(system['states_list'])))
+
+    # Creation of the MIME - Non-diagonal values (couplings)
+
+    for coupling in coupling_list:
+      k1 = coupling[0]
+      k2 = coupling[1]
+      val = coupling[2]
+      system['mime'][k1][k2] = val
+      system['mime'][k2][k1] = val    # For symetry purposes
+
+    # Creation of the MIME - Diagonal values (state energies)
+
+    for state in system['states_list']:
+      system['mime'][state['number']][state['number']] = state['energy']
+
+    print("[ DONE ]")
+
+    # ========================================================= #
+    #                    Dipole Moments List                    #
+    # ========================================================= #
+
+    print("{:<50}".format("\nParsing the transition dipole moments ...  "), end="")
+
+    # Initialization of the variables
+
+    section_found = False
+    momdip_list = []
+
+    # Define the expression patterns for the lines containing information about the dipole moments
+
+    moment_rx = {
+
+      # Pattern for finding the "  3. Transition dipole moments" line (which marks the start of the section)
+      'start': re.compile(r'^\s*3\.\s+Transition\s+dipole\s+moments\s*$'),
+
+      # Pattern for finding lines looking like 'State 1     State 2     X value (D)   Y value (D)   Z value (D)'
+      'unit_line': re.compile(r'^\s*State\s+1\s+State\s+2\s+X\s+value\s+\((?P<unit>[a-zA-Z_0-9\-]+)\)\s+Y\s+value\s+Z\s+value\s*$'),
+
+      # Pattern for finding lines looking like '2           3          -4.669548'
+      'momdip_line': re.compile(r'^\s*(?P<state_1>\d+)\s+(?P<state_2>\d+)\s+(?P<mom_x>[-]?\d+|[-]?\d+\.\d+|[-]?\d+\.\d+E[-+]\d+)\s+(?P<mom_y>[-]?\d+|[-]?\d+\.\d+|[-]?\d+\.\d+E[-+]\d+)\s+(?P<mom_z>[-]?\d+|[-]?\d+\.\d+|[-]?\d+\.\d+E[-+]\d+)\s*$')
+
+    }
+
+    # Parse the source file to get the information and build the dipole moments list
+
+    for line in source_content:
+
+      # Define when the section begins
+
+      if not section_found:
+        if moment_rx['start'].match(line):
+          section_found = True
+
+      # Get the unit
+
+      elif moment_rx['unit_line'].match(line):
+
+        moment_unit = moment_rx['unit_line'].match(line).group("unit").lower()
+
+        # Check the unit
+
+        supported_units = ['d','au']
+
+        if moment_unit not in supported_units:
+          raise control_common.ControlError ("ERROR: The unit of the transition dipole moment (%s) is currently not supported. Supported values include: %s" % (moment_unit,supported_units))
+
+      # Extract the values of each moment line
+  
+      elif moment_rx['momdip_line'].match(line):
+  
+        state_1 = int(moment_rx['momdip_line'].match(line).group("state_1"))
+        state_2 = int(moment_rx['momdip_line'].match(line).group("state_2"))
+        momdip_x = float(moment_rx['momdip_line'].match(line).group("mom_x"))
+        momdip_y = float(moment_rx['momdip_line'].match(line).group("mom_y"))
+        momdip_z = float(moment_rx['momdip_line'].match(line).group("mom_z"))
+
+        # Raise an exception if one of the state numbers has not been registered previously
+
+        if state_1 not in [state['number'] for state in system['states_list']]:
+          raise control_common.ControlError ("ERROR: One of the 'State 1' numbers in the 'Transition dipole moments' section of the source file does not appear in the 'States list' section")
+
+        if state_2 not in [state['number'] for state in system['states_list']]:
+          raise control_common.ControlError ("ERROR: One of the 'State 2' numbers in the 'Transition dipole moments' section of the source file does not appear in the 'States list' section")
+
+        # If necessary, convert the moment values to atomic units (conversion factor from https://link.springer.com/content/pdf/bbm%3A978-3-319-89972-5%2F1.pdf)
+
+        if moment_unit == 'd':
+          conv_factor = 0.3934303
+          momdip_x = momdip_x * conv_factor
+          momdip_y = momdip_y * conv_factor
+          momdip_z = momdip_z * conv_factor
+
+        # Append information about the current moment to the momdip_list variable
+
+        momdip_list.append((state_1,state_2,momdip_x,momdip_y,momdip_z))
+
+    # Raise an exception if the section has not been found
+
+    if not section_found:
+      raise control_common.ControlError ("ERROR: Unable to find the 'Transition dipole moments' section in the source file")
+
+    print("[ DONE ]")
+
+    # ========================================================= #
+    #                   Dipole Moments Matrices                 #
+    # ========================================================= #
+
+    print("{:<50}".format("\nBuilding transition dipole moments matrices ... "), end="")
+
+    # Intialize the momdip_mtx dictionary
+
+    system['momdip_mtx'] = {}
+
+    # Initialize the matrices as zero-filled matrices
+
+    system['momdip_mtx']['X'] = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+    system['momdip_mtx']['Y'] = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+    system['momdip_mtx']['Z'] = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+
+    # Filling the matrices
+
+    for momdip in momdip_list:
+
+      k1 = momdip[0]
+      k2 = momdip[1]
+
+      system['momdip_mtx']['X'][k1][k2] = momdip[2]
+      system['momdip_mtx']['X'][k2][k1] = momdip[2]    # For symetry purposes
+
+      system['momdip_mtx']['Y'][k1][k2] = momdip[3]
+      system['momdip_mtx']['Y'][k2][k1] = momdip[3]    # For symetry purposes
+
+      system['momdip_mtx']['Z'][k1][k2] = momdip[4]
+      system['momdip_mtx']['Z'][k2][k1] = momdip[4]    # For symetry purposes
+
+    print("[ DONE ]")
+
+    # ========================================================= #
+    #           Radiative lifetime of excited states            #
+    # ========================================================= #
+
+    print("{:<50}".format("\nComputing radiative lifetimes ... "), end="")
+
+    # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
+    # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
+    # Note that this calculation is performed using atomic units, which means the Planck constant equals 2*pi and the vacuum permittivity equals 1/(4*pi)
+
+    # Constants
+
+    light_speed_au = constants.value('speed of light in vacuum') / constants.value('atomic unit of velocity')
+
+    # Calculate the radiative lifetime of each excited state
+
+    for state in system['states_list']:
+
+      sum_einstein_coeffs = 0
+
+      for other_state in system['states_list']:
+
+        if other_state['energy'] < state['energy']:
+
+          # Compute and convert the energy difference
+
+          energy_diff = state['energy']- other_state['energy']
+
+          # Compute the square of the transition dipole moment
+
+          square_dipole = 0
+          for momdip_key in system['momdip_mtx']:
+            square_dipole += system['momdip_mtx'][momdip_key][state['number']][other_state['number']] ** 2
+
+          # Calculate the A Einstein Coefficient   
+         
+          einstein_coeff = (4/3) * square_dipole * (energy_diff**3) / (light_speed_au**3)
+          sum_einstein_coeffs += einstein_coeff
+
+      if sum_einstein_coeffs == 0:
+        state['lifetime'] = float('inf')
+      else:
+        state['lifetime'] = 1 / sum_einstein_coeffs
+
+    print("[ DONE ]")
+
+    # ========================================================= #
+    #              Printing values in the log file              #
+    # ========================================================= #
+
+    # Printing the states list
+    # ========================
+
+    print("")
+    print(''.center(70, '-'))
+    print('States List'.center(70, ' '))
+    print(''.center(70, '-'))
+    print("{:<10} {:<15} {:<10} {:<15} {:<15}".format('Number','Type','Label','Energy (Ha)','Lifetime (a.u.)'))
+    print(''.center(70, '-'))
+    for state in system['states_list']:
+      print("{:<10} {:<15} {:<10} {:<15.5f} {:<15.5e}".format(state['number'],state['type'],state['label'],state['energy'],state['lifetime']))
+    print(''.center(70, '-'))
+
+    # Printing the couplings list
+    # ===========================
+
+    print("")
+    print(''.center(40, '-'))
+    print('Couplings'.center(40, ' '))
+    print(''.center(40, '-'))
+    print("{:<10} {:<10} {:<20}".format('State 1','State 2','Value (Ha)'))
+    print(''.center(40, '-'))
+    for coupling in coupling_list:
+      print("{:<10} {:<10} {:<.6g}".format(coupling[0],coupling[1],coupling[2]))
+    print(''.center(40, '-'))    
+
+    # Printing the momdip list
+    # ========================
+
+    print("")
+    print(''.center(85, '-'))
+    print('Transition dipole moments'.center(85, ' '))
+    print(''.center(85, '-'))
+    print("{:<10} {:<10} {:<20} {:<20} {:<20}".format('State 1','State 2','X value (a.u.)','Y value (a.u.)','Z value (a.u.)'))
+    print(''.center(85, '-'))
+    for momdip in momdip_list:
+      print("{:<10} {:<10} {:<20} {:<20} {:<20}".format(momdip[0],momdip[1],momdip[2],momdip[3],momdip[4]))
+    print(''.center(85, '-'))    
+
+    # ========================================================= #
+    #                    End of the function                    #
+    # ========================================================= #
+
+    # Remove dipole moment matrices filled with zeroes as they are useless
+
+    system['momdip_mtx'] = { momdip_key : matrix for momdip_key, matrix in system['momdip_mtx'].items() if not np.all((matrix == 0)) }
 
     return system
