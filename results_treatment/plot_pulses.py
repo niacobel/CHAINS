@@ -11,6 +11,7 @@
 
 import argparse
 import csv
+import math
 import os
 import re
 import shutil
@@ -21,8 +22,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from matplotlib.ticker import AutoMinorLocator
-from scipy.fft import rfft, rfftfreq
 from scipy import constants
+from scipy.fft import rfft, rfftfreq
 
 import results_common
 
@@ -229,6 +230,11 @@ def main():
       required_keys = ['Label', 'Energy (Ha)', 'Initial state number', 'Target state number', 'Transition dipole moments matrix']
       results_common.check_keys(required_keys,transitions_list,"Transitions list file at %s" % transitions_file)
 
+      # Load the eigenvalues list
+
+      eigenvalues_file = results_common.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file")
+      eigenvalues = np.loadtxt(eigenvalues_file).tolist()
+
       print('%12s' % "[ DONE ]")
 
     # ========================================================= #
@@ -430,6 +436,7 @@ def main():
             # Save the figure
 
             fig.set_size_inches(8, 10)
+            fig.suptitle(mol_name + "_" + dirname)
             plt.tight_layout()
             plt.savefig(os.path.join(out_dir,'%s_%s_pulses.png' % (mol_name,dirname)),dpi=200)
             plt.close()
@@ -459,8 +466,9 @@ def main():
 
             current_column = 0
 
-            for eigenstate in eigenstates_list:
+            for eigenvalue in eigenvalues:
               current_column += 1
+              eigenstate = [state for state in eigenstates_list if math.isclose(float(state['Energy (Ha)']),eigenvalue,rel_tol=1e-5)][0]
               ax_pop.plot(time * 1e12,pop_file_content[:,current_column],label=eigenstate['Label'])
 
             # Legend the graph
@@ -516,6 +524,7 @@ def main():
             # Save the figure
 
             fig2.set_size_inches(8, 10)
+            fig2.suptitle(mol_name + "_" + dirname)
             plt.tight_layout()
             plt.savefig(os.path.join(out_dir,'%s_%s_pop_fid.png' % (mol_name,dirname)),dpi=200)
             plt.close()
