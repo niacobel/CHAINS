@@ -56,6 +56,11 @@ cd $SLURM_SUBMIT_DIR
 source {{ chains_dir }}/load_modules.sh
 python {{ check_dir }}/gaussian_check.py {{ mol_name }}.log  || exit $?
 
+# Reload Gaussian in order to use some of its useful scripts
+{% for set_env_line in set_env -%}
+{{ set_env_line }}
+{% endfor -%}
+
 # Archive checkpoint file
 echo -e "\nArchiving checkpoint file."
 formchk {{ mol_name }}_cation.chk {{ mol_name }}_cation.fchk # Convert the checkpoint file from binary to text file
