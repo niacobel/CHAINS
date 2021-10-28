@@ -9,6 +9,7 @@ import contextlib
 import os
 
 import numpy as np
+import scipy
 
 import control_common
 
@@ -360,194 +361,74 @@ def dark_zero_order(system:dict):
 
     transitions_list = []
 
-    # Identify the dark zero order states and their associated linear combinations of eigenstates
-
-    dark_states = {}
-
-    for state in system['states_list']:
-      if state['number'] == 0:
-        continue # exclude the ground state
-      elif state['type'].lower() == "dark":
-        dark_states[state['label']] = system['transpose'][state['number']].tolist()
-
-    # Build the initial states list
+    # Define the initial density matrix file name and content
 
     gs_state = [state for state in system['states_list'] if state['number'] == 0][0]
 
-    init_states = list(0 for x in range(len(system['states_list'])))
-    init_states[gs_state['number']] = 1
+    init_file = gs_state['label'] + "_"
+
+    init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+
+    init_content[gs_state['number']][gs_state['number']] = complex(1)
 
     # Iterate over the dark zero order states
-    
-    for dark_label, dark_combi in dark_states.items():
-
-      # Build the target states list
-
-      target_states = [coeff **2 for coeff in dark_combi]
-
-      # Building the transition dictionary (one for each transition dipole moment matrix)
-
-      for momdip_key in system['momdip_mtx']:
-
-        # Call the build_transition function using the current information for this transition
-
-        transition = build_transition(init_states,target_states,gs_state['label'],dark_label,momdip_key)
-
-        # Pretty recap for the log file
-
-        print("")
-        print(''.center(80, '-'))
-        print("{:<20} {:<60}".format("Label: ", transition["label"]))
-        print(''.center(80, '-'))
-        print("{:<20} {:<60}".format("Initial states: ", "%s (%s)" % (init_states,gs_state['label'])))
-        print("{:<20} {:<60}".format("Target states: ", "%s (%s)" % (target_states,dark_label)))
-        print(''.center(80, '-'))
-
-        transitions_list.append(transition)
-
-    return transitions_list
-
-
-def brightests_to_coupled_darks(system:dict):
-    """Determines the transition files needed by QOCT-RA for transitions going from the brightest states of the molecule to their most coupled ('brightest') dark states.
-
-    Parameters
-    ----------
-    system : dict
-        Information extracted by the parsing function and derived from it.
-
-    Returns
-    -------
-    transitions_list : list
-        List of dictionaries containing eight keys each: 
-
-          - ``label`` is the label of the transition, which will be used for the name of the job directories.
-          - ``init_state`` is the number of the initial state.
-          - ``target_state`` is the number of the target state.
-          - ``energy`` is the transition energy between the two states.
-          - ``init_file`` is the name of the initial state file, minus the number at the end.
-          - ``init_content`` is the content of the initial state file.
-          - ``target_file`` is the name of the target state file, minus the number at the end.
-          - ``target_content`` is the content of the target state file.
-    """
-
-    # Set the number of bright and dark states to consider
-    #! Keep in mind that you will likely end up with a total number of transitions corresponding to bmax * dmax * the number of transition dipole moments matrices!
-
-    bmax = 2 # Maximum number of bright states to consider (e.g. if bmax = 3, then only the three brightest states will be considered)
-    dmax = 2 # Maximum number of coupled dark states to consider (e.g. if dmax = 3, then only the three most coupled dark states will be considered for each of the brightest state)
-
-    # Initialize the dictionary that will be returned by the function
-
-    transitions_list = []
-
-    # ========================================================= #
-    #            Identifying bright and dark states             #
-    # ========================================================= #
-
-    bright_list = []
-    dark_list = []
 
     for state in system['states_list']:
-      if state['number'] == 0:
-        continue # exclude the ground state
-      elif state['type'].lower() == "dark":
-        dark_list.append(state['number'])
-      elif state['type'].lower() == "bright":
-        bright_list.append(state['number'])
 
-    # Adjust bmax and dmax if needed
+      if state['type'].lower() == "dark":
 
-    if bmax > len(bright_list):
-      bmax = len(bright_list)
-    if dmax > len(dark_list):
-      dmax = len(dark_list)
+        # Build the target density matrix in the zero order states
 
-    # ========================================================= #
-    #                   Defining transitions                    #
-    # ========================================================= #
+        target_mtx = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+        target_mtx[state['number']][state['number']] = complex(1)
 
-    # We need to consider each transition dipole moments matrix separately
-    for momdip_key in system['momdip_es_mtx']:
+        # Convert target density matrix to the eigenstates basis set and define the target density matrix file name 
 
-      # ========================================================= #
-      #          Defining the bright-dark pair of states          #
-      # ========================================================= #
+        transpose_inv = scipy.linalg.inv(system['transpose'])
+        target_content = np.matmul(np.matmul(transpose_inv,target_mtx),system['transpose'])
 
-      # Sorting the bright states
-      # =========================
+        target_file = state['label'] + "_"
 
-      # Consider the dipole moments for transitions involving the ground state (and make sure it's a list and not a NumPy array)
-      gs_line = system['momdip_es_mtx'][momdip_key][0]
-      if isinstance(gs_line, np.ndarray):
-        gs_line = gs_line.tolist()
+        # Building the transition dictionary (one for each transition dipole moment matrix)
 
-      # Sort the number of the bright states by decreasing order of the absolute value of their transition dipole moments
-      # e.g. if gs_line = [0.0, 0.0, 0.0, 0.0, 0.0, -1.2, 0.8, 1.0, -0.4] and bright_list = [5, 6, 7, 8], then bright_max_numbers = [1, 3, 2, 4]
-      abs_gs_line = [abs(mom) for mom in gs_line]
-      bright_max_numbers = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line, reverse=True) if abs_gs_line.index(mom) in bright_list]
+        for momdip_key in system['momdip_mtx']:
 
-      # Iterate over the bright states
-      # ==============================
+            # Building the transition dictionary
 
-      # Start iterating over the first Nth brightest bright states, where N is the bmax argument (see https://stackoverflow.com/questions/36106712/how-can-i-limit-iterations-of-a-loop-in-python for details)
-      for iter_bright, bright_number in zip(range(bmax), bright_max_numbers):
+            transition = {
+              "label" : momdip_key + "_" + gs_state['label'] + "-" + state['label'],
+              "init_file" : init_file,
+              "init_content" : init_content,
+              "target_file" : target_file,
+              "target_content" : target_content,
+              "momdip_key" : momdip_key
+              }
 
-      # iter_bright is the number of the current iteration of this loop, e.g if bmax = 3, then iter_bright will be 0, then 1, then 2.
-      # bright_number is the number of the bright state currently considered, e.g. if bright_max_numbers = [1, 3, 2, 4] and iter_bright = 1, then bright_number = 3.
+            # Pretty recap for the log file
 
-        # Sorting the dark states
-        # =======================
+            print("")
+            print(''.center(70, '-'))
+            print("{:<30} {:<40}".format("Label: ", transition["label"]))
+            print(''.center(70, '-'))
+            print(''.center(70, '-'))
+            print("{:<30} {:<40}".format("Transition dipole matrix: ", momdip_key))
+            print(''.center(70, '-'))
+            print("Initial density matrix (%s) - Real parts only" % gs_state['label'])
+            print(''.center(70, '-'))
+            for line in init_content:
+              for val in line:
+                print(np.format_float_scientific(val.real,precision=3,unique=False,pad_left=2), end = " ")
+              print("")
+            print(''.center(70, '-'))
+            print("Target density matrix (%s) - Real parts only" % state['label'])
+            print(''.center(70, '-'))
+            for line in target_content:
+              for val in line:
+                print(np.format_float_scientific(val.real,precision=3,unique=False,pad_left=2), end = " ")
+              print("")
+            print(''.center(70, '-'))
 
-        # Consider the dipole moments for transitions involving the current bright state (and make sure it's a list and not a NumPy array)
-        bright_line = system['momdip_es_mtx'][momdip_key][bright_number]
-        if isinstance(bright_line, np.ndarray):
-          bright_line = bright_line.tolist()
-
-        # Sort the number of the dark states by decreasing order of the absolute value of their transition dipole moments with the current bright state
-        # e.g. if bright_line = [0.0, -0.2, -0.8, 1.1, -1.4, 0.0, 0.0, 0.0, 0.0, ] and dark_list = [1, 2, 3, 4], then dark_max_numbers = [4, 3, 2, 1]
-        abs_bright_line = [abs(mom) for mom in bright_line]
-        dark_max_numbers = [abs_bright_line.index(mom) for mom in sorted(abs_bright_line, reverse=True) if abs_bright_line.index(mom) in dark_list]
-
-        # Iterate over the dark states
-        # ============================
-
-        # Start iterating over the first Nth most coupled dark states, where N is the dmax argument (see https://stackoverflow.com/questions/36106712/how-can-i-limit-iterations-of-a-loop-in-python for details)
-        for iter_dark, dark_number in zip(range(dmax), dark_max_numbers):
-
-        # iter_dark is the number of the current iteration of this loop, e.g if dmax = 2, then iter_dark will be 0, then 1.
-        # dark_number is the number of the dark state currently considered, e.g. if dark_max_numbers = [4, 3, 2, 1] and iter_bright = 0, then dark_number = 4.
-
-          # ========================================================= #
-          #            Building the transition dictionary             #
-          # ========================================================= #
-
-          bright_label = system['states_list'][bright_number]["label"]
-          dark_label = system['states_list'][dark_number]["label"]
-
-          # Call the build_transition function using the current information for this transition
-
-          transition = build_transition(bright_number,dark_number,bright_label,dark_label,momdip_key,system)
-
-          # Update the label to something less generic and more informative
-          # e.g. X_1B2D_S3-T2 indicates a transition based on the transition dipole moments matrix associated with the "X" key (X axis), involving the brightest bright state (1B) and its second most coupled dark state (2D), the labels of those states being S3 and T2, respectively.
-
-          transition_label = momdip_key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label 
-          transition.update({ "label": transition_label}) 
-
-          # Pretty recap for the log file
-
-          print("")
-          print(''.center(50, '-'))
-          print("{:<20} {:<30}".format("Label: ", transition["label"]))
-          print(''.center(50, '-'))
-          print("{:<20} {:<30}".format("Initial state: ", "%s (%s)" % (bright_label,bright_number)))
-          print("{:<20} {:<30}".format("Target state: ", "%s (%s)" % (dark_label,dark_number)))
-          print("{:<20} {:<30}".format("Energy (Ha): ", "{:.4e}".format(transition["energy"])))
-          print(''.center(50, '-'))
-
-          # Add the transition to the transitions list, before proceeding with the next most coupled dark state (or the next brightest bright state, if this was the last one)
-
-          transitions_list.append(transition)
+            transitions_list.append(transition)
 
     return transitions_list
+

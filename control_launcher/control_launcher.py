@@ -881,7 +881,7 @@ def main():
     if not isinstance(transitions_list, list):
       raise control_common.ControlError ('ERROR: The transitions_list returned by the %s transition function is not a list.' % transition_fct) 
 
-    required_keys = ["label","init_states","target_states","init_file","init_content","target_file","target_content","momdip_key"]
+    required_keys = ["label","init_file","init_content","target_file","target_content","momdip_key"]
     control_common.check_keys(required_keys,transitions_list,"Transitions list returned by the %s transition function" % transition_fct)
  
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
@@ -1006,9 +1006,9 @@ def main():
 
     transitions_file = "transitions.csv"
     with open(os.path.join(data_dir,transitions_file), "w") as f:
-      print("Label;Initial states;Target states;Transition dipole moments matrix", file = f)
+      print("Label;Initial file;Target file;Transition dipole moments matrix", file = f)
       for transition in transitions_list:
-        transition_line = ";".join((transition['label'],str(transition['init_states']),str(transition['target_states']),transition['momdip_key']))
+        transition_line = ";".join((transition['label'],str(transition['init_file']),str(transition['target_file']),transition['momdip_key']))
         print(transition_line, file = f)
     print("    ├── The transitions list file ('%s') has been created into the directory" % transitions_file)
 
