@@ -454,146 +454,53 @@ def main():
     # Diagonalization
     # ===============
 
-    # Use SciPy to diagonalize the matrix (see https://personal.math.ubc.ca/~pwalls/math-python/linear-algebra/eigenvalues-eigenvectors/ for reference)  
+    # Use SciPy to diagonalize the matrix (see https://personal.math.ubc.ca/~pwalls/math-python/linear-algebra/eigenvalues-eigenvectors/ for reference)
+    # Documentation page for the function used here : https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.eigh.html  
      
     print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
-    eigenvalues, eigenvectors_mtx = scipy.linalg.eig(system['mime'])
-    eigenvalues = eigenvalues.real                      # A symmetric matrix has real eigenvalues
-    eigenvectors_list = np.transpose(eigenvectors_mtx)  # Transpose the eigenvectors matrix so that each eigenvector is a line (rather than a column), for easier handling later on
+    eigenvalues, system['eigenvectors'] = scipy.linalg.eigh(system['mime'])
+    eigenvalues = eigenvalues.tolist()
     print("[ DONE ]")
 
-    # Assign the eigenstates to the zero order states
-    # ===============================================
+    # Build the eigenstates list
+    # ==========================
 
-    print("{:<50}".format("\nAssigning eigenstates to zero order states ..."), end="")
+    print("{:<50}".format("\nBuilding the eigenstates list ..."), end="")
 
     # Initialize the variables
 
-    eigenvectors_list = eigenvectors_list.tolist()
-    eigenvalues = eigenvalues.tolist()
     system['eigenstates_list'] = []
-    for state in range(len(eigenvalues)):
-      system['eigenstates_list'].append({'number' : -1, 'label' : ' ', 'energy' : -1.0, 'main_cont' : ' '})
-    system['eigenvectors'] = [[] for x in range(len(eigenvalues))] # creates an empty list of lists, e.g. [[],[],[]]
 
-    # Sort the eigenvalues by increasing order (used to number and label the eigenstates)
+    # Build the list
 
-    sorted_eig = sorted(eigenvalues)
+    for eigenvalue in eigenvalues:
 
-    # Assign according to the major contributor amongst the zero order states
+      eigenstate = {
+        'energy' : eigenvalue,
+        'number' : eigenvalues.index(eigenvalue),
+        'label' : "E" + str(eigenvalues.index(eigenvalue)),
+        'degeneracy' : 1
+      }
 
-    for eigenvector in eigenvectors_list:
-
-      # Initialize important variables
-
-      unassigned = True
-      current_vector = eigenvector
-      current_value = eigenvalues[eigenvectors_list.index(eigenvector)]
-
-      while unassigned:
-
-        # Sort the indices by decreasing order of the square values of their corresponding coefficients in the vector
-        # e.g. if eigenvector = [-10, 50, -30, 40, 20], then contributions = [100, 2500, 900, 1600, 400] then max_indices = [1, 3, 2, 4, 0]
-
-        contributions = [(coef**2) for coef in current_vector]
-        max_indices = [contributions.index(x) for x in sorted(contributions, reverse=True)]
-
-        for max_index in max_indices: # Start working with first maximum, then second maximum, etc.
-
-          # First case: no conflict, just write the value in the corresponding spot
-
-          if system['eigenvectors'][max_index] == []:
-
-            # Write the eigenstate information on the same index than its main contributor, for easy handling later on
-
-            system['eigenvectors'][max_index] = current_vector
-            system['eigenstates_list'][max_index]['energy'] = current_value
-            system['eigenstates_list'][max_index]['main_cont'] = system["states_list"][max_index]["label"]
-            system['eigenstates_list'][max_index]['number'] = sorted_eig.index(current_value) # The number of the states is defined by increasing order of energy
-            system['eigenstates_list'][max_index]['label'] = "E" + str(system['eigenstates_list'][max_index]['number'])
-            system['eigenstates_list'][max_index]['degeneracy'] = 1
-
-            # Proceed to the next eigenvector
-
-            unassigned = False
-            break
-
-          # Second case: conflict (spot already taken), but the maximum of the newcomer is equal or lower than the one of the current resident
-
-          elif (current_vector[max_index]**2) <= (system['eigenvectors'][max_index][max_index]**2):
-         
-            continue
-
-          # Third case: conflict (spot already taken), but the maximum of the newcomer is greater than the one of the current resident
-
-          else:
-
-            # Exchange places with the current resident
-
-            temp_vector = system['eigenvectors'][max_index]
-            temp_value = system['eigenstates_list'][max_index]['energy']
-
-            system['eigenvectors'][max_index] = current_vector              
-            system['eigenstates_list'][max_index]['energy'] = current_value
-            system['eigenstates_list'][max_index]['number'] = sorted_eig.index(current_value) # The number of the states is defined by increasing order of energy
-            system['eigenstates_list'][max_index]['label'] = "E" + str(system['eigenstates_list'][max_index]['number'])
-
-            # Prepare to relocate the now homeless eigenvector
-
-            current_vector = temp_vector
-            current_value = temp_value
-            break
-
-    # Comment on the conflicts that have been encountered and resolved along the way to keep track of it in the log file (printed later on in the script)
-
-    for eigenstate in system['eigenstates_list']:
-
-      comment = ""
-
-      # See if the position assigned to this eigenstate corresponds to its major contributor (check if its index matches the index of its major contributor)
-
-      list_index = system['eigenstates_list'].index(eigenstate)
-      contributions = [(coef**2) for coef in system['eigenvectors'][list_index]]
-      max_indices = [contributions.index(x) for x in sorted(contributions, reverse=True)]
-
-      if list_index != max_indices[0]:
-
-        # Since it was not the first maximum, check which maximum was used (second, third, ...) and leave a comment describing which major(s) contributor(s) had to be ignored
-        #! Add example in comments for clarity
-
-        spot = max_indices.index(list_index)
-        
-        for max_number in range(1,spot+1):
-
-          suffix = "th" if not max_number in special_numbers else special_numbers[max_number]
-          zero_label = system["states_list"][max_indices[max_number-1]]["label"]
-
-          if comment == "":
-            comment += str(max_number) + suffix + " max is " + zero_label
-          else:
-            comment += " - " + str(max_number) + suffix + " max is " + zero_label
-          
-      eigenstate['comment'] = comment
+      system['eigenstates_list'].append(eigenstate)
 
     print("[ DONE ]")
 
     # Transpose the eigenvectors list
     # ===============================
 
-    # Using NumPy to transpose the eigenvectors list (see https://numpy.org/doc/stable/reference/generated/numpy.transpose.html for reference) so that each column of this matrix corresponds to an eigenvector
+    # Using SciPy to invert the eigenvectors matrix
+    # Note that the inverse of an orthonormal matrix is equal to its transpose, so each line of this matrix corresponds to an eigenvector. (see https://math.stackexchange.com/questions/156735/in-which-cases-is-the-inverse-of-a-matrix-equal-to-its-transpose)
 
-    print("{:<50}".format("\nTransposing eigenvectors list ..."), end="")
-    system['transpose'] = np.transpose(system['eigenvectors'])
+    print("{:<50}".format("\nInverting eigenvectors matrix ..."), end="")
+    system['eigenvectors_inv'] = scipy.linalg.inv(system['eigenvectors'])
     print("[ DONE ]")
 
     # Evaluate the diagonalization
     # ============================
 
-    # Compute the inverse of the transpose matrix
-    transpose_inv = scipy.linalg.inv(system['transpose'])
-
     # Using NumPy to convert the MIME from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
-    system['mime_diag'] = np.matmul(np.matmul(transpose_inv,system['mime']),system['transpose'])
+    system['mime_diag'] = np.matmul(np.matmul(system['eigenvectors_inv'],system['mime']),system['eigenvectors'])
 
     # Get the absolute value of the matrix
     abs_mime_diag = np.abs(system['mime_diag'])
@@ -621,7 +528,7 @@ def main():
 
     for momdip_key in system["momdip_mtx"]:
 
-      system['momdip_es_mtx'][momdip_key] = np.matmul(np.matmul(transpose_inv,system['momdip_mtx'][momdip_key]),system['transpose'])
+      system['momdip_es_mtx'][momdip_key] = np.matmul(np.matmul(system['eigenvectors_inv'],system['momdip_mtx'][momdip_key]),system['eigenvectors'])
           
     # ========================================================= #
     # Handling eigenstates degeneracies                         #
@@ -751,14 +658,6 @@ def main():
       new_state['energy'] = np.mean([eigenstate['energy'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
       new_state['degeneracy'] = len(group)
 
-      # Regroup the information about main contributors, e.g. for a group including the states E2 and E3 with main contributors S2 and S3 respectively, the new value will be "E2:S2 - E3:S3"
-
-      new_state['main_cont'] = " - ".join([eigenstate['label'] + ":" + eigenstate['main_cont'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
-
-      # Regroup the comments in the same way, e.g "E2:1st max is S3"
-
-      new_state['comment'] = " - ".join([eigenstate['label'] + ":" + eigenstate['comment'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group and eigenstate['comment'] != ""])
-
       # Get the index of the state that has the same number as the new one
 
       index = system['eigenstates_list'].index(next(eigenstate for eigenstate in system['eigenstates_list'] if eigenstate['number'] == new_state['number']))
@@ -831,15 +730,15 @@ def main():
     # ==========================
 
     print("")
-    print(''.center(135, '-'))
-    print('Eigenstates List'.center(135, ' '))
-    print(''.center(135, '-'))
-    print("{:<10} {:<10} {:<15} {:<10} {:<30} {:<15} {:<30}".format('Number','Label','Energy (Ha)','Degeneracy','Main Contributor','Lifetime (a.u.)','Comment'))
-    print(''.center(135, '-'))
+    print(''.center(75, '-'))
+    print('Eigenstates List'.center(75, ' '))
+    print(''.center(75, '-'))
+    print("{:<10} {:<10} {:<15} {:<10} {:<15}".format('Number','Label','Energy (Ha)','Degeneracy','Lifetime (a.u.)'))
+    print(''.center(75, '-'))
     # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
-    for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['number']):
-      print("{:<10} {:<10} {:<15.5e} {:<10} {:<30} {:<15.5e} {:<30}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['degeneracy'],eigenstate['main_cont'],eigenstate['lifetime'],eigenstate['comment']))
-    print(''.center(135, '-'))
+    for eigenstate in system['eigenstates_list']:
+      print("{:<10} {:<10} {:<15.5e} {:<10} {:<15.5e}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['degeneracy'],eigenstate['lifetime']))
+    print(''.center(75, '-'))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
@@ -947,7 +846,7 @@ def main():
     with open(os.path.join(data_dir,state_file), "w") as f:
       print("Number;Type;Label;Energy (Ha)", file = f)
       for state in system['states_list']:
-        state_line = ";".join((str(state['number']),state['type'],state['label'],str(state['energy'])))
+        state_line = ";".join((str(state['number']),state['type'],state['label'],"{:<18.10e}".format(state['energy']).strip()))
         print(state_line, file = f)
     print("    ├── The states list file ('%s') has been created into the directory" % state_file)
 
@@ -969,10 +868,10 @@ def main():
 
     eigenstate_file = "eigenstates.csv"
     with open(os.path.join(data_dir,eigenstate_file), "w") as f:
-      print("Number;Label;Energy (Ha);Degeneracy;Main Contributor;Lifetime (a.u.)", file = f)
+      print("Number;Label;Energy (Ha);Degeneracy;Lifetime (a.u.)", file = f)
       # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
-      for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['number']):
-        eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],str(eigenstate['energy']),str(eigenstate['degeneracy']),eigenstate['main_cont'],str(eigenstate['lifetime'])))
+      for eigenstate in system['eigenstates_list']:
+        eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:<18.10e}".format(eigenstate['energy']).strip(),str(eigenstate['degeneracy']),"{:<18.10e}".format(eigenstate['lifetime']).strip()))
         print(eigenstate_line, file = f)
     print("    ├── The eigenstates list file ('%s') has been created into the directory" % eigenstate_file)
 
@@ -984,15 +883,15 @@ def main():
         print("{:1.10e}".format(eigenstate['energy']), file = f)
     print("    ├── The eigenvalues file ('%s') has been created into the directory" % eigenvalues_file)
 
-    # Eigenvectors matrix and eigenvectors transpose matrix
+    # Eigenvectors matrix and its inverse
 
     eigenvectors_file = "eigenvectors"
     np.savetxt(os.path.join(data_dir,eigenvectors_file),system['eigenvectors'],fmt='% 18.10e')
-    print("    ├── The eigenvectors file ('%s') has been created into the directory" % eigenvectors_file)
+    print("    ├── The eigenvectors matrix file ('%s') has been created into the directory" % eigenvectors_file)
 
-    transpose_file = "transpose"
-    np.savetxt(os.path.join(data_dir,transpose_file),system['transpose'],fmt='% 18.10e')
-    print("    ├── The transpose of the eigenvectors file ('%s') has been created into the directory" % transpose_file)
+    eigenvectors_inv_file = "eigenvectors_inv"
+    np.savetxt(os.path.join(data_dir,eigenvectors_inv_file),system['eigenvectors_inv'],fmt='% 18.10e')
+    print("    ├── The inverse of the eigenvectors matrix file ('%s') has been created into the directory" % eigenvectors_inv_file)
 
     # Dipole moments matrices in the eigenstates basis set
 
@@ -1240,7 +1139,7 @@ def main():
           "mime_path" : os.path.join(data_dir,mime_file),
           "eigenvalues_path" : os.path.join(data_dir,eigenvalues_file),
           "eigenvectors_path" : os.path.join(data_dir,eigenvectors_file),
-          "transpose_path" : os.path.join(data_dir,transpose_file),
+          "eigenvectors_inv_path" : os.path.join(data_dir,eigenvectors_inv_file),
           # Path of the data files specific to this transition          
           "init_path" : os.path.join(data_dir,transition['init_file']),
           "target_path" : os.path.join(data_dir,transition['target_file']),

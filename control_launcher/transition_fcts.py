@@ -237,8 +237,7 @@ def dark_zero_order(system:dict):
 
         # Convert target density matrix to the eigenstates basis set and define the target density matrix file name 
 
-        transpose_inv = scipy.linalg.inv(system['transpose'])
-        target_content = np.matmul(np.matmul(transpose_inv,target_mtx),system['transpose'])
+        target_content = np.matmul(np.matmul(system['eigenvectors_inv'],target_mtx),system['eigenvectors'])
 
         target_file = state['label'] + "_"
 
