@@ -224,8 +224,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     
     # Compute the transition energy that will act as the central frequency
 
-    init_number = misc['transition']['init_states'].index(max(misc['transition']['init_states']))
-    target_number = misc['transition']['target_states'].index(max(misc['transition']['target_states']))
+    init_number = np.argmax(np.diagonal(misc['transition']['init_content']))
+    target_number = np.argmax(np.diagonal(misc['transition']['target_content']))
     omegazero = abs(system['eigenstates_list'][init_number]['energy'] - system['eigenstates_list'][target_number]['energy'])
 
     # Convert the central frequency to nanometers

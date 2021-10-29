@@ -1006,9 +1006,9 @@ def main():
 
     transitions_file = "transitions.csv"
     with open(os.path.join(data_dir,transitions_file), "w") as f:
-      print("Label;Initial file;Target file;Transition dipole moments matrix", file = f)
+      print("Label;Transition dipole moments matrix;Initial file name;Target file name", file = f)
       for transition in transitions_list:
-        transition_line = ";".join((transition['label'],str(transition['init_file']),str(transition['target_file']),transition['momdip_key']))
+        transition_line = ";".join((transition['label'],transition['momdip_key'],str(transition['init_file'] + "1"),str(transition['target_file'] + "1")))
         print(transition_line, file = f)
     print("    ├── The transitions list file ('%s') has been created into the directory" % transitions_file)
 
