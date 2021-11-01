@@ -735,7 +735,6 @@ def main():
     print(''.center(75, '-'))
     print("{:<10} {:<10} {:<15} {:<10} {:<15}".format('Number','Label','Energy (Ha)','Degeneracy','Lifetime (a.u.)'))
     print(''.center(75, '-'))
-    # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
     for eigenstate in system['eigenstates_list']:
       print("{:<10} {:<10} {:<15.5e} {:<10} {:<15.5e}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['degeneracy'],eigenstate['lifetime']))
     print(''.center(75, '-'))
@@ -869,7 +868,6 @@ def main():
     eigenstate_file = "eigenstates.csv"
     with open(os.path.join(data_dir,eigenstate_file), "w") as f:
       print("Number;Label;Energy (Ha);Degeneracy;Lifetime (a.u.)", file = f)
-      # Print the list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
       for eigenstate in system['eigenstates_list']:
         eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:<18.10e}".format(eigenstate['energy']).strip(),str(eigenstate['degeneracy']),"{:<18.10e}".format(eigenstate['lifetime']).strip()))
         print(eigenstate_line, file = f)

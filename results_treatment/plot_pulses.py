@@ -465,6 +465,7 @@ def main():
 
             for eigenstate in eigenstates_list:
               current_column += 1
+              #TODO: Only plot columns where population is not always zero.
               ax_pop.plot(time * 1e12,pop_file_content[:,current_column],label=eigenstate['Label'])
 
             # Legend the graph
