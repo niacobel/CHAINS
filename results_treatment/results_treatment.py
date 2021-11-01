@@ -13,6 +13,7 @@
 import argparse
 import contextlib
 import csv
+import math
 import os
 import re
 import shutil
@@ -317,7 +318,7 @@ def main():
       nb_atoms = sum(file_data['chemical_formula'].values())
 
       # ========================================================= #
-      # "Pretty" name                                             #
+      # "Pretty" name and "LaTeX" name                            #
       # ========================================================= #
 
       # If only 1 atom of that type, omit the number
@@ -329,23 +330,28 @@ def main():
       # Si on the front
 
       pretty_name_fr = "Si" + str(chemical_formula["Si"])
+      latex_name_fr = "Si_{" + str(chemical_formula["Si"]) + "}"
 
       # H on the end (if present)
 
       if "H" in chemical_formula:
         pretty_name_end = "H" + str(chemical_formula["H"])
+        latex_name_end = "H_{" + str(chemical_formula["H"]) + "}"
       else:
         pretty_name_end = ""
+        latex_name_end = ""
 
       # Rest in the middle, in alphabetical order
 
       filtered_formula = {atom:number for atom, number in chemical_formula.items() if (atom != "Si" and atom != "H")}
 
       pretty_name_mid = ''.join('{}{}'.format(*atom) for atom in sorted(filtered_formula.items()))
+      latex_name_mid = ''.join(('{}_{' + '{}}').format(*atom) for atom in sorted(filtered_formula.items()))
 
       # Get the final name, correctly formatted
 
       pretty_name = pretty_name_fr + pretty_name_mid + pretty_name_end
+      latex_name = latex_name_fr + latex_name_mid + latex_name_end
 
       print('%12s' % "[ DONE ]")
 
@@ -398,6 +404,7 @@ def main():
           { "TAG" : tag,
             "Group" : mol_group,
             "Name" : pretty_name,
+            "LateX Name" : latex_name
           },
         "Structure":
           { "Nb atoms" : nb_atoms,
@@ -694,6 +701,35 @@ def main():
       print('%12s' % "[ DONE ]")
 
       # ========================================================= #
+      # Fetch first transition dipole moment                      #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching first non-zero transition dipole moment with the ground state ...'), end="")
+
+      S0_number = [state['number'] for state in system['states_list'] if state['label'] == 'S0'][0]
+
+      # Iterate over the states list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
+      for state in sorted(system['states_list'], key = lambda i: i['number']):
+        
+        if state['number'] == S0_number:
+          continue # Skip the ground state
+
+        first_momdip = 0
+        for momdip_key in system['momdip_mtx']:
+          first_momdip += system['momdip_mtx'][momdip_key][S0_number][state['number']]**2
+
+        first_momdip = math.sqrt(first_momdip)
+
+        if first_momdip != 0:
+          break
+
+      # Store the value
+
+      comp_results[mol_name]['Structure'].update({"First transition dipole moment (au)" : first_momdip})
+
+      print('%12s' % "[ DONE ]")      
+
+      # ========================================================= #
       # Fetch ionization potentials                               #
       # ========================================================= #
 
@@ -735,39 +771,28 @@ def main():
 
       data_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
 
-      # Load the eigenvalues list
+      # Load the eigenstates list
 
-      eigenvalues_file = results_common.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file")
-      
-      with open(eigenvalues_file, 'r', newline='') as ev_file:
+      eigenstates_file = results_common.check_abspath(os.path.join(data_dir, "eigenstates.csv"),"Eigenstates file","file")
 
-        eigenvalues = ev_file.read().splitlines()
+      with open(eigenstates_file, 'r', newline='') as csv_file:
 
-      eigenvalues = list(map(float, eigenvalues))   # Convert the values from string to float
+        eigenstates_content = csv.DictReader(csv_file, delimiter=';')
+        eigenstates_list = list(eigenstates_content)
+
+      # Check the eigenstates list
+
+      required_keys = ['Number','Label','Energy (Ha)']
+      results_common.check_keys(required_keys,eigenstates_list,"Eigenstates list file at %s" % eigenstates_file)
 
       # Store general information about the control system
 
       comp_results[mol_name].update({ 
           "Control" : 
-            { "Nb excited states" : len(eigenvalues) - 1,
+            { "Nb excited states" : len(eigenstates_list) - 1,
               "Transitions" : []
             }
         })
-
-      # Load the states list
-
-      states_file = results_common.check_abspath(os.path.join(data_dir, "states.csv"),"States file","file")
-
-      with open(states_file, 'r', newline='') as csv_file:
-
-        states_content = csv.DictReader(csv_file, delimiter=';')
-        states_list = list(states_content)
-        states_header = states_content.fieldnames
-
-      # Check the states list
-
-      required_keys = ['Label']
-      results_common.check_keys(required_keys,states_list,"States list file at %s" % states_file)
 
       # Load the transitions list
 
@@ -777,28 +802,18 @@ def main():
 
         transitions_content = csv.DictReader(csv_file, delimiter=';')
         transitions_list = list(transitions_content)
-        transitions_header = transitions_content.fieldnames
 
       # Check the transitions list
 
-      required_keys = ['Label', 'Energy (Ha)', 'Initial state number', 'Target state number', 'Transition dipole moments matrix']
+      required_keys = ['Label','Transition dipole moments matrix','Initial file name','Target file name']
       results_common.check_keys(required_keys,transitions_list,"Transitions list file at %s" % transitions_file)
-
-      # Convert some data types for easy handling later on
-
-      for transition in transitions_list:
-        transition['Energy (Ha)'] = float(transition["Energy (Ha)"])
-        transition['Initial state number'] = int(transition['Initial state number'])
-        transition['Target state number'] = int(transition['Target state number'])
 
       # Load the transition dipole moment matrices
 
-      momdip_mtx_keys = list(set([transition["Transition dipole moments matrix"] for transition in transitions_list])) # Use the set function to get rid of duplicates (https://stackoverflow.com/questions/7961363/removing-duplicates-in-lists)
-
-      momdip_mtx = {}
-      for key in momdip_mtx_keys:
-        file = results_common.check_abspath(os.path.join(data_dir, "momdip_es_mtx_" + key),"Transition dipole moment matrix associated with the %s key" % key,"file")
-        momdip_mtx[key] = np.loadtxt(file)
+      momdip_es_mtx = {}
+      for momdip_key in system['momdip_mtx']:
+        file = results_common.check_abspath(os.path.join(data_dir, "momdip_es_mtx_" + momdip_key),"Transition dipole moment matrix associated with the %s key" % momdip_key,"file")
+        momdip_es_mtx[momdip_key] = np.loadtxt(file)
 
       # Look for directories in the results CONTROL directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
 
@@ -810,12 +825,31 @@ def main():
 
       dir_list = []
 
-      for dirname in dir_list_all:
-        
-        # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-        try:
+      for transition in transitions_list:
 
-          for transition in transitions_list:
+        # Get the initial and target state number
+
+        init_label = transition['Initial file name'][:-2] # [:-2] to remove the trailing "_1"
+        init_number = int([eigenstate['Number'] for eigenstate in eigenstates_list if eigenstate['Label'] == init_label][0])
+
+        target_label = transition['Target file name'][:-2] # [:-2] to remove the trailing "_1"
+        target_number = int([eigenstate['Number'] for eigenstate in eigenstates_list if eigenstate['Label'] == target_label][0])
+
+        # Get the orientation of the laser (momdip_key) and the transition dipole moment of this specific transition
+        
+        momdip_key = transition["Transition dipole moments matrix"]
+        momdip = float(momdip_es_mtx[momdip_key][init_number][target_number])
+
+        # Get the transition energy
+
+        energy = abs(float(eigenstates_list[init_number]['Energy (Ha)']) - float(eigenstates_list[target_number]['Energy (Ha)']))
+
+        # Iterate over the directories
+
+        for dirname in dir_list_all:
+        
+          # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+          try:
 
             # Define the 'transition_config' regex and apply it to the dirname
 
@@ -829,13 +863,8 @@ def main():
               dir_list.append(dirname)
               config = pattern.match(dirname).group('config')
 
-              print ("{:<133}".format("\n\tTreating the %s transition with the '%s' config ..." % (transition["Label"], config)), end="")
+              print ("{:<133}".format("\n\tTreating the '%s' transition with the '%s' config ..." % (transition["Label"], config)), end="")
 
-              # Get the orientation of the laser (momdip_key) and the transition dipole moment of this specific transition
-              
-              momdip_key = transition["Transition dipole moments matrix"]
-              momdip = float(momdip_mtx[momdip_key][transition['Initial state number']][transition['Target state number']])
-              
               # Get the number of iterations and final fidelity
 
               iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
@@ -865,9 +894,9 @@ def main():
               comp_results[mol_name]['Control']['Transitions'].append({
                 "Label" : transition["Label"],
                 "Config" : config,
-                "Initial state" : states_list[transition['Initial state number']]["Label"],
-                "Target state" : states_list[transition['Target state number']]["Label"],
-                "Energy (Ha)" : transition["Energy (Ha)"],
+                "Initial state" : init_label, 
+                "Target state" : target_label,
+                "Energy (Ha)" : energy,
                 "Orientation" : momdip_key,
                 "Transition dipole moment (a.u.)" : momdip,
                 "Nb iterations" : niter,
@@ -876,12 +905,10 @@ def main():
 
               print('%12s' % "[ DONE ]")
 
-              break # No need to consider the other transitions for this directory
-
-        except results_common.ResultsError as error:
-          print(error)
-          print("Skipping %s directory" % dirname)
-          continue
+          except results_common.ResultsError as error:
+            print(error)
+            print("Skipping %s directory" % dirname)
+            continue
 
       if dir_list == []:
         raise results_common.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % os.path.join(mol_dir,"CONTROL"))
