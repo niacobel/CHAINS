@@ -227,13 +227,8 @@ def main():
 
       # Check the transitions list
 
-      required_keys = ['Label', 'Energy (Ha)', 'Initial state number', 'Target state number', 'Transition dipole moments matrix']
+      required_keys = ['Label']
       results_common.check_keys(required_keys,transitions_list,"Transitions list file at %s" % transitions_file)
-
-      # Load the eigenvalues list
-
-      eigenvalues_file = results_common.check_abspath(os.path.join(data_dir, "eigenvalues"),"Eigenvalues file","file")
-      eigenvalues = np.loadtxt(eigenvalues_file).tolist()
 
       print('%12s' % "[ DONE ]")
 
@@ -365,6 +360,7 @@ def main():
             ax_gpulse_time.plot(time * 1e12,amplitude)
             ax_gpulse_time.set_xlabel("Time (ps)")
             ax_gpulse_time.set_ylabel("Amplitude (V/m)")
+            ax_gpulse_time.set_title("Guess Pulse")
 
             # Compute the FFT (see tutorial at https://realpython.com/python-scipy-fft/)
 
@@ -411,6 +407,7 @@ def main():
             ax_pulse_time.plot(time * 1e12,amplitude)
             ax_pulse_time.set_xlabel("Time (ps)")
             ax_pulse_time.set_ylabel("Amplitude (V/m)")
+            ax_pulse_time.set_title("Final Pulse")
 
             # Compute the FFT (see tutorial at https://realpython.com/python-scipy-fft/)
 
@@ -466,9 +463,8 @@ def main():
 
             current_column = 0
 
-            for eigenvalue in eigenvalues:
+            for eigenstate in eigenstates_list:
               current_column += 1
-              eigenstate = [state for state in eigenstates_list if math.isclose(float(state['Energy (Ha)']),eigenvalue,rel_tol=1e-5)][0]
               ax_pop.plot(time * 1e12,pop_file_content[:,current_column],label=eigenstate['Label'])
 
             # Legend the graph
