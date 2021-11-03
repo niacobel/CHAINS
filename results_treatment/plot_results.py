@@ -181,13 +181,13 @@ def main():
 
   for mol in yml_sorted['Si']:
     if yml_sorted['Si'][mol].get('Energy gaps (Ha)'):
-      nb_si_atoms = yml_sorted['Si'][mol]['Structure']['Nb Si atoms']
+      size = yml_sorted['Si'][mol]['Structure']['Size (nm)']
       hl_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
       opt_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
       st_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
-      si_gaps.append((nb_si_atoms,hl_gap,opt_gap,st_gap))
+      si_gaps.append((size,hl_gap,opt_gap,st_gap))
 
-  si_gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
+  si_gaps.sort(key=lambda tup: tup[0]) # Sort the values by size
 
   print('%12s' % "[ DONE ]")
 
@@ -210,21 +210,16 @@ def main():
 
           # Get the gaps values
 
+          size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
           hl_gap = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
           opt_gap = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
           st_gap = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
 
-          # Use the TAG key to find the corresponding Si QD and fetch its number of Si atoms
-
-          for si_mol in yml_sorted['Si']:
-            if yml_sorted['Si'][si_mol]['ID']['TAG'] == yml_sorted[mol_group][mol]['ID']['TAG']:
-              nb_si_atoms = yml_sorted['Si'][si_mol]['Structure']['Nb Si atoms']
-
           # Store the data for this molecule
 
-          gaps.append((nb_si_atoms,hl_gap,opt_gap,st_gap))
+          gaps.append((size,hl_gap,opt_gap,st_gap))
 
-      gaps.sort(key=lambda tup: tup[0]) # Sort the values by number of Si atoms
+      gaps.sort(key=lambda tup: tup[0]) # Sort the values by size
 
       # Plot the optical and HOMO-LUMO gaps graphs
       # ==========================================
@@ -246,7 +241,7 @@ def main():
       # Add the legend and titles
 
       ax.set_title('Energy gaps: Si vs %s' % mol_group)
-      ax.set_xlabel("Number of Si atoms in the Si QD")
+      ax.set_xlabel("Diameter of the QD (nm)")
       ax.set_ylabel('Energy (eV)')
       ax.legend()
 
@@ -282,7 +277,7 @@ def main():
       # Add the legend and titles
 
       ax.set_title('Singlet-Triplet gaps: Si vs %s' % mol_group)
-      ax.set_xlabel("Number of Si atoms in the Si QD")
+      ax.set_xlabel("Diameter of the QD (nm)")
       ax.set_ylabel(r'$\Delta E_{ST}~(eV)$')
       ax.legend()
 
@@ -420,7 +415,7 @@ def main():
 
     # Define the X labels and ticks
 
-    xlabels = [yml_sorted[mol_group][mol]['ID']['Name'] for mol in sorted_mol]
+    xlabels = ["$" + yml_sorted[mol_group][mol]['ID']['LateX Name'] + "$" for mol in sorted_mol]
     xticks = list(range(1,len(xlabels)+1))
 
     # Plot the values
@@ -480,26 +475,24 @@ def main():
       for mol in yml_sorted[mol_group]:
         if yml_sorted[mol_group][mol].get('IPs (Ha)'):
 
-          # Use the TAG key to find the corresponding Si QD and fetch its number of Si atoms
+          # Get the size values
 
-          for si_mol in yml_sorted['Si']:
-            if yml_sorted['Si'][si_mol]['ID']['TAG'] == yml_sorted[mol_group][mol]['ID']['TAG']:
-              nb_si_atoms = yml_sorted['Si'][si_mol]['Structure']['Nb Si atoms']
+          size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
 
           # Get the IPs values and add them to their corresponding lists
 
           ip_koop = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['IPs (Ha)']['Koopmans'],"ha","ev")
-          ips_koop.append((nb_si_atoms,ip_koop))
+          ips_koop.append((size,ip_koop))
 
           ip_vert = yml_sorted[mol_group][mol]['IPs (Ha)']['Vertical']
           if ip_vert != 'N/A':
              ip_vert = results_common.energy_unit_conversion(ip_vert,"ha","ev")
-             ips_vert.append((nb_si_atoms,ip_vert))
+             ips_vert.append((size,ip_vert))
 
           ip_adiab = yml_sorted[mol_group][mol]['IPs (Ha)']['Adiabatic']
           if ip_adiab != 'N/A':
              ip_adiab = results_common.energy_unit_conversion(ip_adiab,"ha","ev")
-             ips_adiab.append((nb_si_atoms,ip_adiab))       
+             ips_adiab.append((size,ip_adiab))       
 
       # Sort the values by number of Si atoms
 
@@ -523,7 +516,7 @@ def main():
       # Add the legend and titles
 
       ax.set_title('Ionization potentials for %s QDs' % mol_group)
-      ax.set_xlabel("Number of Si atoms in the original Si QD")
+      ax.set_xlabel("Diameter of the QD (nm)")
       ax.set_ylabel('Energy (eV)')
       ax.legend()
 
@@ -539,6 +532,81 @@ def main():
       # Save the file and close the figure
 
       plt.savefig(os.path.join(out_dir,'%s_ips.png' % mol_group),dpi=200)
+      plt.close()
+
+      print('%12s' % "[ DONE ]")
+
+  # =================================================================== #
+  # =================================================================== #
+  #                  PLOTTING TRANSITION DIPOLE MOMENT                  #
+  # =================================================================== #
+  # =================================================================== #
+
+  section_title = "4. Transition dipole moment"
+
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
+
+  # Iterate over each molecule group
+  # ================================
+
+  for mol_group in mol_groups:
+
+      print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_group), end="")
+
+      # Get the values
+      # ==============
+
+      first_momdip_list = []
+
+      for mol in yml_sorted[mol_group]:
+        if yml_sorted[mol_group][mol]['Structure'].get('First non-zero transition dipole moment (au)'):
+
+          # Get the value
+
+          size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
+          s0_s1_momdip = yml_sorted[mol_group][mol]['Structure']['S0-S1 transition dipole moment (au)']
+          first_momdip = yml_sorted[mol_group][mol]['Structure']['First non-zero transition dipole moment (au)']
+          
+          # Store the data for this molecule
+
+          first_momdip_list.append((size,s0_s1_momdip,first_momdip))
+
+      first_momdip_list.sort(key=lambda tup: tup[0]) # Sort the values by size
+
+      # Plot the singlet-triplet gaps graphs
+      # ====================================
+
+      plt.style.use('seaborn-colorblind')
+
+      fig, ax = plt.subplots()
+
+      # Plot the values
+
+      ax.plot([mol[0] for mol in first_momdip_list],[mol[1] for mol in first_momdip_list],marker='.',linestyle='-',label="S0-S1 µ")
+      ax.plot([mol[0] for mol in first_momdip_list],[mol[2] for mol in first_momdip_list],marker='.',linestyle='-',label="First non-zero µ")
+
+      # Add the legend and titles
+
+      ax.set_title('First transition dipole moments for %s group' % mol_group)
+      ax.set_xlabel("Diameter of the QD (nm)")
+      ax.set_ylabel("Dipole moment (au)")
+      ax.legend()
+
+      # Set other parameters
+
+      ax.tick_params(top=False, right=False)
+      ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+      ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+      plt.tight_layout()
+      plt.grid(True,which='both',linestyle='--')
+
+      # Save the file and close the figure
+
+      plt.savefig(os.path.join(out_dir,'%s_first_momdip.png' % mol_group),dpi=200)
       plt.close()
 
       print('%12s' % "[ DONE ]")
