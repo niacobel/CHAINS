@@ -345,8 +345,8 @@ def main():
 
       filtered_formula = {atom:number for atom, number in chemical_formula.items() if (atom != "Si" and atom != "H")}
 
-      pretty_name_mid = ''.join('{}{}'.format(*atom) for atom in sorted(filtered_formula.items()))
-      latex_name_mid = ''.join(('{}_{' + '{}}').format(*atom) for atom in sorted(filtered_formula.items()))
+      pretty_name_mid = ''.join([str(atom) + str(number) for atom, number in sorted(filtered_formula.items())])
+      latex_name_mid = ''.join([str(atom) + "_{" + str(number) + "}" for atom, number in sorted(filtered_formula.items())])
 
       # Get the final name, correctly formatted
 
@@ -701,10 +701,10 @@ def main():
       print('%12s' % "[ DONE ]")
 
       # ========================================================= #
-      # Fetch first transition dipole moment                      #
+      # Fetch first transition dipole moments                     #
       # ========================================================= #
 
-      print ("{:<133}".format('\n\tFetching first non-zero transition dipole moment with the ground state ...'), end="")
+      print ("{:<133}".format('\n\tFetching first transition dipole moments with the ground state ...'), end="")
 
       S0_number = [state['number'] for state in system['states_list'] if state['label'] == 'S0'][0]
 
@@ -720,12 +720,18 @@ def main():
 
         first_momdip = math.sqrt(first_momdip)
 
+        if state['label'] == 'S1':
+          s0_s1_momdip = first_momdip
+
         if first_momdip != 0:
           break
 
       # Store the value
 
-      comp_results[mol_name]['Structure'].update({"First transition dipole moment (au)" : first_momdip})
+      comp_results[mol_name]['Structure'].update({
+        "S0-S1 transition dipole moment (au)" : s0_s1_momdip,
+        "First non-zero transition dipole moment (au)" : first_momdip
+        })
 
       print('%12s' % "[ DONE ]")      
 
