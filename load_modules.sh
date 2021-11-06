@@ -12,14 +12,11 @@
 # Specifically for control_launcher and results_treatment
 #   - Numpy     1.14 and later  (in case of required upgrade, load python 3 module then issue in command line: python -m pip install --user -U numpy)
 
-# Specifically for results_treatment
-#   - Gnuplot   5 .0 and later    
-
 module --force purge
 
 if   [ "${CLUSTER_NAME}" = "dragon1" ]; then
-    module load releases/2018b
-    module load Python/3.7.0-foss-2018b
+    module load releases/2019b
+    module load Python/3.7.4-GCCcore-8.3.0
 	
 elif [ "${CLUSTER_NAME}" = "dragon2" ]; then
     module load releases/2019a
@@ -28,16 +25,10 @@ elif [ "${CLUSTER_NAME}" = "dragon2" ]; then
 elif [ "${CLUSTER_NAME}" = "lemaitre3" ]; then
     module load releases/2018b
     module load Python/3.6.6-foss-2018b
-    module load gnuplot/5.2.5-foss-2018b
 
 elif [ "${CLUSTER_NAME}" = "hercules2" ]; then
     module load releases/2020b
     module load Python/3.8.6-GCCcore-10.2.0
-
-elif [ "${CLUSTER_NAME}" = "nic4" ]; then
-    module load EasyBuild
-    module load Python/3.7.4-GCCcore-8.3.0
-    module load slurm
 
 elif [ "${CLUSTER_NAME}" = "nic5" ]; then
     module load releases/2019b
