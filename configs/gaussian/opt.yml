@@ -15,7 +15,7 @@ general:
 gaussian:
   auto_restart: True                               # True if you want the calculation to restart automatically when the job approaches the walltime limit, only works for geometry optimization (default is False)
   copy_files: True                                 # False if you don't want to copy the output files to their respective results directory, to proceed to the next step in CHAINS (default is False)
-  ip_calc : Adiabatic                              # "None" - doesn't compute the ionization potential (IP) ; "Vertical" - computes the vertical IP ; "Adiabatic" - computes the adiabatic IP (default is "None", ignored if copy_files = False) 
+# ip_calc : Adiabatic                              # "None" - doesn't compute the ionization potential (IP) ; "Vertical" - computes the vertical IP ; "Adiabatic" - computes the adiabatic IP (default is "None", ignored if copy_files = False) 
   benchmark: True                                  # True if you want to activate ABIN LAUNCHER's benchmarking option (default is False)
   keywords:                                        # The keywords will be used "as-is" in the keyword line of the GAUSSIAN input file, be sure that GAUSSIAN knows them! (see GAUSSIAN's manual for more information)
     method: B3LYP

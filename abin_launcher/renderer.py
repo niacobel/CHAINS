@@ -110,8 +110,14 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
       raise abin_errors.AbinError ('ERROR: The "copy_files" value given in the "gaussian" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
 
     if copy_files:
-      ip_calc = str(config['gaussian'].get('ip_calc')).lower()
-      if ip_calc not in ["none","vertical","adiabatic"]:
+      ip_calc = str(config['gaussian'].get('ip_calc',"no_key")).lower()
+      if ip_calc == "no_key":
+        # If there was no "ip_calc" key in the config file, use the scale index to define how the ionization potential will be calculated
+        if job_specs['scale_index'] > 650:
+          ip_calc = "vertical"
+        else:
+          ip_calc = "adiabatic"
+      elif ip_calc not in ["none","vertical","adiabatic"]:
         raise abin_errors.AbinError ('ERROR: The "ip_calc" value given in the "gaussian" block of the "%s" configuration file is neither "None", "Vertical" nor "Adiabatic" (This is not case sensitive).' % misc['config_name'])
     else:
       ip_calc = None
