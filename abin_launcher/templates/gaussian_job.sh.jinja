@@ -13,17 +13,61 @@
 {% if partition != None -%}
 #SBATCH --partition={{ partition }}
 {%- endif %}
-echo -e "******************************************************************************"
+{% if auto_restart is sameas true -%}
+#SBATCH --open-mode=append
+#SBATCH --signal=B:SIGUSR1@60
+
+function restart_handler() {
+
+  echo -e "\nApproaching walltime, calculation will now restart."
+
+  # Recover the important files and erase the temporary directory
+  cp $SCRATCH/{{ mol_name }}.chk $SLURM_SUBMIT_DIR/
+  (( nb_run = ${SLURM_RESTART_COUNT-0} + 1 ))
+  cp $SCRATCH/{{ mol_name }}.log $SLURM_SUBMIT_DIR/{{ mol_name }}_run${nb_run}.log
+  rm -rf $SCRATCH
+
+  # Requeue the job
+{%- if cluster_name == "dragon2" %}
+  # On dragon2, this needs to be executed through the login nodes
+  # (To match indentation, make sure that each line of this heredoc starts with a tab and not spaces!)
+  ssh dragon2-ctrl0 /bin/bash <<-EOF
+	cd $SLURM_SUBMIT_DIR
+	scontrol requeue ${SLURM_JOB_ID}
+	EOF
+{%- else %}
+  cd $SLURM_SUBMIT_DIR
+  scontrol requeue ${SLURM_JOB_ID}
+{%- endif %}
+  exit
+}
+{%- endif %}
+
+echo -e "\n******************************************************************************"
 echo -e "**************************   Beginning of the job   **************************"
 echo -e "******************************************************************************\n"
 
-echo -e "========================================================================"
-echo -e "=========================   Running GAUSSIAN   ========================="
-echo -e "========================================================================"
-
-echo -e "\nRenaming the original .xyz file to avoid overwriting it with the new one."
+date
 cd $SLURM_SUBMIT_DIR
+
+{% if auto_restart is sameas true -%}
+if [ ${SLURM_RESTART_COUNT-0} -eq 0 ] # First run only
+then
+  echo -e "\nRenaming the original .xyz file to avoid overwriting it with the new one."
+  mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
+else
+  echo -e "\nThis job has been restarted ${SLURM_RESTART_COUNT-0} time(s)."
+  if [ ${SLURM_RESTART_COUNT-0} -eq 1 ] # First restart only
+  then
+    echo -e "\nEditing input file to tell GAUSSIAN that it is a restarting calculation."
+    # Replace "Opt" on the first line that begins with a # by "Opt=Restart" (case insensitive)
+    sed -i.bak '0,/^#/ s|\bOpt\b|Opt=Restart|i' {{ mol_name }}.com
+  fi
+fi
+{%- else %}
+echo -e "\nRenaming the original .xyz file to avoid overwriting it with the new one."
 mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
+{%- endif %}
 
 # A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
 # See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
@@ -34,6 +78,17 @@ echo -e "\nCreating temporary directory $SCRATCH on node(s) ${SLURM_JOB_NODELIST
 mkdir -p $SCRATCH || exit $?
 cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.com $SCRATCH/ || exit $?
 
+{% if auto_restart is sameas true -%}
+if [ ${SLURM_RESTART_COUNT-0} -gt 0 ]
+then
+  cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.chk $SCRATCH/ || exit $?
+fi
+{%- endif %}
+
+echo -e "\n========================================================================"
+echo -e "=========================   Running GAUSSIAN   ========================="
+echo -e "========================================================================"
+
 cd $SCRATCH
 
 echo -e "\n================= GAUSSIAN execution begins now =================="
@@ -41,7 +96,15 @@ echo -e "\n================= GAUSSIAN execution begins now =================="
 {% for set_env_line in set_env -%}
 {{ set_env_line }}
 {% endfor -%}
+
+{% if auto_restart is sameas true -%}
+trap restart_handler SIGUSR1
+{{ command }} {{ mol_name }}.com & 
+echo -e "\nRestarting trap command has been set up. Now waiting ..."
+wait || (cp {{ mol_name }}.log $SLURM_SUBMIT_DIR/ && rm -rf $SCRATCH ; exit $?)
+{%- else %}
 {{ command }} {{ mol_name }}.com || (cp {{ mol_name }}.log $SLURM_SUBMIT_DIR/ && rm -rf $SCRATCH ; exit $?)
+{%- endif %}
 
 echo -e "\n=================  GAUSSIAN execution ends now  =================="
 
@@ -63,7 +126,7 @@ python {{ check_dir }}/gaussian_check.py {{ mol_name }}.log  || exit $?
 # Reload Gaussian in order to use some of its useful scripts
 {% for set_env_line in set_env -%}
 {{ set_env_line }}
-{% endfor -%}
+{% endfor %}
 
 # Extracting optimized geometry from checkpoint file
 echo -e "\nExtracting optimized geometry from checkpoint file."
@@ -75,7 +138,7 @@ sed -i "1s;^;${NUMBER_ATOMS}\nOptimized geometry from job ${SLURM_JOB_ID} on clu
 # Archive checkpoint file
 echo -e "\nArchiving checkpoint file."
 formchk {{ mol_name }}.chk {{ mol_name }}.fchk # Convert the checkpoint file from binary to text file
-bzip2 {{ mol_name }}.fchk
+gzip {{ mol_name }}.fchk
 rm {{ mol_name }}.chk
 
 {% if copy_files is sameas true -%}

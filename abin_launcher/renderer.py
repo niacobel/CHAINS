@@ -94,6 +94,11 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
 
     # Check the options defined in the config file
 
+    auto_restart = config['gaussian'].get('auto_restart',False)
+
+    if not isinstance(auto_restart, bool):
+      raise abin_errors.AbinError ('ERROR: The "auto_restart" value given in the "gaussian" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
     benchmark = config['gaussian'].get('benchmark',False)
 
     if not isinstance(benchmark, bool):
@@ -250,8 +255,9 @@ def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_
       "partition" : job_specs['partition'],     
       "chains_dir" : chains_path,
       "check_dir" : check_script_path,
-      "copy_files" : copy_files, # Associated with the config file, but it has already been verified
-      "benchmark" : benchmark    # Associated with the config file, but it has already been verified
+      "auto_restart" : auto_restart, # Associated with the config file, but it has already been verified
+      "copy_files" : copy_files,     # Associated with the config file, but it has already been verified
+      "benchmark" : benchmark        # Associated with the config file, but it has already been verified
     }
 
     # Variables associated with the "general" block of the config file
