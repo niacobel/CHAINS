@@ -16,8 +16,8 @@ import control_common
 # =================================================================== #
 # =================================================================== #
 
-def brightests_to_darkests_and_reverse(system:dict):
-    """Determines the transition files needed by QOCT-RA for the transition between each of the first B brightest states and each of the first D darkest states, and vice versa. The brightest states are identified by their transition dipole moment with the ground state while the darkest states are identified by their radiative lifetime. B and D are fixed parameters that can easily be changed at the beginning of the function definition.
+def gs_or_brightests_to_darkests_and_reverse(system:dict):
+    """Determines the content of the files needed by QOCT-RA for the transitions going from either the ground state or one of the first B brightest states to one of the first D darkest states, and vice versa. The brightest states are identified by their transition dipole moment with the ground state while the darkest states are identified by their radiative lifetime. B and D are fixed parameters that can easily be changed at the beginning of the function definition.
 
     Parameters
     ----------
@@ -42,10 +42,10 @@ def brightests_to_darkests_and_reverse(system:dict):
     transitions_list = []
 
     # Set the number of bright and dark states to consider
-    #! Keep in mind that you will end up with a total number of transitions corresponding to bmax * dmax * the number of transition dipole moments matrices!
+    #! Keep in mind that you will end up with a total number of transitions corresponding to bmax+1 * dmax * the number of transition dipole moments matrices!
 
-    bmax = 1 # Maximum number of bright states to consider (e.g. if bmax = 2, then only the two brightest states will be considered)
-    dmax = 1 # Maximum number of dark states to consider (e.g. if dmax = 2, then only the two darkest states will be considered)
+    bmax = 2 # Maximum number of bright states to consider (e.g. if bmax = 2, then only the two brightest states will be considered)
+    dmax = 2 # Maximum number of dark states to consider (e.g. if dmax = 2, then only the two darkest states will be considered)
 
     # ========================================================= #
     #                   Defining transitions                    #
@@ -55,7 +55,7 @@ def brightests_to_darkests_and_reverse(system:dict):
     for momdip_key in system['momdip_es_mtx']:
 
       # ========================================================= #
-      #          Defining the bright-dark pair of states          #
+      #                Defining the pair of states                #
       # ========================================================= #
 
       # Sorting the bright states
@@ -71,38 +71,45 @@ def brightests_to_darkests_and_reverse(system:dict):
       abs_gs_line = [abs(mom) for mom in gs_line]
       bright_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line, reverse=True)]
 
+      # Add the ground state
+      # ====================
+
+      # Add the ground state (index 0) to the beginning of the list of bright states
+      bright_max_indices.insert(0,0)
+
       # Sorting the dark states
       # =======================
 
       # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime)
       dark_max_indices = [system['eigenstates_list'].index(eigenstate) for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['lifetime'], reverse=True) if eigenstate['lifetime'] != float('inf')]
 
-      # Iterate over the bright states
-      # ==============================
+      # Iterate over the dark states
+      # ============================
 
-      # Start iterating over the first Nth brightest states, where N is the bmax argument (see https://stackoverflow.com/questions/36106712/how-can-i-limit-iterations-of-a-loop-in-python for details)
-      for iter_bright, bright_index in zip(range(bmax), bright_max_indices):
+      # Start iterating over the first Nth darkest states, where N is the dmax argument (see https://stackoverflow.com/questions/36106712/how-can-i-limit-iterations-of-a-loop-in-python for details)
+      for iter_dark, dark_index in zip(range(dmax), dark_max_indices):
 
-      # iter_bright is the number of the current iteration of this loop, e.g if bmax = 3, then iter_bright will be 0, then 1, then 2. (useful to label the transition)
-      # bright_index is the number of the state currently considered, e.g. if bright_max_indices = [5, 7, 6, 8] and iter_bright = 1, then bright_index = 7.
+      # iter_dark is the number of the current iteration of this loop, e.g if dmax = 2, then iter_dark will be 0, then 1. (useful to label the transition)
+      # dark_index is the number of the state currently considered, e.g. if dark_max_indices = [4, 3, 2, 1] and iter_bright = 0, then dark_index = 4.
 
         # Define the initial density matrix file name and content
 
-        bright_label = system['eigenstates_list'][bright_index]["label"]
+        dark_label = system['eigenstates_list'][dark_index]["label"]
 
-        init_file = bright_label + "_"
+        target_file = dark_label + "_"
 
-        init_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
-        init_content[bright_index][bright_index] = complex(1)
+        target_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+        target_content[dark_index][dark_index] = complex(1)
 
-        # Iterate over the dark states
-        # ============================
+        # Iterate over the bright states
+        # ==============================
 
-        # Start iterating over the first Nth darkest states, where N is the dmax argument (see https://stackoverflow.com/questions/36106712/how-can-i-limit-iterations-of-a-loop-in-python for details)
-        for iter_dark, dark_index in zip(range(dmax), dark_max_indices):
+        # Start iterating over the first Nth brightest states, where N is the bmax argument* (see https://stackoverflow.com/questions/36106712/how-can-i-limit-iterations-of-a-loop-in-python for details)
+        # *Since the first "bright" state is the ground state, we need to increase bmax by 1.
+        for iter_bright, bright_index in zip(range(bmax+1), bright_max_indices):
 
-        # iter_dark is the number of the current iteration of this loop, e.g if dmax = 2, then iter_dark will be 0, then 1. (useful to label the transition)
-        # dark_index is the number of the state currently considered, e.g. if dark_max_indices = [4, 3, 2, 1] and iter_bright = 0, then dark_index = 4.
+        # iter_bright is the number of the current iteration of this loop, e.g if bmax = 3, then iter_bright will be 0, then 1, then 2. (useful to label the transition)
+        # bright_index is the number of the state currently considered, e.g. if bright_max_indices = [0, 5, 7, 6, 8] and iter_bright = 1, then bright_index = 5.
 
           # Exit if both states are the same (that transition will be skipped)
           if bright_index == dark_index:
@@ -113,12 +120,12 @@ def brightests_to_darkests_and_reverse(system:dict):
 
           # Define the initial density matrix file name and content
 
-          dark_label = system['eigenstates_list'][dark_index]["label"]
+          bright_label = system['eigenstates_list'][bright_index]["label"]
 
-          target_file = dark_label + "_"
+          init_file = bright_label + "_"
 
-          target_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
-          target_content[dark_index][dark_index] = complex(1)
+          init_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+          init_content[bright_index][bright_index] = complex(1)
 
           # ========================================================= #
           #           Building the transition dictionary              #
@@ -126,8 +133,13 @@ def brightests_to_darkests_and_reverse(system:dict):
 
           # Building the transition dictionary
 
+          if bright_index == 0:
+            transition_label = momdip_key + "_GS" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label
+          else:
+            transition_label = momdip_key + "_" + str(iter_bright) + "B" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label
+
           transition = {
-            "label" : momdip_key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D_" + bright_label + "-" + dark_label,
+            "label" : transition_label,
             "init_file" : init_file,
             "init_content" : init_content,
             "target_file" : target_file,
@@ -159,8 +171,13 @@ def brightests_to_darkests_and_reverse(system:dict):
 
           # Building the reverse transition dictionary
 
+          if bright_index == 0:
+            transition_label = "R_" + momdip_key + "_" + str(iter_dark+1) + "D" + "GS_" + dark_label + "-" +  bright_label
+          else:
+            transition_label = "R_" + momdip_key + "_" + str(iter_dark+1) + "D" + str(iter_bright) + "B_" + dark_label + "-" +  bright_label
+
           transition = {
-            "label" : "R_" + momdip_key + "_" + str(iter_dark+1) + "D" + str(iter_bright+1) + "B_" + dark_label + "-" +  bright_label,
+            "label" : transition_label,
             "init_file" : target_file,
             "init_content" : target_content,
             "target_file" : init_file,
