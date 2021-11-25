@@ -670,6 +670,13 @@ def main():
 
       system['eigenstates_list'].insert(index,new_state)
 
+    # Once all the list has been updated, correct the state numbers
+
+    energies = sorted([eigenstate['energy'] for eigenstate in system['eigenstates_list']])
+
+    for eigenstate in system['eigenstates_list']:
+      eigenstate['number'] = energies.index(eigenstate['energy'])
+
     # ========================================================= #
     # Eigenstates list                                          #
     # ========================================================= #
