@@ -1,0 +1,75 @@
+- label: DAZZLER Qz-250-400
+  link: https://fastlite.com/wp-content/uploads/spec-qz-250-400-rev2018-1.pdf
+  input_beam:
+    energy: 10        # in µJ
+    diameter: 1.5     # in mm
+  delay:
+    - frequency: 250  # in nm
+      duration: 4     # in ps 
+    - frequency: 400  # in nm
+      duration: 2.9   # in ps 
+
+- label: DAZZLER WR-460-740
+  link: https://fastlite.com/wp-content/uploads/spec-wr-460-740-rev2018-1.pdf
+  input_beam:
+    energy: 30        # in µJ
+    diameter: 2.5     # in mm
+  delay:
+    - frequency: 500  # in nm
+      duration: 9     # in ps 
+    - frequency: 700  # in nm
+      duration: 7     # in ps 
+
+- label: DAZZLER HR45-650-1100
+  link: https://fastlite.com/wp-content/uploads/spec-hr45-650-1100-rev2018-1.pdf
+  input_beam:
+    energy: 30        # in µJ
+    diameter: 2.5     # in mm
+  delay:
+    - frequency: 900  # in nm
+      duration: 14    # in ps 
+
+- label: DAZZLER HR 1550
+  link: https://fastlite.com/wp-content/uploads/spec-hr-1550-rev2018-1.pdf
+  input_beam:
+    energy: 30        # in µJ
+    diameter: 2.5     # in mm
+  delay:
+    - frequency: 1550 # in nm
+      duration: 7     # in ps 
+
+- label: DAZZLER HR45-1100-2200
+  link: https://fastlite.com/wp-content/uploads/spec-hr45-1100-2200-rev2018-1.pdf
+  input_beam:
+    energy: 30        # in µJ
+    diameter: 2.5     # in mm
+  delay:
+    - frequency: 1700 # in nm
+      duration: 13    # in ps 
+
+- label: DAZZLER WB45-1450-3000
+  link: https://fastlite.com/wp-content/uploads/spec-wb45-1450-3000-rev2018-1.pdf
+  input_beam:
+    energy: 30        # in µJ
+    diameter: 2.5     # in mm
+  delay:
+    - frequency: 2100 # in nm
+      duration: 5.5   # in ps 
+
+- label: DAZZLER WB45-2000-3700
+  link: https://fastlite.com/wp-content/uploads/spec-wb45-2000-3700-rev2018-1.pdf
+  input_beam:
+    energy: 30        # in µJ
+    diameter: 2.5     # in mm
+  delay:
+    - frequency: 2800 # in nm
+      duration: 5.5   # in ps 
+
+- label: DAZZLER UWB-3500-7000
+  link: https://fastlite.com/wp-content/uploads/spec-uwb-3500-7000-rev2018-1.pdf
+  input_beam:
+    energy: 20        # in µJ
+    diameter: 2.5     # in mm
+  delay:
+    - frequency: 5000 # in nm
+      duration: 4     # in ps 

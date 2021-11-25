@@ -48,7 +48,7 @@ mkdir -p Verif # Strangely needed by QOCT-RA
 # Compile the code (cluster dependent)
 
 echo -e ">>> Start of QOCT-RA compilation"
-gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
+gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/fft_sub.f $QOCT_RA_DIR/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
 rm mymod.mod  
 echo -e ">>> End of QOCT-RA compilation"
 
@@ -123,7 +123,7 @@ if [ $(cat {{ mol_dir }}/$finish_file | wc -l) -eq {{ nb_transitions }} ]; then
     echo -e "\tCopying and renaming pulse files to ${res_dir}/Pulse."
     mkdir -p $res_dir/Pulse
     cd $job_dir/Pulse/
-    cp Pulse_init Pulse Pulse_param_init Pulse_param $res_dir/Pulse
+    cp Pulse_init Pulse Pulse_best $res_dir/Pulse
 
     echo -e "\tCopying PCP files to ${res_dir}/PCP."
     mkdir -p $res_dir/PCP

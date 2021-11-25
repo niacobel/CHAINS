@@ -96,11 +96,6 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     if not config.get('qoctra'):
       raise control_common.ControlError ('ERROR: There is no "qoctra" key defined in the "%s" configuration file.' % misc['config_name'])      
 
-    # Check if a "ref_duration" block has been defined in the config file
-
-    if not config.get('ref_duration'):
-      raise control_common.ControlError ('ERROR: There is no "ref_duration" key defined in the "%s" configuration file.' % misc['config_name'])
-
     # Check the options defined in the config file
 
     copy_files = config['qoctra'].get('copy_files',True)
@@ -173,6 +168,16 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       ip_list = list(ip_content)
     print('%12s' % "[ DONE ]")
 
+    # Load the pulse shapers file
+    # ===========================
+
+    shapers_file = control_common.check_abspath(os.path.join(chains_path,"shapers.yml"),"Pulse shapers YAML file","file")
+
+    print ("{:<80}".format("\nLoading the pulse shapers YAML file ..."), end="")
+    with open(shapers_file, 'r') as shape:
+      shapers = yaml.load(shape, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
     # ========================================================= #
     #           Rendering the control parameters file           #
     # ========================================================= #
@@ -219,26 +224,42 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     except KeyError as error:
       raise control_common.ControlError ('ERROR: The "%s" key is missing in the "control" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
 
-    # Pulse duration
-    # ~~~~~~~~~~~~~~
-    
+    # Central frequency
+    # ~~~~~~~~~~~~~~~~~
+
     # Compute the transition energy that will act as the central frequency
 
     init_number = np.argmax(np.diagonal(misc['transition']['init_content']))
     target_number = np.argmax(np.diagonal(misc['transition']['target_content']))
     omegazero = abs(system['eigenstates_list'][init_number]['energy'] - system['eigenstates_list'][target_number]['energy'])
 
-    # Convert the central frequency to nanometers
+    # Convert the central frequency to nanometers and to wavenumbers
 
     omegazero_nm = control_common.energy_unit_conversion(omegazero,'ha','nm')
+    omegazero_cm = control_common.energy_unit_conversion(omegazero,'ha','cm-1')
 
-    # Find the closest reference to our central frequency (see https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value)
+    # Choosing the pulse shaper
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    closest_ref = min(config['ref_duration'].keys(), key=lambda x : abs(x - omegazero_nm))
+    min_diff = float('inf')
 
-    # Fix the duration of the pulse using that reference
+    # Find the shaper with the closest frequency to our central frequency
 
-    duration_s = config['ref_duration'][closest_ref] * 1e-12
+    for shaper in shapers:
+      for profile in shaper['delay']:
+        diff = abs(profile['frequency'] - omegazero_nm)
+        if diff < min_diff:
+          min_diff = diff
+          ref_shaper = shaper
+          ref_frequency = profile['frequency']
+          ref_duration = profile['duration']
+    
+    # Pulse duration
+    # ~~~~~~~~~~~~~~
+    
+    # Fix the duration of the pulse using the reference shaper
+
+    duration_s = ref_duration * 1e-12
     duration = duration_s / constants.value('atomic unit of time')
 
     # Defining the specific Jinja variables
@@ -259,27 +280,58 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       try:
 
-        bandwidth = control_common.energy_unit_conversion(config['qoctra']['opc']['bandwidth'],'cm-1','ha')
+        bandwidth = config['qoctra']['opc']['bandwidth']
 
         amplitude_filter = config['qoctra']['opc'].get('amplitude_filter', False)
-        bandwidth_filter = config['qoctra']['opc'].get('bandwidth_filter', False)
+        spectral_filter = config['qoctra']['opc'].get('spectral_filter', False)
+        max_fluence = config['qoctra']['opc'].get('max_fluence', False)
 
         param_render_vars.update({
+
+          'amplitude_filter' : amplitude_filter,
+          'spectral_filter' : spectral_filter,
+          'max_fluence' : max_fluence,
+
           # OPC
           "nb_steps" : nb_steps,
-          "alpha" : config['qoctra']['opc']['alpha'],
           "write_freq" : config['qoctra']['opc']['write_freq']
+
         })
 
-        if bandwidth_filter:
+        if spectral_filter:
           param_render_vars.update({
             # OPC
-            "omegazero" : omegazero,
-            "bandwidth" : bandwidth
+            "spectral_filter_center" : "{:.5e}".format(omegazero_cm).replace('e','d'),
+            "spectral_filter_fwhm" : "{:.5e}".format(bandwidth).replace('e','d')
           })
 
+        if not max_fluence:
+          param_render_vars.update({
+            # OPC
+            "alpha" : config['qoctra']['opc']['alpha']
+          })
+        
       except KeyError as error:
         raise control_common.ControlError ('ERROR: The "%s" key is missing in the "opc" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+      # Maximum fluence (in J/m²)
+      # ~~~~~~~~~~~~~~~
+
+      if max_fluence:
+
+        # Convert and compute the values using the shaper parameters
+
+        shaper_energy = float(ref_shaper['input_beam']['energy']) * 1e-6
+        shaper_area = np.pi * ( (float(ref_shaper['input_beam']['diameter']) * 1e-3) ** 2 )
+
+        fluence = shaper_energy / shaper_area
+
+        # Store the value
+
+        param_render_vars.update({
+            # OPC
+            "fluence" : "{:.5e}".format(fluence).replace('e','d')
+          })
 
       # Amplitude filtering
       # ~~~~~~~~~~~~~~~~~~~
@@ -495,10 +547,15 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       # Determine the subpulses constituting the guess pulse
       # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+      # Convert the bandwidth from cm-1 to atomic units
+
+      bandwidth_au = control_common.energy_unit_conversion(bandwidth,'cm-1','ha')
+      full_bandwidth = ( bandwidth_au * 6 ) / 2.35 # Conversion from FWHM to full width for a gaussian
+
       # Determine the frequency range of subpulses (delimited by the spectral bandwidth, centered around the transition energy)
 
-      upper_limit = omegazero + bandwidth/2
-      lower_limit = omegazero - bandwidth/2
+      upper_limit = omegazero + full_bandwidth/2
+      lower_limit = omegazero - full_bandwidth/2
 
       # Initialize the variables 
 
@@ -646,25 +703,37 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     print("")
     print(''.center(60, '-'))
-    print('Pulse values'.center(60, ' '))
+    print('Shaper values'.center(60, ' '))
     print(''.center(60, '-'))
-
+    print("{:<30} {:<30}".format("Label: ", ref_shaper['label']))
+    print("{:<30} {:<30}".format("Input beam energy (µJ): ", ref_shaper['input_beam']['energy']))
+    print("{:<30} {:<30}".format("Input beam diameter (mm): ", ref_shaper['input_beam']['diameter']))
+    print("{:<30} {:<30}".format("Reference frequency (nm): ", ref_frequency))
+    print("{:<30} {:<30}".format("Reference duration (ps): ", ref_duration))
+    print(''.center(60, '-'))
+    print("")
+    print(''.center(60, '-'))
+    print('Pulse characteristics'.center(60, ' '))
+    print(''.center(60, '-'))
     print("{:<30} {:<30}".format("Duration (a.u.): ", "{:.4e}".format(duration)))
     print("{:<30} {:<30}".format("Duration (s): ", "{:.4e}".format(duration_s)))
-    print("{:<30} {:<30}".format("Initial strength (V/m): ", "{:.4e}".format(init_strength * constants.value('atomic unit of electric field'))))
-    print("{:<30} {:<30}".format("Initial strength (a.u.): ", "{:.4e}".format(init_strength)))
-    print("{:<30} {:<30}".format("Bandwidth (a.u.): ", "{:.4e}".format(bandwidth)))
-    print("{:<30} {:<30}".format("Bandwidth (cm^-1): ", "{:.4e}".format(control_common.energy_unit_conversion(bandwidth,'ha','cm-1'))))    
+    print("{:<30} {:<30}".format("Bandwidth FWHM (a.u.): ", "{:.4e}".format(bandwidth_au)))
+    print("{:<30} {:<30}".format("Bandwidth FWHM (cm^-1): ", "{:.4e}".format(bandwidth)))    
     print("{:<30} {:<30}".format("Central frequency (a.u.): ", "{:.4e}".format(omegazero))) 
-    print("{:<30} {:<30}".format("Central frequency (cm^-1): ", "{:.4e}".format(control_common.energy_unit_conversion(omegazero,'ha','cm-1')))) 
-    print("{:<30} {:<30}".format("Nb subpulses: ", len(subpulses)))
-
+    print("{:<30} {:<30}".format("Central frequency (cm^-1): ", "{:.4e}".format(omegazero_cm)))
     if amplitude_filter:
-      print("{:<30} {:<30}".format("Max energy (J): ", "{:.4e}".format(energy)))
-      print("{:<30} {:<30}".format("Molecular surface (m^2): ", "{:.4e}".format(area)))
       print("{:<30} {:<30}".format("Maximum strentgh (V/m): ", "{:.4e}".format(max_strength)))
       print("{:<30} {:<30}".format("Maximum strentgh (a.u.): ", "{:.4e}".format(max_strength_au)))
-
+    if max_fluence:
+      print("{:<30} {:<30}".format("Maximum fluence (J/m^2): ", "{:.4e}".format(fluence)))
+    print(''.center(60, '-'))
+    print("")
+    print(''.center(60, '-'))
+    print('Guess pulse characteristics'.center(60, ' '))
+    print(''.center(60, '-'))
+    print("{:<30} {:<30}".format("Nb subpulses: ", len(subpulses)))
+    print("{:<30} {:<30}".format("Initial strength (V/m): ", "{:.4e}".format(init_strength * constants.value('atomic unit of electric field'))))
+    print("{:<30} {:<30}".format("Initial strength (a.u.): ", "{:.4e}".format(init_strength)))
     print(''.center(60, '-'))
 
     return rendered_content, rendered_script
