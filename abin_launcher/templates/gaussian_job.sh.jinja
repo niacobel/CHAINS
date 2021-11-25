@@ -118,8 +118,19 @@ echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
 echo -e "===================================================================="
 
-# Quality control (was there any problem with GAUSSIAN?)
 cd $SLURM_SUBMIT_DIR
+
+{% if auto_restart is sameas true -%}
+# Merge the log files
+if [ ${SLURM_RESTART_COUNT-0} -gt 0 ]
+then
+  (( nb_run = ${SLURM_RESTART_COUNT-0} + 1 ))
+  mv {{ mol_name }}.log {{ mol_name }}_run${nb_run}.log
+  ls -v {{ mol_name }}_run*.log | xargs cat > {{ mol_name }}.log
+fi
+{%- endif %}
+
+# Quality control (was there any problem with GAUSSIAN?)
 source {{ chains_dir }}/load_modules.sh
 python {{ check_dir }}/gaussian_check.py {{ mol_name }}.log  || exit $?
 
