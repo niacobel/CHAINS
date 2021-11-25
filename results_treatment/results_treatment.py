@@ -836,10 +836,10 @@ def main():
         # Get the initial and target state number
 
         init_label = transition['Initial file name'][:-2] # [:-2] to remove the trailing "_1"
-        init_number = int([eigenstate['Number'] for eigenstate in eigenstates_list if eigenstate['Label'] == init_label][0])
+        init_number = eigenstates_list.index(next(eigenstate for eigenstate in eigenstates_list if eigenstate['Label'] == init_label))
 
         target_label = transition['Target file name'][:-2] # [:-2] to remove the trailing "_1"
-        target_number = int([eigenstate['Number'] for eigenstate in eigenstates_list if eigenstate['Label'] == target_label][0])
+        target_number = eigenstates_list.index(next(eigenstate for eigenstate in eigenstates_list if eigenstate['Label'] == target_label))
 
         # Get the orientation of the laser (momdip_key) and the transition dipole moment of this specific transition
         
