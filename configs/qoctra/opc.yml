@@ -17,7 +17,7 @@ qoctra:
   process: OPC                                    # Nature of the process: [OPC] Optimal control, [OPM] Optimal control with multiple constraints; [PCP] Post-control with pulse [PCL] Free post-control
   control:
     time_step: 3.0d0                              # Duration of a time step (a.u. of time)
-    max_iter: 2500                                # Maximum number of iterations
+    max_iter: 1000                                # Maximum number of iterations
     threshold: 0.9999d0                           # Convergence threshold for the fidelity
   opc:
     write_freq: 1                                 # Number of iterations between each writing of the field
