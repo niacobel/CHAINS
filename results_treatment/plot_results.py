@@ -538,11 +538,107 @@ def main():
 
   # =================================================================== #
   # =================================================================== #
+  #                     PLOTTING HIGHEST FIDELITIES                     #
+  # =================================================================== #
+  # =================================================================== #
+
+  section_title = "4. Fidelities"
+
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
+
+  # Get the values for Si
+  # =====================
+
+  print ("{:<140}".format('\nFetching the values for Si QDs ...'), end="")
+
+  si_fids = []
+
+  for mol in yml_sorted['Si']:
+    if yml_sorted['Si'][mol].get('Control'):
+      size = yml_sorted['Si'][mol]['Structure']['Size (nm)']
+      fidelity = max([transition['Fidelity'] for transition in yml_sorted['Si'][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_')])
+      si_fids.append((size,fidelity))
+
+  si_fids.sort(key=lambda tup: tup[0]) # Sort the values by size
+
+  print('%12s' % "[ DONE ]")
+
+  # Iterate over each molecule group and compare it to Si
+  # ====================================================
+
+  for mol_group in mol_groups:
+
+    if mol_group != 'Si':
+
+      print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_group), end="")
+
+      # Get the values
+      # ==============
+
+      fids = []
+
+      for mol in yml_sorted[mol_group]:
+        if yml_sorted[mol_group][mol].get('Control'):
+
+          # Get the fidelities values
+
+          size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
+          fidelity = max([transition['Fidelity'] for transition in yml_sorted[mol_group][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_')])
+
+          # Store the data for this molecule
+
+          fids.append((size,fidelity))
+
+      fids.sort(key=lambda tup: tup[0]) # Sort the values by size
+
+      # Plot the graphs
+      # ===============
+
+      plt.style.use('seaborn-colorblind')
+
+      fig, ax = plt.subplots()
+
+      # Plot the Si values
+
+      ax.plot([mol[0] for mol in si_fids],[mol[1] for mol in si_fids],marker='.',linestyle='--',label='Si')
+
+      # Plot the specific group value
+
+      ax.plot([mol[0] for mol in fids],[mol[1] for mol in fids],marker='.',linestyle='-',label=mol_group)
+
+      # Add the legend and titles
+
+      ax.set_title('Highest fidelities: Si vs %s' % mol_group)
+      ax.set_xlabel("Diameter of the QD (nm)")
+      ax.set_ylabel('Fidelity')
+      ax.legend()
+
+      # Set other parameters
+
+      ax.tick_params(top=False, right=False)
+      ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+      ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+      plt.tight_layout()
+      plt.grid(True,which='both',linestyle='--')
+
+      # Save the file and close the figure
+
+      plt.savefig(os.path.join(out_dir,'%s_fids.png' % mol_group),dpi=200)
+      plt.close()
+
+      print('%12s' % "[ DONE ]")
+
+  # =================================================================== #
+  # =================================================================== #
   #                  PLOTTING TRANSITION DIPOLE MOMENT                  #
   # =================================================================== #
   # =================================================================== #
 
-  section_title = "4. Transition dipole moment"
+  section_title = "5. Transition dipole moment"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
