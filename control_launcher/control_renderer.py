@@ -475,7 +475,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       # GENERAL
       "process" : "PCP",
       # CONTROL
-      "start_pulse" : "../Pulse/Pulse",
+      "start_pulse" : "../Pulse/Pulse_best",
       # POST CONTROL
       "mat_et0_path" : data['eigenvectors_path']
     })
