@@ -22,7 +22,6 @@ qoctra:
   opc:
     write_freq: 1                                 # Number of iterations between each writing of the field
     bandwidth: 147.1                              # Spectral bandwidth of the pulse, in cm-1 (duration_FWHM = 100 fs => bandwidth_FWHM ~= 147.1 cm-1)
-    amplitude_filter: True                        # True if you want to limit the maximum amplitude of the pulse (derived from the ionization potential of the molecule), default is False
     spectral_filter: True                         # True if you want to limit the spectral bandwidth of the pulse, default is False
     max_fluence: True                             # True if you want to limit the maximum fluence of the pulse, default is False
   guess_pulse:

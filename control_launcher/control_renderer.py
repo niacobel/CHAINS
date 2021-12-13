@@ -174,7 +174,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     shapers_file = control_common.check_abspath(os.path.join(chains_path,"shapers.yml"),"Pulse shapers YAML file","file")
 
     print ("{:<80}".format("\nLoading the pulse shapers YAML file ..."), end="")
-    with open(shapers_file, 'r') as shape:
+    with open(shapers_file, 'r', encoding='utf-8') as shape:
       shapers = yaml.load(shape, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
@@ -282,13 +282,11 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
         bandwidth = config['qoctra']['opc']['bandwidth']
 
-        amplitude_filter = config['qoctra']['opc'].get('amplitude_filter', False)
         spectral_filter = config['qoctra']['opc'].get('spectral_filter', False)
         max_fluence = config['qoctra']['opc'].get('max_fluence', False)
 
         param_render_vars.update({
 
-          'amplitude_filter' : amplitude_filter,
           'spectral_filter' : spectral_filter,
           'max_fluence' : max_fluence,
 
@@ -319,26 +317,29 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       if max_fluence:
 
-        # Convert and compute the values using the shaper parameters
+        # Ionization potential
+        # --------------------
 
-        shaper_energy = float(ref_shaper['input_beam']['energy']) * 1e-6
-        shaper_area = np.pi * ( (float(ref_shaper['input_beam']['diameter']) * 1e-3) ** 2 )
+        ip = -1
 
-        fluence = shaper_energy / shaper_area
+        for line in ip_list:
+          if line['Molecule'] == misc['source_name']:
+            if line['IP (adiabatic)'] != "N/A":
+              ip = float(line['IP (adiabatic)'])
+            elif line['IP (vertical)'] != "N/A":
+              ip = float(line['IP (vertical)'])
+            else:
+              ip = float(line['IP (Koopmans)'])
+            break
 
-        # Store the value
+        if ip == -1:
+          raise control_common.ControlError ("ERROR: Unable to find the ionization potential of this molecule in the %s file." % ip_file)
 
-        param_render_vars.update({
-            # OPC
-            "fluence" : "{:.5e}".format(fluence).replace('e','d')
-          })
+        # Convert the IP from Ha to Joules and divide by 1000 to get the maximum pulse energy (must remain a perturbation to the electrons in the system)
 
-      # Amplitude filtering
-      # ~~~~~~~~~~~~~~~~~~~
+        energy = control_common.energy_unit_conversion(ip,'ha','j') / 1000
 
-      if amplitude_filter:
-
-        # Affected area of the molecule (necessary to compute the maximum field strength)
+        # Affected area of the molecule
         # -----------------------------
 
         # Initialize some variables
@@ -410,40 +411,30 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
         area = 2 * np.pi *(radius**2)
 
-        # Determine the maximum field strength
-        # ------------------------------------
+        # Maximum fluence of the molecule
+        # -------------------------------
 
-        # Get the ionization potential
+        fluence = energy / area
 
-        ip = -1
+        # Maximum fluence of the shaper
+        # -----------------------------
 
-        for line in ip_list:
-          if line['Molecule'] == misc['source_name']:
-            if line['IP (adiabatic)'] != "N/A":
-              ip = float(line['IP (adiabatic)'])
-            elif line['IP (vertical)'] != "N/A":
-              ip = float(line['IP (vertical)'])
-            else:
-              ip = float(line['IP (Koopmans)'])
-            break
+        # Convert and compute the values using the shaper parameters to compute the shaper max fluence
 
-        if ip == -1:
-          raise control_common.ControlError ("ERROR: Unable to find the ionization potential of this molecule in the %s file." % ip_file)
+        shaper_energy = float(ref_shaper['input_beam']['energy']) * 1e-6
+        shaper_area = np.pi * ( (float(ref_shaper['input_beam']['diameter']) * 1e-3) ** 2 )
 
-        # Convert the IP from Ha to Joules and divide by 1000 to get the maximul pulse energy (must remain a perturbation to the electrons in the system)
+        shaper_fluence = shaper_energy / shaper_area
 
-        energy = control_common.energy_unit_conversion(ip,'ha','j') / 1000
+        # Store the lowest fluence
+        # ------------------------
 
-        # Compute the maximum field strength then convert it to atomic units
-
-        max_strength = math.sqrt( (2 * energy) / (constants.value('speed of light in vacuum') * constants.value('vacuum electric permittivity') * area * duration_s) )
-        max_strength_au = max_strength / constants.value('atomic unit of electric field')
-
-        # Store the value
+        if shaper_fluence < fluence:
+          fluence = shaper_fluence
 
         param_render_vars.update({
             # OPC
-            "max_strength" : "{:.5e}".format(max_strength_au).replace('e','d')
+            "fluence" : "{:.5e}".format(fluence).replace('e','d')
           })
 
     #! Temporary
@@ -526,17 +517,11 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       try:
 
-        if amplitude_filter:
-          init_strength = max_strength_au / 100
-          init_strength_for = "{:.5e}".format(init_strength).replace('e','d') # Replace the 'e' from Python with the 'd' from Fortran double precision
-        else:
-          init_strength_for = config['qoctra']['guess_pulse']['amplitude']
-          init_strength = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', init_strength_for)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python
+        amplitude = config['qoctra']['guess_pulse'].get('amplitude')
 
         pulse_render_vars = {
           "pulse_type" : config['qoctra']['guess_pulse']['pulse_type'],
           "subpulse_type" : config['qoctra']['guess_pulse']['subpulse_type'],
-          "init_strength" : init_strength_for,
           "phase_change" : config['qoctra']['guess_pulse']['phase_change'],
           "sign" : config['qoctra']['guess_pulse']['sign']       
         }
@@ -564,7 +549,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       # Consider each pair of excited states
 
-      for state_1 in range(1, len(system['eigenstates_list'])): # Starting at 1 to exclude the ground state
+      for state_1 in range(len(system['eigenstates_list'])):
         for state_2 in range(state_1 + 1, len(system['eigenstates_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
 
           # Compute the energy difference and compare it to our frequency range
@@ -602,13 +587,35 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       #! Correct the values rather than raise an exception? Or calculate the values based on nstep (user-supplied) and time_limit (duration = time_limit and time_step = time_limit / nstep, then check against NYQ-SHA and decrease time_step and duration if necessary.)
 
+      # Define the amplitude of the subpulses
+      # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      if amplitude:
+
+        amplitude_for = amplitude
+        amplitude_au = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', amplitude_for)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python
+        amplitude = amplitude_au * constants.value('atomic unit of electric field')
+
+      elif not amplitude and max_fluence:
+        
+        # Compute the amplitude using the maximum fluence as reference
+
+        intensity = fluence / duration_s
+        amplitude = math.sqrt( intensity / (0.5 * constants.value('speed of light in vacuum') * constants.value('vacuum electric permittivity')) ) / 100
+        amplitude_au = amplitude / constants.value('atomic unit of electric field')
+        amplitude_for = "{:.5e}".format(amplitude_au).replace('e','d') # Replace the 'e' from Python with the 'd' from Fortran double precision      
+
+      elif not amplitude and not max_fluence:
+        raise control_common.ControlError ('ERROR: The "amplitude" key is missing in the "guess_pulse" block of the "qoctra" block in the "%s" configuration file while the maximum fluence has not been set to True.' % misc['config_name'])
+
       # Set the variables not associated with the config file
       # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
       pulse_render_vars.update({
         "basis" : data['eigenvalues_path'],
         "nb_subpulses" : len(subpulses),
-        "subpulses" : subpulses
+        "subpulses" : subpulses,
+        "amplitude" : amplitude_for
       })
 
     # Rendering the file
@@ -708,6 +715,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     print("{:<30} {:<30}".format("Label: ", ref_shaper['label']))
     print("{:<30} {:<30}".format("Input beam energy (µJ): ", ref_shaper['input_beam']['energy']))
     print("{:<30} {:<30}".format("Input beam diameter (mm): ", ref_shaper['input_beam']['diameter']))
+    print("{:<30} {:<30}".format("Shaper max fluence (J/m^2): ", "{:.4e}".format(shaper_fluence)))
     print("{:<30} {:<30}".format("Reference frequency (nm): ", ref_frequency))
     print("{:<30} {:<30}".format("Reference duration (ps): ", ref_duration))
     print(''.center(60, '-'))
@@ -721,9 +729,6 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     print("{:<30} {:<30}".format("Bandwidth FWHM (cm^-1): ", "{:.4e}".format(bandwidth)))    
     print("{:<30} {:<30}".format("Central frequency (a.u.): ", "{:.4e}".format(omegazero))) 
     print("{:<30} {:<30}".format("Central frequency (cm^-1): ", "{:.4e}".format(omegazero_cm)))
-    if amplitude_filter:
-      print("{:<30} {:<30}".format("Maximum strentgh (V/m): ", "{:.4e}".format(max_strength)))
-      print("{:<30} {:<30}".format("Maximum strentgh (a.u.): ", "{:.4e}".format(max_strength_au)))
     if max_fluence:
       print("{:<30} {:<30}".format("Maximum fluence (J/m^2): ", "{:.4e}".format(fluence)))
     print(''.center(60, '-'))
@@ -732,8 +737,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     print('Guess pulse characteristics'.center(60, ' '))
     print(''.center(60, '-'))
     print("{:<30} {:<30}".format("Nb subpulses: ", len(subpulses)))
-    print("{:<30} {:<30}".format("Initial strength (V/m): ", "{:.4e}".format(init_strength * constants.value('atomic unit of electric field'))))
-    print("{:<30} {:<30}".format("Initial strength (a.u.): ", "{:.4e}".format(init_strength)))
+    print("{:<30} {:<30}".format("Amplitude (V/m): ", "{:.4e}".format(amplitude)))
+    print("{:<30} {:<30}".format("Amplitude (a.u.): ", "{:.4e}".format(amplitude_au)))
     print(''.center(60, '-'))
 
     return rendered_content, rendered_script

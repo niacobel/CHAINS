@@ -55,8 +55,15 @@ echo -e ">>> End of QOCT-RA compilation"
 # First execution to get the optimal pulse
 
 echo -e "\n================= First QOCT-RA execution begins now =================="
-./Controle.out {{ rendered_param }} $QOCT_RA_DIR || { echo "ERROR: A problem has occcured during the first execution of QOCT-RA" && exit $?; }
+./Controle.out {{ rendered_param }} $QOCT_RA_DIR || { rm -r $SCRATCH/Pulse/Pulse_iter* && cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "ERROR: A problem has occcured during the first execution of QOCT-RA" && exit $?; }
 echo -e "\n================= First QOCT-RA execution ends now =================="
+
+# If the Pulse_best file does not exist, simply create it by copying the initial pulse
+
+if [ ! -f "$SCRATCH/Pulse/Pulse_best" ]; then
+  echo -e "\nThe Pulse_best file is absent. It will be created by copying the initial pulse file."
+  cp $SCRATCH/Pulse/Pulse_init $SCRATCH/Pulse/Pulse_best
+fi
 
 # Second execution to test the optimal pulse (PCP mode)
 
@@ -65,7 +72,7 @@ mv Controle.out $SCRATCH/PCP/
 cd $SCRATCH/PCP/
 
 echo -e "\n================= PCP QOCT-RA execution begins now =================="
-./Controle.out $SCRATCH/{{ rendered_param_PCP }} $QOCT_RA_DIR || { echo "ERROR: A problem has occcured during the PCP execution of QOCT-RA" && exit $?; }
+./Controle.out $SCRATCH/{{ rendered_param_PCP }} $QOCT_RA_DIR || { rm -r $SCRATCH/Pulse/Pulse_iter* && cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "ERROR: A problem has occcured during the PCP execution of QOCT-RA" && exit $?; }
 rm Controle.out
 echo -e "\n================= PCP QOCT-RA execution ends now =================="
 
@@ -118,9 +125,9 @@ if [ $(cat {{ mol_dir }}/$finish_file | wc -l) -eq {{ nb_transitions }} ]; then
 
     echo -e "\tCopying job files to ${res_dir}."
     mkdir -p $res_dir
-    cp {{ rendered_param }} {{ rendered_param_PCP }} {{ guess_pulse }} {{ job_script }} slurm_output.log obj.res $res_dir
+    cp {{ rendered_param }} {{ rendered_param_PCP }} {{ guess_pulse }} {{ job_script }} {{ config_name }}.yml slurm_output.log obj.res $res_dir
 
-    echo -e "\tCopying and renaming pulse files to ${res_dir}/Pulse."
+    echo -e "\tCopying pulse files to ${res_dir}/Pulse."
     mkdir -p $res_dir/Pulse
     cd $job_dir/Pulse/
     cp Pulse_init Pulse Pulse_best $res_dir/Pulse

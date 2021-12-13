@@ -114,7 +114,7 @@ def gs_or_brightests_to_darkests_and_reverse(system:dict):
           # Exit if both states are the same (that transition will be skipped)
           if bright_index == dark_index:
             state_label = system['eigenstates_list'][bright_index]["label"]
-            transition_label = momdip_key + "_" + str(iter_bright+1) + "B" + str(iter_dark+1) + "D"
+            transition_label = momdip_key + "_" + str(iter_bright) + "B" + str(iter_dark+1) + "D"
             print("\nNOTICE: The transition %s will be skipped since both states are the same (%s)." % (transition_label,state_label))
             continue
 

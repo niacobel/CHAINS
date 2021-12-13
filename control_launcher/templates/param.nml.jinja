@@ -25,9 +25,6 @@
   alpha = {{ alpha }},                                     ! Constraint on the field amplitude
 {%- endif %}
   write_freq = {{ write_freq }},                           ! Number of iterations between each writing of the field
-{% if amplitude_filter is sameas true %}
-  amplitude_filter = {{ max_strength }},                   ! Amplitude filtering option, in atomic units of electric field strength
-{%- endif %}
 {% if max_fluence is sameas true %}
   fluence = {{ fluence }},                                 ! Maximum fluence of the pulse, in J/m^2
 {%- endif %}
