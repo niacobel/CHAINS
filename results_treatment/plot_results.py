@@ -559,7 +559,8 @@ def main():
   for mol in yml_sorted['Si']:
     if yml_sorted['Si'][mol].get('Control'):
       size = yml_sorted['Si'][mol]['Structure']['Size (nm)']
-      fidelity = max([transition['Fidelity'] for transition in yml_sorted['Si'][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_')])
+      #! "If" conditions are temporary
+      fidelity = max([transition['Fidelity'] for transition in yml_sorted['Si'][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and not transition['Config'] == 'opc'])
       si_fids.append((size,fidelity))
 
   si_fids.sort(key=lambda tup: tup[0]) # Sort the values by size
@@ -586,7 +587,8 @@ def main():
           # Get the fidelities values
 
           size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
-          fidelity = max([transition['Fidelity'] for transition in yml_sorted[mol_group][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_')])
+          #! "If" conditions are temporary
+          fidelity = max([transition['Fidelity'] for transition in yml_sorted[mol_group][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and not transition['Config'] == 'opc'])
 
           # Store the data for this molecule
 

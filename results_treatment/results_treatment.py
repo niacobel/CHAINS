@@ -871,29 +871,25 @@ def main():
 
               print ("{:<133}".format("\n\tTreating the '%s' transition with the '%s' config ..." % (transition["Label"], config)), end="")
 
-              # Get the number of iterations and final fidelity
+              # Open the PCP results file to get the fidelity of the pulse
 
-              iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
+              iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "PCP/obj.res"),"PCP Iterations QOCT-GRAD results file","file")
 
-              # Go straight to the last line of the iterations file (see https://stackoverflow.com/questions/46258499/read-the-last-line-of-a-file-in-python for reference)
-              with open(iter_file, 'rb') as f:
-                f.seek(-2, os.SEEK_END)
-                while f.read(1) != b'\n':
-                    f.seek(-2, os.SEEK_CUR)
-                last_line = f.readline().decode()
+              with open(iter_file, 'r') as iter_f:
+                iter_content = iter_f.read()
 
               # Define the expression patterns for the lines of the iterations file
-              # For example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
-              rx_iter_line = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+\d\.\d+D[+-]\d+\s\|Recou\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
+              # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
+              rx_iter_line = re.compile(r"^\s+\d+\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+\d\.\d+D[+-]\d+\s\|Recou\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
 
-              # Get the number of iterations and the last fidelity from the last line
-              iter_data = rx_iter_line.match(last_line)
+              # Get the fidelity
+
+              iter_data = rx_iter_line.match(iter_content)
               if iter_data is not None:
-                niter = int(iter_data.group("niter"))
                 fidelity_raw = iter_data.group("fidelity")
                 fidelity = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fidelity_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
               else:
-                raise results_common.ResultsError ("ERROR: Unable to get information from the last line of %s" % iter_file) 
+                raise results_common.ResultsError ("ERROR: Unable to get the fidelity from the file %s" % iter_file) 
 
               # Store information specific to this transition
 
@@ -905,7 +901,6 @@ def main():
                 "Energy (Ha)" : energy,
                 "Orientation" : momdip_key,
                 "Transition dipole moment (a.u.)" : momdip,
-                "Nb iterations" : niter,
                 "Fidelity" : fidelity
               })
 

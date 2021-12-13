@@ -257,12 +257,25 @@ def main():
 
     dir_list = []
 
-    for dirname in dir_list_all:
-      
-      # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-      try:
+    for transition in transitions_list:
 
-        for transition in transitions_list:
+      # Get the initial and target state number
+
+      init_label = transition['Initial file name'][:-2] # [:-2] to remove the trailing "_1"
+      init_number = eigenstates_list.index(next(eigenstate for eigenstate in eigenstates_list if eigenstate['Label'] == init_label))
+
+      target_label = transition['Target file name'][:-2] # [:-2] to remove the trailing "_1"
+      target_number = eigenstates_list.index(next(eigenstate for eigenstate in eigenstates_list if eigenstate['Label'] == target_label))
+
+      # Get the transition energy, which corresponds to the central frequency of the pulse
+
+      omegazero_au = abs(float(eigenstates_list[init_number]['Energy (Ha)']) - float(eigenstates_list[target_number]['Energy (Ha)']))
+      omegazero = results_common.energy_unit_conversion(omegazero_au,'Ha','cm-1')
+
+      for dirname in dir_list_all:
+
+        # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+        try:
 
           # Define the 'transition_config' regex and apply it to the dirname
 
@@ -274,16 +287,17 @@ def main():
           if matching_dir is not None:
 
             dir_list.append(dirname)
-            config = pattern.match(dirname).group('config')
+            config_name = pattern.match(dirname).group('config')
 
-            print ("{:<140}".format("\nTreating the %s transition with the '%s' config ..." % (transition["Label"], config)))
+            print ("{:<140}".format("\nTreating the %s transition with the '%s' config ..." % (transition["Label"], config_name)))
 
             # Check key files
 
             iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "obj.res"),"Iterations QOCT-GRAD results file","file")
             guess_pulse_file = results_common.check_abspath(os.path.join(control_dir, dirname, "Pulse", "Pulse_init"),"Guess pulse file","file")
-            pulse_file = results_common.check_abspath(os.path.join(control_dir, dirname, "Pulse", "Pulse"),"Final pulse file","file")
+            pulse_file = results_common.check_abspath(os.path.join(control_dir, dirname, "Pulse", "Pulse_best"),"Best pulse file","file")
             pop_file = results_common.check_abspath(os.path.join(control_dir, dirname, "PCP", "pop1"),"PCP eigenstates populations file","file")
+            config_file = results_common.check_abspath(os.path.join(control_dir, dirname, config_name + ".yml"),"YAML configuration file","file")
 
             # =================================================================== #
             # =================================================================== #
@@ -295,27 +309,25 @@ def main():
 
               print ("{:<133}".format('\n\tChecking quality ...'), end="")
 
-              # Go straight to the last line of the iterations file (see https://stackoverflow.com/questions/46258499/read-the-last-line-of-a-file-in-python for reference)
+              # Open the PCP results file to get the fidelity of the pulse
 
-              with open(iter_file, 'rb') as f:
-                f.seek(-2, os.SEEK_END)
-                while f.read(1) != b'\n':
-                    f.seek(-2, os.SEEK_CUR)
-                last_line = f.readline().decode()
+              pcp_iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "PCP/obj.res"),"PCP Iterations QOCT-GRAD results file","file")
+
+              with open(pcp_iter_file, 'r') as iter_f:
+                pcp_iter_content = iter_f.read()
 
               # Define the expression patterns for the lines of the iterations file
-              # For example "    300     2  2sec |Proba_moy  0.000000E+00 |Fidelity(U)  0.000000E+00 |Chp  0.123802E+00 -0.119953E+00 |Aire  0.140871E-03 |Fluence  0.530022E+01 |Recou(i)  0.000000E+00 |Tr_dist(i) -0.500000E+00 |Tr(rho)(i)  0.100000E+01 |Tr(rho^2)(i)  0.100000E+01 |Projector  0.479527E-13"
+              # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
+              rx_iter_line = re.compile(r"^\s+\d+\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+\d\.\d+D[+-]\d+\s\|Recou\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
 
-              rx_iter_line = re.compile(r"^\s+(?P<niter>\d+)\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+\d\.\d+D[+-]\d+\s\|Recou\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
+              # Get the fidelity
 
-              # Get the last fidelity from the last line
-
-              iter_data = rx_iter_line.match(last_line)
-              if iter_data is not None:
-                fidelity_raw = iter_data.group("fidelity")
+              pcp_iter_data = rx_iter_line.match(pcp_iter_content)
+              if pcp_iter_data is not None:
+                fidelity_raw = pcp_iter_data.group("fidelity")
                 fidelity = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fidelity_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
               else:
-                raise results_common.ResultsError ("ERROR: Unable to get fidelity from the last line of %s" % iter_file) 
+                raise results_common.ResultsError ("ERROR: Unable to get the fidelity from the file %s" % pcp_iter_file) 
 
               # Compare the fidelity to the quality threshold
 
@@ -332,9 +344,23 @@ def main():
             # =================================================================== #
             # =================================================================== #
 
+            # Load the YAML configuration file
+
+            print ("{:<133}".format('\n\tLoading the configuration file ...'), end="")
+            with open(config_file, 'r') as f_config:
+              config = yaml.load(f_config, Loader=yaml.FullLoader)
+            print('%12s' % "[ DONE ]")
+
+            # Get the bandwidth from the configuration file
+
+            try:
+              bandwidth = config['qoctra']['opc']['bandwidth']
+            except KeyError as error:
+              raise results_common.ResultsError ('ERROR: The "%s" key is missing in the "%s" configuration file.' % (error,config_name + ".yml"))
+
             # Define the figure that will host the six pulse graphs for this specific '<transition>_<config>' directory
 
-            fig, ((ax_gpulse_time,ax_pulse_time),(ax_gpulse_freq,ax_pulse_freq),(ax_gpulse_logfreq,ax_pulse_logfreq)) = plt.subplots(nrows=3,ncols=2)
+            fig, ((ax_gpulse_time,ax_pulse_time),(ax_gpulse_freq,ax_pulse_freq),(ax_gpulse_zoomfreq,ax_pulse_zoomfreq)) = plt.subplots(nrows=3,ncols=2)
 
             # ========================================================= #
             # Guess pulse treatment                                     #
@@ -346,40 +372,45 @@ def main():
 
             guess_pulse = np.loadtxt(guess_pulse_file)
             time_au = guess_pulse[:,0]
-            amplitude_au = guess_pulse[:,1]
+            field_au = guess_pulse[:,1]
             time_step_au = time_au[1] - time_au[0]
 
             # Convert them from atomic units to SI units
 
             time = time_au * constants.value('atomic unit of time')
-            amplitude = amplitude_au * constants.value('atomic unit of electric field')
+            field = field_au * constants.value('atomic unit of electric field')
             time_step = time_step_au * constants.value('atomic unit of time')
 
             # Plot the temporal profile
 
-            ax_gpulse_time.plot(time * 1e12,amplitude)
+            ax_gpulse_time.plot(time * 1e12,field)
             ax_gpulse_time.set_xlabel("Time (ps)")
-            ax_gpulse_time.set_ylabel("Amplitude (V/m)")
+            ax_gpulse_time.set_ylabel("Electric field (V/m)")
             ax_gpulse_time.set_title("Guess Pulse")
 
             # Compute the FFT (see tutorial at https://realpython.com/python-scipy-fft/)
 
-            intensity = rfft(amplitude)
+            intensity = rfft(field)
             freq = rfftfreq(len(time),time_step)
             freq = results_common.energy_unit_conversion(freq,'Hz','cm-1')
 
             # Plot the spectral profile
 
             ax_gpulse_freq.plot(freq,np.abs(intensity))
-            ax_gpulse_freq.set_xlabel("Frequencies (cm-1)")
+            ax_gpulse_freq.set_xlabel("Wavenumbers (cm-1)")
             ax_gpulse_freq.set_ylabel("Intensity")
 
-            # Plot the logarithmic spectral profile
+            # Zoom on the spectral profile
 
-            ax_gpulse_logfreq.plot(freq,np.abs(intensity))
-            ax_gpulse_logfreq.set_yscale('log')
-            ax_gpulse_logfreq.set_xlabel("Frequencies (cm-1)")
-            ax_gpulse_logfreq.set_ylabel("Intensity")            
+            full_bandwidth = ( bandwidth * 6 ) / 2.35 # Conversion from FWHM to full width for a gaussian
+            xdomain = full_bandwidth * 1.1
+            upper_limit = omegazero + xdomain/2
+            lower_limit = omegazero - xdomain/2
+
+            ax_gpulse_zoomfreq.plot(freq,np.abs(intensity))
+            ax_gpulse_zoomfreq.set_xlim([lower_limit,upper_limit])
+            ax_gpulse_zoomfreq.set_xlabel("Wavenumbers (cm-1)")
+            ax_gpulse_zoomfreq.set_ylabel("Intensity")            
 
             print('%12s' % "[ DONE ]")
 
@@ -393,40 +424,40 @@ def main():
 
             pulse = np.loadtxt(pulse_file)
             time_au = pulse[:,0]
-            amplitude_au = pulse[:,1]
+            field_au = pulse[:,1]
             time_step_au = time_au[1] - time_au[0]
 
             # Convert them from atomic units to SI units
 
             time = time_au * constants.value('atomic unit of time')
-            amplitude = amplitude_au * constants.value('atomic unit of electric field')
+            field = field_au * constants.value('atomic unit of electric field')
             time_step = time_step_au * constants.value('atomic unit of time')
 
             # Plot the temporal profile
 
-            ax_pulse_time.plot(time * 1e12,amplitude)
+            ax_pulse_time.plot(time * 1e12,field)
             ax_pulse_time.set_xlabel("Time (ps)")
-            ax_pulse_time.set_ylabel("Amplitude (V/m)")
+            ax_pulse_time.set_ylabel("Electric field (V/m)")
             ax_pulse_time.set_title("Final Pulse")
 
             # Compute the FFT (see tutorial at https://realpython.com/python-scipy-fft/)
 
-            intensity = rfft(amplitude)
+            intensity = rfft(field)
             freq = rfftfreq(len(time),time_step)
             freq = results_common.energy_unit_conversion(freq,'Hz','cm-1')
 
             # Plot the spectral profile
 
             ax_pulse_freq.plot(freq,np.abs(intensity))
-            ax_pulse_freq.set_xlabel("Frequencies (cm-1)")
+            ax_pulse_freq.set_xlabel("Wavenumbers (cm-1)")
             ax_pulse_freq.set_ylabel("Intensity")
 
-            # Plot the logarithmic spectral profile
+            # Zoom on the spectral profile
 
-            ax_pulse_logfreq.plot(freq,np.abs(intensity))
-            ax_pulse_logfreq.set_yscale('log')
-            ax_pulse_logfreq.set_xlabel("Frequencies (cm-1)")
-            ax_pulse_logfreq.set_ylabel("Intensity") 
+            ax_pulse_zoomfreq.plot(freq,np.abs(intensity))
+            ax_pulse_zoomfreq.set_xlim([lower_limit,upper_limit])
+            ax_pulse_zoomfreq.set_xlabel("Wavenumbers (cm-1)")
+            ax_pulse_zoomfreq.set_ylabel("Intensity") 
 
             print('%12s' % "[ DONE ]")
 
@@ -526,14 +557,14 @@ def main():
             plt.savefig(os.path.join(out_dir,'%s_%s_pop_fid.png' % (mol_name,dirname)),dpi=200)
             plt.close()
 
-      # ========================================================= #
-      # Exception handling for the pulse treatment                #
-      # ========================================================= #
+        # ========================================================= #
+        # Exception handling for the pulse treatment                #
+        # ========================================================= #
 
-      except results_common.ResultsError as error:
-        print(error)
-        print("Skipping %s directory" % dirname)
-        continue
+        except results_common.ResultsError as error:
+          print(error)
+          print("Skipping %s directory" % dirname)
+          continue
 
     console_message = "End of procedure for the molecule " + mol_name
     print("")

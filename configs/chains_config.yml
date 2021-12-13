@@ -28,6 +28,10 @@ output_qchem_tzvp: /CECI/home/ulb/cqp/niacobel/QCHEM_TZVP_OUT
 output_qoctra_tzvp: /CECI/home/ulb/cqp/niacobel/CONTROL_q-TZVP_OUT
 results_dir_tzvp: /CECI/home/ulb/cqp/niacobel/RESULTS/q-TZVP
 
+# Define here the path towards the treated results directory
+
+treated_dir: /CECI/home/ulb/cqp/niacobel/TREATED_RESULTS
+
 # ========================================================= #
 #               Results Treatment Information               #
 # ========================================================= #
