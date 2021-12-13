@@ -138,7 +138,7 @@ def main():
 
     clusters_file = control_common.check_abspath(os.path.join(code_dir,"clusters.yml"),"YAML clusters configuration file","file")
     print ("{:<80}".format('\nLoading the clusters configuration file "clusters.yml" ...'), end="")
-    with open(clusters_file, 'r') as f_clusters:
+    with open(clusters_file, 'r', encoding='utf-8') as f_clusters:
       clusters_cfg = yaml.load(f_clusters, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
@@ -1121,7 +1121,7 @@ def main():
         # Load config file
 
         print ("{:<51}".format('\nLoading %s file ...' % config_filename), end="")
-        with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
+        with open(os.path.join(config_inp_path,config_filename), 'r', encoding='utf-8') as f_config:
           config = yaml.load(f_config, Loader=yaml.FullLoader)
         print("[ DONE ]")
 
