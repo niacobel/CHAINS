@@ -11,14 +11,15 @@
 ################################################################################################################################################
 
 import argparse
+import csv
 import os
 import shutil
 from inspect import getsourcefile
 
-import yaml
-import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator
 import matplotlib.mathtext
+import matplotlib.pyplot as plt
+import yaml
+from matplotlib.ticker import AutoMinorLocator
 
 import results_common
 
@@ -172,27 +173,123 @@ def main():
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
+  # ========================================================= #
+  # Values for Si group                                       #
+  # ========================================================= #
+
   # Get the values for Si
   # =====================
 
-  print ("{:<140}".format('\nFetching the values for Si QDs ...'), end="")
+  print ("{:<140}".format('\nTreating the values for Si QDs ...'), end="")
 
   si_gaps = []
 
   for mol in yml_sorted['Si']:
     if yml_sorted['Si'][mol].get('Energy gaps (Ha)'):
+
       size = yml_sorted['Si'][mol]['Structure']['Size (nm)']
       hl_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev")
       opt_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Optical'],"ha","ev")
       st_gap = results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
-      si_gaps.append((size,hl_gap,opt_gap,st_gap))
 
-  si_gaps.sort(key=lambda tup: tup[0]) # Sort the values by size
+      si_gaps.append({
+        "Molecule": yml_sorted['Si'][mol]['ID']['Name'],
+        "Diameter (nm)": size,
+        "H-L gap (eV)": hl_gap,
+        "Optical gap (eV)": opt_gap,
+        "S-T gap (eV)": st_gap
+        })
+
+  si_gaps.sort(key=lambda mol: mol['Diameter (nm)']) # Sort the values by size
+
+  # Store the values in a CSV file
+  # ==============================
+
+  csv_header = list(si_gaps[0].keys())
+
+  with open(os.path.join(out_dir,'Si_gaps.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+    csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+    csv_writer.writeheader()
+
+    for mol in si_gaps:
+      csv_writer.writerow(mol) 
+
+  # Plot the optical and HOMO-LUMO gaps graphs
+  # ==========================================
+
+  plt.style.use('seaborn-colorblind')
+
+  fig, ax = plt.subplots()
+
+  # Plot the values
+
+  ax.plot([mol['Diameter (nm)'] for mol in si_gaps],[mol['H-L gap (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='H-L gaps (DFT/B3LYP/def2-SVP)')
+  ax.plot([mol['Diameter (nm)'] for mol in si_gaps],[mol['Optical gap (eV)'] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Optical gaps (TD-DFT/B3LYP/def2-SVP)')
+
+  # Add the legend and titles
+
+  ax.set_title('Energy gaps for Si QDs')
+  ax.set_xlabel("Diameter of the QD (nm)")
+  ax.set_ylabel('Energy (eV)')
+  ax.legend()
+
+  # Set other parameters
+
+  ax.tick_params(top=False, right=False)
+  ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+  ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+  plt.tight_layout()
+  plt.grid(True,which='both',linestyle='--')
+
+  # Save the file and close the figure
+
+  plt.savefig(os.path.join(out_dir,'Si_gaps.png'),dpi=200)
+  plt.close()
+
+  # Plot the singlet-triplet gaps graphs
+  # ====================================
+
+  plt.style.use('seaborn-colorblind')
+
+  fig, ax = plt.subplots()
+
+  # Plot the values
+
+  ax.plot([mol['Diameter (nm)'] for mol in si_gaps],[mol['S-T gap (eV)'] for mol in si_gaps],marker='.',linestyle='--')
+
+  # Add the legend and titles
+
+  ax.set_title('Singlet-Triplet gaps for Si QDs')
+  ax.set_xlabel("Diameter of the QD (nm)")
+  ax.set_ylabel(r'$\Delta E_{ST}~(eV)$')
+
+  # Set other parameters
+
+  ax.tick_params(top=False, right=False)
+  ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+  ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+  plt.tight_layout()
+  plt.grid(True,which='both',linestyle='--')
+
+  params = {'mathtext.default': 'regular' }          
+  plt.rcParams.update(params)
+
+  # Save the file and close the figure
+
+  plt.savefig(os.path.join(out_dir,'Si_st_gaps.png'),dpi=200)
+  plt.close()
 
   print('%12s' % "[ DONE ]")
 
-  # Iterate over each molecule group and compare it to Si
-  # ====================================================
+  # ========================================================= #
+  # Values for other groups compared to Si                    #
+  # ========================================================= #
+
+  # Iterate over each molecule group
+  # ================================
 
   for mol_group in mol_groups:
 
@@ -217,9 +314,28 @@ def main():
 
           # Store the data for this molecule
 
-          gaps.append((size,hl_gap,opt_gap,st_gap))
+          gaps.append({
+            "Molecule": yml_sorted[mol_group][mol]['ID']['Name'],
+            "Diameter (nm)": size,
+            "H-L gap (eV)": hl_gap,
+            "Optical gap (eV)": opt_gap,
+            "S-T gap (eV)": st_gap
+            })
 
-      gaps.sort(key=lambda tup: tup[0]) # Sort the values by size
+      gaps.sort(key=lambda mol: mol['Diameter (nm)']) # Sort the values by size
+
+      # Store the values in a CSV file
+      # ==============================
+
+      csv_header = list(gaps[0].keys())
+
+      with open(os.path.join(out_dir,'%s_gaps.csv' % mol_group), 'w', newline='', encoding='utf-8') as csvfile:
+
+        csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writeheader()
+
+        for mol in gaps:
+          csv_writer.writerow(mol) 
 
       # Plot the optical and HOMO-LUMO gaps graphs
       # ==========================================
@@ -230,17 +346,17 @@ def main():
 
       # Plot the Si values
 
-      ax.plot([mol[0] for mol in si_gaps],[mol[1] for mol in si_gaps],marker='.',linestyle='--',label='H-L gaps - Si (DFT)')
-      ax.plot([mol[0] for mol in si_gaps],[mol[2] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Optical gaps - Si (TD-DFT)')
+      ax.plot([mol['Diameter (nm)'] for mol in si_gaps],[mol['H-L gap (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='H-L gaps - Si (DFT)')
+      ax.plot([mol['Diameter (nm)'] for mol in si_gaps],[mol['Optical gap (eV)'] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Optical gaps - Si (TD-DFT)')
 
       # Plot the specific group value
 
-      ax.plot([mol[0] for mol in gaps],[mol[1] for mol in gaps],marker='.',linestyle='-',label='H-L gaps - %s (DFT)' % mol_group)
-      ax.plot([mol[0] for mol in gaps],[mol[2] for mol in gaps],marker='^',markersize=4,linestyle='-',label='Optical gaps - %s (TD-DFT)' % mol_group)
+      ax.plot([mol['Diameter (nm)'] for mol in gaps],[mol['H-L gap (eV)'] for mol in gaps],marker='.',linestyle='-',label='H-L gaps - %s (DFT)' % mol_group)
+      ax.plot([mol['Diameter (nm)'] for mol in gaps],[mol['Optical gap (eV)'] for mol in gaps],marker='^',markersize=4,linestyle='-',label='Optical gaps - %s (TD-DFT)' % mol_group)
 
       # Add the legend and titles
 
-      ax.set_title('Energy gaps: Si vs %s' % mol_group)
+      ax.set_title('Energy gaps for Si QDs vs %s QDs' % mol_group)
       ax.set_xlabel("Diameter of the QD (nm)")
       ax.set_ylabel('Energy (eV)')
       ax.legend()
@@ -268,15 +384,15 @@ def main():
 
       # Plot the Si values
 
-      ax.plot([mol[0] for mol in si_gaps],[mol[3] for mol in si_gaps],marker='.',linestyle='--',label='S-T gaps - Si (TD-DFT)')
+      ax.plot([mol['Diameter (nm)'] for mol in si_gaps],[mol['S-T gap (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='S-T gaps - Si (TD-DFT)')
 
       # Plot the specific group value
 
-      ax.plot([mol[0] for mol in gaps],[mol[3] for mol in gaps],marker='.',linestyle='-',label='S-T gaps - %s (TD-DFT)' % mol_group)
+      ax.plot([mol['Diameter (nm)'] for mol in gaps],[mol['S-T gap (eV)'] for mol in gaps],marker='.',linestyle='-',label='S-T gaps - %s (TD-DFT)' % mol_group)
 
       # Add the legend and titles
 
-      ax.set_title('Singlet-Triplet gaps: Si vs %s' % mol_group)
+      ax.set_title('Singlet-Triplet gaps for Si QDs vs %s QDs' % mol_group)
       ax.set_xlabel("Diameter of the QD (nm)")
       ax.set_ylabel(r'$\Delta E_{ST}~(eV)$')
       ax.legend()
@@ -431,7 +547,7 @@ def main():
     # Set other parameters
 
     ax.tick_params(top=False, right=False, bottom=False)
-    plt.xticks(ticks=xticks, labels=xlabels, rotation=45)
+    plt.xticks(ticks=xticks, labels=xlabels, rotation=-45)
     plt.axhline(y=0, color='grey', linestyle='--')
     plt.tight_layout()
 
@@ -468,6 +584,7 @@ def main():
       # Get the values
       # ==============
 
+      ips_all = []
       ips_koop = []
       ips_vert = []
       ips_adiab = []
@@ -479,7 +596,7 @@ def main():
 
           size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
 
-          # Get the IPs values and add them to their corresponding lists
+          # Get the IPs values and add them to their corresponding lists (separate lists because all sizes are not necessarily represented for each IP)
 
           ip_koop = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['IPs (Ha)']['Koopmans'],"ha","ev")
           ips_koop.append((size,ip_koop))
@@ -494,11 +611,36 @@ def main():
              ip_adiab = results_common.energy_unit_conversion(ip_adiab,"ha","ev")
              ips_adiab.append((size,ip_adiab))       
 
-      # Sort the values by number of Si atoms
+          # Store the data for this molecule
+
+          ips_all.append({
+            "Molecule": yml_sorted[mol_group][mol]['ID']['Name'],
+            "Diameter (nm)": size,
+            "Koopmans (eV)": ip_koop,
+            "Vertical (eV)": ip_vert,
+            "Adiabatic (eV)": ip_adiab
+            })
+
+      # Sort the values by size
 
       ips_koop.sort(key=lambda tup: tup[0])
       ips_vert.sort(key=lambda tup: tup[0])
       ips_adiab.sort(key=lambda tup: tup[0])
+
+      ips_all.sort(key=lambda mol: mol['Diameter (nm)'])
+
+      # Store the values in a CSV file
+      # ==============================
+
+      csv_header = list(ips_all[0].keys())
+
+      with open(os.path.join(out_dir,'%s_ips.csv' % mol_group), 'w', newline='', encoding='utf-8') as csvfile:
+
+        csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writeheader()
+
+        for mol in ips_all:
+          csv_writer.writerow(mol) 
 
       # Plot the graphs
       # ===============
