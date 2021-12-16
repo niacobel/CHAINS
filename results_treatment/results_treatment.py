@@ -701,37 +701,40 @@ def main():
       print('%12s' % "[ DONE ]")
 
       # ========================================================= #
-      # Fetch first transition dipole moments                     #
+      # Fetch transition dipole moments                           #
       # ========================================================= #
 
-      print ("{:<133}".format('\n\tFetching first transition dipole moments with the ground state ...'), end="")
+      print ("{:<133}".format('\n\tFetching transition dipole moments with the ground state ...'), end="")
 
-      S0_number = [state['number'] for state in system['states_list'] if state['label'] == 'S0'][0]
+      # Initialize the dictionary that will contain the values
 
-      # Iterate over the states list, sorted by increasing number (see https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/ for reference)
-      for state in sorted(system['states_list'], key = lambda i: i['number']):
-        
-        if state['number'] == S0_number:
-          continue # Skip the ground state
+      comp_results[mol_name]["Transition dipole moments (au)"] = {}
 
-        first_momdip = 0
+      # Define the pairs of states that will be considered
+
+      pairs = [('S0','S1'),('S0','S2'),('S0','S3')]
+
+      # Iterate over the pairs of states
+
+      for pair in pairs:
+
+        # Fetch the number of the involved states
+
+        first_number = [state['number'] for state in system['states_list'] if state['label'] == pair[0]][0]
+        second_number = [state['number'] for state in system['states_list'] if state['label'] == pair[1]][0]
+
+        # Compute the module of the transition dipole moment
+
+        momdip = 0
         for momdip_key in system['momdip_mtx']:
-          first_momdip += system['momdip_mtx'][momdip_key][S0_number][state['number']]**2
+          momdip += system['momdip_mtx'][momdip_key][first_number][second_number]**2
+        momdip = math.sqrt(momdip)          
 
-        first_momdip = math.sqrt(first_momdip)
+        # Store the value
 
-        if state['label'] == 'S1':
-          s0_s1_momdip = first_momdip
-
-        if first_momdip != 0:
-          break
-
-      # Store the value
-
-      comp_results[mol_name]['Structure'].update({
-        "S0-S1 transition dipole moment (au)" : s0_s1_momdip,
-        "First non-zero transition dipole moment (au)" : first_momdip
-        })
+        comp_results[mol_name]["Transition dipole moments (au)"].update({
+          pair[0] + '-' + pair[1] : momdip
+          })
 
       print('%12s' % "[ DONE ]")      
 
