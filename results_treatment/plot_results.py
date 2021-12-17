@@ -788,21 +788,54 @@ def main():
       # ==============
 
       momdips = []
+      first_momdips = []
+      second_momdips = []
+      third_momdips = []
 
       for mol in yml_sorted[mol_group]:
         if yml_sorted[mol_group][mol].get('Transition dipole moments (au)'):
 
+          # Get the size values
+
+          size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
+
           # Get the values and convert them from atomic units to Debye (conversion factor from https://link.springer.com/content/pdf/bbm%3A978-3-319-89972-5%2F1.pdf)
+          # Then add them to their corresponding lists (separate lists because some molecules do not have three different values)
+
+          conv_factor = 2.541746
+          data = yml_sorted[mol_group][mol]['Transition dipole moments (au)']
+          sortedkeys = sorted(data, key=str.lower) # Sort the keys alphabetically to ensure increasing order of states (S1 then S2, then S3, ...)
+
+          first_value = data[sortedkeys[0]] * conv_factor
+          first_momdips.append((size,first_value))
+          second_value = "N/A"
+          third_value = "N/A"
+
+          if len(sortedkeys) >= 2:
+            second_value = data[sortedkeys[1]] * conv_factor
+            second_momdips.append((size,second_value))
+          if len(sortedkeys) >= 3:
+            third_value = data[sortedkeys[2]] * conv_factor
+            third_momdips.append((size,third_value))
+    
+          # Store the data for this molecule
 
           momdips.append({
             "Molecule": yml_sorted[mol_group][mol]['ID']['Name'],
-            "Diameter (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
-            "S0-S1 (D)": yml_sorted[mol_group][mol]['Transition dipole moments (au)']['S0-S1'] * 2.541746,
-            "S0-S2 (D)": yml_sorted[mol_group][mol]['Transition dipole moments (au)']['S0-S2'] * 2.541746,
-            "S0-S3 (D)": yml_sorted[mol_group][mol]['Transition dipole moments (au)']['S0-S3'] * 2.541746
+            "Diameter (nm)": size,
+            "First value (D)": first_value,
+            "Second value (D)": second_value,
+            "Third value (D)": third_value,
+            "Comment" : "  ".join(sortedkeys)
             })
 
-      momdips.sort(key=lambda mol: mol['Diameter (nm)']) # Sort the values by size
+      # Sort the values by size
+
+      first_momdips.sort(key=lambda tup: tup[0])
+      second_momdips.sort(key=lambda tup: tup[0])
+      third_momdips.sort(key=lambda tup: tup[0])
+
+      momdips.sort(key=lambda mol: mol['Diameter (nm)'])
 
       # Store the values in a CSV file
       # ==============================
@@ -826,9 +859,9 @@ def main():
 
       # Plot the values
 
-      ax.plot([mol['Diameter (nm)'] for mol in momdips],[mol['S0-S1 (D)'] for mol in momdips],marker='.',linestyle='-',label="S0-S1")
-      ax.plot([mol['Diameter (nm)'] for mol in momdips],[mol['S0-S2 (D)'] for mol in momdips],marker='.',linestyle='-',label="S0-S2")
-      ax.plot([mol['Diameter (nm)'] for mol in momdips],[mol['S0-S3 (D)'] for mol in momdips],marker='.',linestyle='-',label="S0-S3")
+      ax.plot([mol[0] for mol in first_momdips],[mol[1] for mol in first_momdips],marker='.',linestyle='-',label="First singlet")
+      ax.plot([mol[0] for mol in second_momdips],[mol[1] for mol in second_momdips],marker='.',linestyle='-',label="Second singlet")
+      ax.plot([mol[0] for mol in third_momdips],[mol[1] for mol in third_momdips],marker='.',linestyle='-',label="Third singlet")
 
       # Add the legend and titles
 

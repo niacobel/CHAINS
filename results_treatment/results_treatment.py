@@ -726,9 +726,25 @@ def main():
 
       comp_results[mol_name]["Transition dipole moments (au)"] = {}
 
-      # Define the pairs of states that will be considered
+      # Define the pairs of states that will be considered (here we consider the ground state with each of the first three non-degenerate singlets)
 
-      pairs = [('S0','S1'),('S0','S2'),('S0','S3')]
+      pairs = []
+
+      singlet_states = [state for state in states_list if state['label'].startswith('S') and state['label'] != 'S0']
+      singlet_states.sort(key=lambda state: state['number'])
+
+      prev_energy = 0
+
+      for state in singlet_states:
+        if state['energy'] == prev_energy:
+          # Skip the singlet if it has the same energy as the previous one
+          continue
+        else:
+          pairs.append(('S0',state['label']))
+          prev_energy = state['energy']
+          if len(pairs) == 3:
+            # Stop after the third value
+            break
 
       # Iterate over the pairs of states
 
