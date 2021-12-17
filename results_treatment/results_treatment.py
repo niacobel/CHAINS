@@ -677,14 +677,30 @@ def main():
 
       states_list = system['states_list']
 
-      # Get the energy of the first bright excited state
+      # Get the list of bright states and sort them by ascending number
 
-      bright_energies = [float(state['energy']) for state in states_list if state['type'].lower() == "bright"]
-      opt_gap = min(bright_energies)
+      bright_states = [state for state in states_list if state['type'].lower() == "bright"]
+      bright_states.sort(key=lambda state: state['number'])
+
+      # Get the energy of the first bright state (with a nonzero transition dipole moment)
+
+      gs_number = [state['number'] for state in system['states_list'] if state['label'] == 'S0'][0]
+
+      for bright_state in bright_states:
+
+        momdip = 0
+        for momdip_key in system['momdip_mtx']:
+          momdip += system['momdip_mtx'][momdip_key][gs_number][bright_state['number']]**2
+        momdip = math.sqrt(momdip)    
+
+        if momdip != 0:
+          opt_gap = bright_state['energy']
+          break
 
       # Singlet-Triplet gap
       # ===================
 
+      bright_energies = [float(state['energy']) for state in states_list if state['type'].lower() == "bright"]
       dark_energies = [float(state['energy']) for state in states_list if state['type'].lower() == "dark"]
       st_gap = abs( min(dark_energies) - min(bright_energies) )
 
