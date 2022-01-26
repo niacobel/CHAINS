@@ -162,6 +162,53 @@ def main():
 
   # =================================================================== #
   # =================================================================== #
+  #                     SIZE AND ATOMS RELATIONSHIP                     #
+  # =================================================================== #
+  # =================================================================== #
+
+  section_title = "0. Sizes"
+
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
+
+  # Get the values
+  # ==============
+
+  print ("{:<140}".format('\nTreating the values for Si QDs ...'), end="")
+
+  si_sizes = []
+
+  for mol in yml_sorted['Si']:
+    if yml_sorted['Si'][mol].get('Structure'):
+
+      si_sizes.append({
+        "Molecule": yml_sorted['Si'][mol]['ID']['Name'],
+        "Number of Si atoms" : yml_sorted['Si'][mol]['Structure']['Nb Si atoms'],
+        "Original diameter (nm)": yml_sorted['Si'][mol]['Structure']['Original size (nm)'],
+        "Diameter (nm)": yml_sorted['Si'][mol]['Structure']['Size (nm)']
+        })
+
+  si_sizes.sort(key=lambda mol: mol['Diameter (nm)']) # Sort the values by size
+
+  # Store the values in a CSV file
+  # ==============================
+
+  csv_header = list(si_sizes[0].keys())
+
+  with open(os.path.join(out_dir,'Si_sizes.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+    csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+    csv_writer.writeheader()
+
+    for mol in si_sizes:
+      csv_writer.writerow(mol) 
+
+  print('%12s' % "[ DONE ]")
+
+  # =================================================================== #
+  # =================================================================== #
   #                        PLOTTING ENERGY GAPS                         #
   # =================================================================== #
   # =================================================================== #
@@ -664,7 +711,6 @@ def main():
 
       print('%12s' % "[ DONE ]")
 
-  """
   # =================================================================== #
   # =================================================================== #
   #                     PLOTTING HIGHEST FIDELITIES                     #
@@ -678,21 +724,99 @@ def main():
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
-  # Get the values for Si
-  # =====================
+  # Treat the values for Si
+  # =======================
 
-  print ("{:<140}".format('\nFetching the values for Si QDs ...'), end="")
+  print ("{:<140}".format('\nTreating the values for Si QDs ...'), end="")
 
-  si_fids = []
+  si_fids_all = []
+  si_fids_spgw = []
+  si_fids_mgw = []
 
   for mol in yml_sorted['Si']:
     if yml_sorted['Si'][mol].get('Control'):
-      size = yml_sorted['Si'][mol]['Structure']['Size (nm)']
-      #! "If" conditions are temporary
-      fidelity = max([transition['Fidelity'] for transition in yml_sorted['Si'][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and not transition['Config'] == 'opc'])
-      si_fids.append((size,fidelity))
 
-  si_fids.sort(key=lambda tup: tup[0]) # Sort the values by size
+      # Get the size values
+
+      size = yml_sorted['Si'][mol]['Structure']['Size (nm)']
+
+      # Get the fidelities values for each config and add them to their corresponding lists (separate lists because all sizes are not necessarily represented for each type of config)
+
+      values_spgw = [transition['Fidelity'] for transition in yml_sorted['Si'][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and transition['Config'] == 'opc_filters']
+
+      if values_spgw != []:
+        max_spgw = max(values_spgw)
+        si_fids_spgw.append((size,max_spgw))
+      else:
+        max_spgw = "N/A"
+
+      values_mgw = [transition['Fidelity'] for transition in yml_sorted['Si'][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and transition['Config'] == 'mgw']
+
+      if values_mgw != []:
+        max_mgw = max(values_mgw)
+        si_fids_mgw.append((size,max_mgw))
+      else:
+        max_mgw = "N/A"
+
+      # Store the data for this molecule
+
+      si_fids_all.append({
+        "Molecule": yml_sorted['Si'][mol]['ID']['Name'],
+        "Diameter (nm)": size,
+        "Super Gaussian filter": max_spgw,
+        "Multi Gaussian filter": max_mgw
+        })
+
+      # Sort the values by size
+
+      si_fids_spgw.sort(key=lambda tup: tup[0])
+      si_fids_mgw.sort(key=lambda tup: tup[0])
+
+      si_fids_all.sort(key=lambda mol: mol['Diameter (nm)'])
+
+  # Store the values in a CSV file
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  csv_header = list(si_fids_all[0].keys())
+
+  with open(os.path.join(out_dir,'Si_fids.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+    csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+    csv_writer.writeheader()
+
+    for mol in si_fids_all:
+      csv_writer.writerow(mol) 
+
+  # Plot the graphs
+  # ~~~~~~~~~~~~~~~
+
+  plt.style.use('seaborn-colorblind')
+
+  fig, ax = plt.subplots()
+
+  ax.plot([mol[0] for mol in si_fids_spgw],[mol[1] for mol in si_fids_spgw],marker='.',linestyle='--',label='Si (Super Gaussian)')
+  ax.plot([mol[0] for mol in si_fids_mgw],[mol[1] for mol in si_fids_mgw],marker='.',linestyle='--',label='Si (Multi Gaussian)')
+
+  # Add the legend and titles
+
+  ax.set_title('Highest fidelities: Si')
+  ax.set_xlabel("Diameter of the QD (nm)")
+  ax.set_ylabel('Fidelity')
+  ax.legend()
+
+  # Set other parameters
+
+  ax.tick_params(top=False, right=False)
+  ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+  ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+  plt.tight_layout()
+  plt.grid(True,which='both',linestyle='--')
+
+  # Save the file and close the figure
+
+  plt.savefig(os.path.join(out_dir,'Si_fids.png'),dpi=200)
+  plt.close()
 
   print('%12s' % "[ DONE ]")
 
@@ -708,22 +832,62 @@ def main():
       # Get the values
       # ==============
 
-      fids = []
+      fids_all = []
+      fids_spgw = []
+      fids_mgw = []
 
       for mol in yml_sorted[mol_group]:
         if yml_sorted[mol_group][mol].get('Control'):
 
-          # Get the fidelities values
+          # Get the size values
 
           size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
-          #! "If" conditions are temporary
-          fidelity = max([transition['Fidelity'] for transition in yml_sorted[mol_group][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and not transition['Config'] == 'opc'])
+
+          # Get the fidelities values for each config and add them to their corresponding lists (separate lists because all sizes are not necessarily represented for each type of config)
+
+          values_spgw = [transition['Fidelity'] for transition in yml_sorted[mol_group][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and transition['Config'] == 'opc_filters']
+
+          if values_spgw != []:
+            max_spgw = max(values_spgw)
+            fids_spgw.append((size,max_spgw))
+          else:
+            max_spgw = "N/A"
+
+          values_mgw = [transition['Fidelity'] for transition in yml_sorted[mol_group][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and transition['Config'] == 'mgw']
+
+          if values_mgw != []:
+            max_mgw = max(values_mgw)
+            fids_mgw.append((size,max_mgw))
+          else:
+            max_mgw = "N/A"
 
           # Store the data for this molecule
 
-          fids.append((size,fidelity))
+          fids_all.append({
+            "Molecule": yml_sorted[mol_group][mol]['ID']['Name'],
+            "Diameter (nm)": size,
+            "Super Gaussian filter": max_spgw,
+            "Multi Gaussian filter": max_mgw
+            })
 
-      fids.sort(key=lambda tup: tup[0]) # Sort the values by size
+          # Sort the values by size
+
+          fids_spgw.sort(key=lambda tup: tup[0])
+          fids_mgw.sort(key=lambda tup: tup[0])
+
+          fids_all.sort(key=lambda mol: mol['Diameter (nm)'])
+
+      # Store the values in a CSV file
+
+      csv_header = list(fids_all[0].keys())
+
+      with open(os.path.join(out_dir,'%s_fids.csv' % mol_group), 'w', newline='', encoding='utf-8') as csvfile:
+
+        csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writeheader()
+
+        for mol in fids_all:
+          csv_writer.writerow(mol) 
 
       # Plot the graphs
       # ===============
@@ -734,11 +898,13 @@ def main():
 
       # Plot the Si values
 
-      ax.plot([mol[0] for mol in si_fids],[mol[1] for mol in si_fids],marker='.',linestyle='--',label='Si')
+      ax.plot([mol[0] for mol in si_fids_spgw],[mol[1] for mol in si_fids_spgw],marker='.',linestyle='--',label='Si (Super Gaussian)')
+      ax.plot([mol[0] for mol in si_fids_mgw],[mol[1] for mol in si_fids_mgw],marker='.',linestyle='--',label='Si (Multi Gaussian)')
 
       # Plot the specific group value
 
-      ax.plot([mol[0] for mol in fids],[mol[1] for mol in fids],marker='.',linestyle='-',label=mol_group)
+      ax.plot([mol[0] for mol in fids_spgw],[mol[1] for mol in fids_spgw],marker='.',linestyle='-',label= mol_group + ' (Super Gaussian)')
+      ax.plot([mol[0] for mol in fids_mgw],[mol[1] for mol in fids_mgw],marker='.',linestyle='-',label= mol_group + ' (Multi Gaussian)')
 
       # Add the legend and titles
 
@@ -762,8 +928,7 @@ def main():
       plt.close()
 
       print('%12s' % "[ DONE ]") 
-  """
-
+  
   # =================================================================== #
   # =================================================================== #
   #                  PLOTTING TRANSITION DIPOLE MOMENT                  #
@@ -885,6 +1050,13 @@ def main():
       plt.close()
 
       print('%12s' % "[ DONE ]")
+
+  print("")
+  print("".center(columns,"*"))
+  print("")
+  print("END OF EXECUTION".center(columns))
+  print("")
+  print("".center(columns,"*"))
 
 # =================================================================== #
 # =================================================================== #
