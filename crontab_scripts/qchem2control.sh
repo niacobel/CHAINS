@@ -60,22 +60,41 @@ control_logs="${WATCH_DIR}/control_logs"
 
 if [ $(ls ${OUT_FILEPATH} 2>/dev/null | wc -l) -eq 0 ]; then
   exit
+fi
 
 # Otherwise execute control_launcher.py for each file present in the WATCH_DIR directory
 
-else
+file_list=$(ls ${OUT_FILEPATH} 2>/dev/null)
+mkdir -p "${control_logs}"
+treated_files=()
 
-  file_list=$(ls ${OUT_FILEPATH} 2>/dev/null)
-  mkdir -p "${control_logs}"
+for filepath in ${file_list}
+do
 
-  for filepath in ${file_list}
+  # Check if there is not too many jobs already submitted and break the loop if this is the case
+
+  if [ $(\squeue -u niacobel | wc -l) -gt 250 ]; then
+    break
+  fi
+
+  # Execute CONTROL LAUNCHER
+
+  filename="$(basename -- "${filepath}")"
+  MOL_NAME=${filename%.*}
+  mkdir -p "${out_dir}"
+  python "${control_dir}/control_launcher.py" -p qoctra -s "${filepath}" -cf "${chains_path}/configs/qoctra/mgw.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -as > "${control_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}_OPC.log"
+  treated_files+=("${filename}")
+
+done
+
+# If at least one file was treated, leave a notification in the crontab script log file
+
+if [ ${#treated_files[@]} -gt 0 ]; then
+  echo -e "$(date +"%Y-%m-%d %T")\tINFO - Successfully processed:"
+  for value in "${treated_files[@]}"
   do
-    filename="$(basename -- "${filepath}")"
-    MOL_NAME=${filename%.*}
-    mkdir -p "${out_dir}"
-    python "${control_dir}/control_launcher.py" -p qoctra -s "${filepath}" -cf "${chains_path}/configs/qoctra/opc.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -as > "${control_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}_OPC.log"
+    echo ${value}
   done
-
-  echo -e "$(date +"%Y-%m-%d %T")\tINFO - Successfully processed:\n${file_list}"
-
 fi
+
+
