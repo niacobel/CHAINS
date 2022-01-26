@@ -22,7 +22,7 @@ qoctra:
   opc:
     write_freq: 1                                 # Number of iterations between each writing of the field
     bandwidth: 147.1                              # Spectral bandwidth of the pulse, in cm-1 (duration_FWHM = 100 fs => bandwidth_FWHM ~= 147.1 cm-1)
-    spectral_filter: True                         # True if you want to limit the spectral bandwidth of the pulse, default is False
+    spectral_filter: SPGW                         # Form of the filter function: [None] = no filter (default) ; [SGW] = single Gaussian-type ; [MGW] = multiple Gaussian-type ; [SPGW] = Super Gaussian-type                       
     max_fluence: True                             # True if you want to limit the maximum fluence of the pulse, default is False
   guess_pulse:
     pulse_type: SIM                               # Type of starting guess pulse

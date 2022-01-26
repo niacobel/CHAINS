@@ -282,12 +282,12 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
         bandwidth = config['qoctra']['opc']['bandwidth']
 
-        spectral_filter = config['qoctra']['opc'].get('spectral_filter', False)
+        spectral_filter = config['qoctra']['opc'].get('spectral_filter', None)
         max_fluence = config['qoctra']['opc'].get('max_fluence', False)
 
         param_render_vars.update({
 
-          'spectral_filter' : spectral_filter,
+          'spectral_filter' : spectral_filter.upper() if spectral_filter else "None",
           'max_fluence' : max_fluence,
 
           # OPC
@@ -297,11 +297,34 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
         })
 
         if spectral_filter:
-          param_render_vars.update({
-            # OPC
-            "spectral_filter_center" : "{:.5e}".format(omegazero_cm).replace('e','d'),
-            "spectral_filter_fwhm" : "{:.5e}".format(bandwidth).replace('e','d')
-          })
+
+          # Check the form of the filter function and act accordingly
+
+          if spectral_filter.lower() == 'sgw':
+            param_render_vars.update({
+              # OPC
+              "spectral_filter_center" : "{:.5e}".format(omegazero_cm).replace('e','d'),
+              "spectral_filter_fwhm" : "{:.5e}".format(bandwidth).replace('e','d')
+            })
+
+          elif spectral_filter.lower() == 'spgw':
+
+            full_bandwidth = ( bandwidth * 6 ) / 2.35 # Conversion from FWHM to full width for a gaussian
+
+            param_render_vars.update({
+              # OPC
+              "spectral_filter_center" : "{:.5e}".format(omegazero_cm).replace('e','d'),
+              "spectral_filter_fwhm" : "{:.5e}".format(full_bandwidth).replace('e','d')
+            })
+
+          elif spectral_filter.lower() == 'mgw':
+            param_render_vars.update({
+              # OPC
+              "spectral_filter_fwhm" : "30.d0"
+            })
+
+          else:
+            raise control_common.ControlError ('ERROR: The given value for the "spectral_filter" key (%s) of the "opc" block in the "qoctra" block from the "%s" configuration file is not supported. Supported values include: SGW, SPGW, MGW and None (This is not case sensitive).' % (spectral_filter,misc['config_name']))
 
         if not max_fluence:
           param_render_vars.update({
