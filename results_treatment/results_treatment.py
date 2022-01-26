@@ -353,8 +353,6 @@ def main():
       pretty_name = pretty_name_fr + pretty_name_mid + pretty_name_end
       latex_name = latex_name_fr + latex_name_mid + latex_name_end
 
-      print('%12s' % "[ DONE ]")
-
       # ========================================================= #
       # Size of the molecule                                      #
       # ========================================================= #
@@ -396,6 +394,64 @@ def main():
       volume = hull.volume
 
       # ========================================================= #
+      # Size of the molecule before geometry optimization         #
+      # ========================================================= #
+
+      # Check the original geometry file
+
+      gaussian_dir = os.path.join(mol_dir, "GAUSSIAN")
+      ori_geom_file = results_common.check_abspath(os.path.join(gaussian_dir, mol_name + "_ori.xyz"),"Original geometry file","file")
+
+      # Load the XYZ geometry file
+
+      with open(ori_geom_file, 'r') as mol_file:
+        ori_mol_content = mol_file.read().splitlines()
+
+      # Call the scanning function from ABIN LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
+
+      with open(os.devnull, 'w') as devnull:
+        with contextlib.redirect_stdout(devnull):
+          ori_file_data = geom_scan.xyz_scan(ori_mol_content)
+
+      # Create the list that will contain all coordinates
+
+      ori_coord_list = []
+
+      # Define the pattern to extract coordinates from the XYZ file lines
+
+      coord_pattern = re.compile(r'^\s*[a-zA-Z]{1,3}\s+(?P<coord_x>-?\d+\.\d+)\s+(?P<coord_y>-?\d+\.\d+)\s+(?P<coord_z>-?\d+\.\d+)\s*$')
+
+      # Extract coordinates (and convert them from Angstrom to nanometers)
+
+      for line in ori_file_data['atomic_coordinates']:
+
+        match = coord_pattern.match(line)
+
+        x1 = float(match.group('coord_x'))/10
+        y1 = float(match.group('coord_y'))/10
+        z1 = float(match.group('coord_z'))/10
+
+        ori_coord_list.append([x1,y1,z1])
+
+      # Compute the convex hull of the molecule and get the list of points consituting it
+
+      points = np.array(ori_coord_list)
+      hull = ConvexHull(points)
+      pts_hull = points[hull.vertices,:]
+
+      # Compute the average distance between the points of the hull and their centroid, which will reflect the size of the molecule
+
+      centroid = np.array(np.mean(pts_hull,axis=0),ndmin=2)
+      dist = distance.cdist(pts_hull,centroid)
+      ori_size = 2*np.mean(dist)
+
+      # Get the volume of the hull, as another way to reflect the size of the molecule
+
+      ori_volume = hull.volume
+
+      print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
       # Store name and structure info                             #
       # ========================================================= #
 
@@ -409,7 +465,9 @@ def main():
         "Structure":
           { "Nb atoms" : nb_atoms,
             "Size (nm)" : float(size),
-            "Volume (nm^3)" : float(volume)
+            "Volume (nm^3)" : float(volume),
+            "Original size (nm)" : float(ori_size),
+            "Original volume (nm^3)" : float(ori_volume)
           }
         }
 
@@ -989,16 +1047,23 @@ def main():
 
   if os.path.exists(out_yml) and os.stat(out_yml).st_size > 0:
 
+    print ("{:<140}".format('\nUpdating the output YAML file ...'), end="")
     with open(out_yml, 'r') as old_file:
       old_comp_results = yaml.load(old_file, Loader=yaml.FullLoader)
 
     old_comp_results.update(comp_results)
     comp_results = old_comp_results
+  
+  else:
+
+    print ("{:<140}".format('\nCreating the output YAML file ...'), end="")
 
   # Write the file (overwriting the old file if it already existed)
 
   with open(out_yml, 'w') as file:
     yaml.dump(comp_results, file, Dumper=CustomDumper, sort_keys=False)
+
+  print('%12s' % "[ DONE ]")
 
   print("")
   print("".center(columns,"*"))
