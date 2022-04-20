@@ -1,18 +1,19 @@
 #!/bin/bash
 
 #SBATCH --output=slurm_output.log
-#SBATCH --job-name={{ mol_name }}_orca
+#SBATCH --job-name={{ mol_name }}_{{ config_file }}
 #SBATCH --mail-user={{ user_email }}
 #SBATCH --mail-type={{ mail_type }}
 #SBATCH --time={{ job_walltime }}
 #SBATCH --ntasks={{ job_cores }}
 #SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
-{% if cluster_name == "dragon1" or cluster_name == "dragon2" -%}
+{% if cluster_name == "dragon1" or cluster_name == "dragon2" or cluster_name == "lyra" -%}
 #SBATCH --ntasks-per-node={{ job_cores }}
 {%- endif %}
 {% if partition != None -%}
 #SBATCH --partition={{ partition }}
 {%- endif %}
+
 echo -e "******************************************************************************"
 echo -e "**************************   Beginning of the job   **************************"
 echo -e "******************************************************************************\n"
@@ -21,18 +22,14 @@ echo -e "===================================================================="
 echo -e "=========================   Running ORCA   ========================="
 echo -e "===================================================================="
 
-echo -e "\nRenaming the original .xyz file to avoid overwriting it with the new one."
-cd $SLURM_SUBMIT_DIR
-mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
-
 # A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
 # See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
 
 SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
 
-echo -e "\nCreating temporary directory $SCRATCH for handling temporary files."
-mkdir -p $SCRATCH || exit $?
-cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.inp $SCRATCH/ || exit $?
+echo -e "\nCreating temporary directory $SCRATCH on node(s) ${SLURM_JOB_NODELIST} from ${CLUSTER_NAME} cluster for handling temporary files."
+srun mkdir -p $SCRATCH || exit $?
+srun -n $SLURM_NNODES --ntasks-per-node=1 cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.inp $SLURM_SUBMIT_DIR/{{ mol_name }}.xyz $SCRATCH/ || exit $?
 
 cd $SCRATCH
 
@@ -48,9 +45,6 @@ echo -e "\n=================  ORCA execution ends now  =================="
 echo -e "\nCopying ORCA output files to the submit directory."
 cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
 
-echo -e "\nRemoving $SCRATCH directory."
-rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
-
 echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
 echo -e "===================================================================="
@@ -63,18 +57,14 @@ python {{ check_dir }}/orca_check.py {{ mol_name }}.out  || exit $?
 {% if copy_files is sameas true -%}
 # Copy the various output files to their respective results directory
 
-echo -e "\nCopying optimized geometry to {{ output_dir }}."
+echo -e "\nCopying ORCA output file to {{ output_dir }}."
 mkdir -p {{ output_dir }}
-cp {{ mol_name }}.xyz {{ output_dir }}/
-
-echo -e "\nCopying and renaming main configuration file to {{ results_dir }}/{{ mol_name }}."
-mkdir -p {{ results_dir }}/{{ mol_name }}
-cp {{ config_file }}.yml {{ results_dir }}/{{ mol_name }}/config.yml
+cp {{ mol_name }}.out {{ output_dir }}/
 
 res_dir="{{ results_dir }}/{{ mol_name }}/ORCA"
 echo -e "\nCopying output files to $res_dir."
 mkdir -p $res_dir
-cp {{ mol_name }}.inp {{ mol_name }}.out {{ mol_name }}.xyz {{ mol_name }}_ori.xyz {{ job_script }} slurm_output.log {{ mol_name }}_{{ config_file }}.log $res_dir
+cp {{ mol_name }}.inp {{ mol_name }}.out {{ mol_name }}.xyz {{ job_script }} slurm_output.log {{ mol_name }}_{{ config_file }}.log $res_dir
 {%- endif %}
 
 {% if benchmark is sameas true -%}

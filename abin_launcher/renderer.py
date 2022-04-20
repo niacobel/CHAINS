@@ -919,11 +919,6 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
 
     # Check the options defined in the config file
 
-    pre_opt = config['orca'].get('pre_opt',False)
-
-    if not isinstance(pre_opt, bool):
-      raise abin_errors.AbinError ('ERROR: The "pre_opt" value given in the "orca" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
-
     copy_files = config['orca'].get('copy_files',True)
 
     if not isinstance(copy_files, bool):
@@ -939,11 +934,7 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
 
     # Define the names of the templates.
 
-    if pre_opt:
-      template_input = "orca_preopt.inp.jinja"
-    else:
-      template_input = "orca.inp.jinja"
-
+    template_input = "orca.inp.jinja"
     template_script = "orca_job.sh.jinja"
 
     # Check if the specified templates exist in the "templates" directory of ABIN LAUNCHER.
@@ -979,9 +970,9 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
     # Variables not associated with the config file
 
     input_render_vars = {
+      "mol_name" : misc['mol_name'],
       "orca_mem_per_cpu" : orca_mem_per_cpu,
-      "job_cores" : job_specs['cores'],
-      "coordinates" : file_data['atomic_coordinates']
+      "job_cores" : job_specs['cores']
     }
 
     # Variables associated with the "general" block of the config file
@@ -1007,19 +998,14 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
         "method" : config['orca']['keywords']['method'],
         "basis_set" : config['orca']['keywords']['basis_set'],
         "aux_basis_set" : config['orca']['keywords']['aux_basis_set'],
-        "other" : config['orca']['keywords']['other']
+        "other" : config['orca']['keywords']['other'],
+        "nroots" : config['orca']['keywords']['nroots'],
+        "printlevel_tdm" : config['orca']['keywords']['printlevel_tdm'],
+        "printlevel_soc" : config['orca']['keywords']['printlevel_soc']
       })
 
     except KeyError as error:
       raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "keywords" block of the "orca" block in the "%s" configuration file.' % (error,misc['config_name']))
-
-    # Variables specific to the pre_opt template
-
-    if pre_opt:
-
-      input_render_vars.update({
-        "mol_name" : misc['mol_name']
-      })
 
     # Rendering the file
     # ==================
@@ -1057,6 +1043,7 @@ def chains_orca_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data
 
     script_render_vars = {  
       "mol_name" : misc['mol_name'],
+      "config_file" : misc['config_name'],
       "job_walltime" : job_specs['walltime'],
       "job_cores" : job_specs['cores'],
       "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB

@@ -1,10 +1,30 @@
-! {{ method }} {{ basis_set }} {{ aux_basis_set }} {{ other }} Opt xyzfile 
-%maxcore {{ orca_mem_per_cpu }} {# It is recommended to set this value to 75% of the physical memory available (see https://sites.google.com/site/orcainputlibrary/orca-common-problems) #}
+! {{ method }} {{ basis_set }} {{ aux_basis_set }} {{ other }}
+%base "tdm"
+%maxcore {{ orca_mem_per_cpu }} {# It is recommended to set this value to 75% of the physical memory available (see https://sites.google.com/site/orcainputlibrary/orca-common-problems) #} 
 %pal 
 nprocs {{ job_cores }}
 end
-* xyz {{ charge }} {{ multiplicity }}
-{% for coordinate_line in coordinates -%}
-{{ coordinate_line }}
-{% endfor -%}
-*
+%tddft
+nroots {{ nroots }}
+triplets true
+dotrans all
+printlevel {{ printlevel_tdm }}
+end
+* xyzfile {{ charge }} {{ multiplicity }} {{ mol_name }}.xyz
+
+$new_job
+! {{ method }} {{ basis_set }} {{ aux_basis_set }} {{ other }}
+%base "soc"
+%maxcore {{ orca_mem_per_cpu }} {# It is recommended to set this value to 75% of the physical memory available (see https://sites.google.com/site/orcainputlibrary/orca-common-problems) #} 
+%pal 
+nprocs {{ job_cores }}
+end
+%moinp "tdm.gbw"
+%tddft
+nroots {{ nroots }}
+dosoc true
+triplets true
+printlevel {{ printlevel_soc }}
+end
+* xyzfile {{ charge }} {{ multiplicity }} {{ mol_name }}.xyz
+{{ " " }} {# Make sure the input ends by a blank line #}
