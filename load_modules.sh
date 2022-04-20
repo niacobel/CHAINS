@@ -34,6 +34,10 @@ elif [ "${CLUSTER_NAME}" = "nic5" ]; then
     module load releases/2019b
     module load Python/3.7.4-GCCcore-8.3.0
 
+elif [ "${CLUSTER_NAME}" = "lyra" ]; then
+    module load releases/2020b
+    module load Python/3.8.6-GCCcore-10.2.0
+
 else
     echo "ERROR: Unknown cluster. Corresponding modules can't be loaded. Please add the cluster module information to load_modules.sh."
 
