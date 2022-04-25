@@ -12,6 +12,7 @@
 
 import argparse
 import fnmatch
+import glob
 import os
 import re
 import shutil
@@ -40,8 +41,8 @@ import scaling_fcts
 parser = argparse.ArgumentParser(add_help=False, description="For one or more geometry files, one or more configuration files and a given profile, this script prepares the input files needed for each calculation and launches the corresponding jobs on the cluster. Extended documentation is available at https://chains-ulb.readthedocs.io/. In order to run, this script requires Python 3.5+ as well as YAML and Jinja2.")
 
 required = parser.add_argument_group('Required arguments')
-required.add_argument("-m","--mol_inp", type=str, help="Path to either a geometry file or a directory containing multiple geometry files.", required=True)
-required.add_argument('-cf', '--config', type=str, help="Path to either a YAML configuration file or a directory containing multiple YAML configuration files, extension must be .yml or .yaml.", required=True)
+required.add_argument("-m","--mol_inp", type=str, help="Path to either a geometry file or a directory containing multiple geometry files.", required=True, nargs='+')
+required.add_argument('-cf', '--config', type=str, help="Path to either a YAML configuration file or a directory containing multiple YAML configuration files, extension must be .yml or .yaml.", required=True, nargs='+')
 required.add_argument('-cl', '--cluster_name', type=str, help="Name of the cluster where this script is running, as defined in the YAML clusters configuration file.", required=True)
 required.add_argument("-p","--profile", type=str, help="Name of the profile you wish to run jobs with, as defined in the YAML clusters configuration file.", required=True)
 required.add_argument("-o","--out_dir", type=str, help="Path to the directory where you want to create the subdirectories for each job.", required=True)
@@ -96,10 +97,31 @@ def main():
 
     args = parser.parse_args()
 
-    # Required arguments
+    # Geometry files (expand wildcards (*) if needed, as seen on https://stackoverflow.com/questions/71353422/wildcard-not-interreted-by-python-argparse)
 
-    mol_inp = args.mol_inp                   # Geometry file or directory containing the geometry files
-    config_inp = args.config                 # YAML configuration file or directory containing the YAML configuration files
+    raw_mol_inp = args.mol_inp
+
+    mol_inp = []
+    for path in raw_mol_inp:
+      if glob.escape(path) != path:
+        # -> There are glob pattern chars in the string
+        mol_inp.extend(glob.glob(path))
+      else:
+        mol_inp.append(path)
+
+    # YAML configuration files (expand wildcards (*) if needed)
+
+    raw_config_inp = args.config
+
+    config_inp = []
+    for path in raw_config_inp:
+      if glob.escape(path) != path:
+        # -> There are glob pattern chars in the string
+        config_inp.extend(glob.glob(path))
+      else:
+        config_inp.append(path)
+
+    # Other required arguments
 
     cluster_name = args.cluster_name         # Name of the cluster where this script is running, as defined in the clusters configuration YAML file
     profile = args.profile                   # Name of the profile for which files need to be created
@@ -268,81 +290,81 @@ def main():
     # Check geometry file(s)
     # ======================
 
-    mol_inp = abin_errors.check_abspath(mol_inp,"Command line argument -m / --mol_inp")
+    checked_mol_paths = []
+    for path in mol_inp:
+      checked_mol_paths.append(abin_errors.check_abspath(path,"Command line argument -m / --mol_inp"))
+    
+    mol_inp_list = []
 
-    # If the argument mol_inp is a directory, we need to look for every geometry file with the given format in that directory.
+    for path in checked_mol_paths:
 
-    if os.path.isdir(mol_inp):
+      # If the path leads to a directory, we need to look for every geometry file with the given format in that directory.
 
-      print("{:<40} {:<100}".format("\nLooking for %s geometry files in" % mol_ext, mol_inp + " ..."), end="")
-      
-      mol_inp_path = mol_inp
+      if os.path.isdir(path):
 
-      # Define which type of file we are looking for (*.mol_ext) in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
+        print("{:<40} {:<100}".format("\nLooking for %s geometry files in" % mol_ext, path + " ..."), end="")
 
-      rule = re.compile(fnmatch.translate("*" + mol_ext), re.IGNORECASE)
+        # Define which type of file we are looking for (*.mol_ext) in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
 
-      # Find all matching files in mol_inp directory
+        rule = re.compile(fnmatch.translate("*" + mol_ext), re.IGNORECASE)
 
-      mol_inp_list = [mol_file for mol_file in os.listdir(mol_inp) if rule.match(mol_file)]
+        # Find all matching files in directory
 
-      if mol_inp_list == []:
-        raise abin_errors.AbinError ("ERROR: Can't find any %s file in %s" % (mol_ext,mol_inp_path))
+        mol_inp_list.extend([mol_file for mol_file in os.listdir(path) if rule.match(mol_file)])
 
-      print('%12s' % "[ DONE ]")
+        print('%12s' % "[ DONE ]")
 
-    # If given a single geometry file as argument, check its extension.
+      # If the path leads to a single single geometry file, check its extension.
 
-    else:
+      else:
 
-      print ("{:<40} {:<100}".format('\nGeometry file:',mol_inp))
+        if os.path.isfile(path) and os.path.splitext(path)[-1].lower() != (mol_ext.lower()):
+          raise abin_errors.AbinError ("  ^ ERROR: This is not an %s file." % mol_fmt)
 
-      if os.path.isfile(mol_inp) and os.path.splitext(mol_inp)[-1].lower() != (mol_ext.lower()):
-        raise abin_errors.AbinError ("  ^ ERROR: This is not an %s file." % mol_fmt)
+        mol_inp_list.append(path)
 
-      mol_inp_path = os.path.dirname(mol_inp)
-      mol_inp_file = os.path.basename(mol_inp)
-      mol_inp_list = [mol_inp_file]
+    if mol_inp_list == []:
+      raise abin_errors.AbinError ("ERROR: Can't find any %s file in %s" % (mol_ext,raw_mol_inp))
 
     # Check config file(s)
     # ====================
 
-    config_inp = abin_errors.check_abspath(config_inp,"Command line argument -cf / --config")
+    checked_cf_paths = []
+    for path in config_inp:
+      checked_cf_paths.append(abin_errors.check_abspath(path,"Command line argument -cf / --config"))
+    
+    config_inp_list = []
 
-    # If the argument config_inp is a directory, we need to look for every YAML configuration file in that directory.
+    for path in checked_cf_paths:
 
-    if os.path.isdir(config_inp):
+      # If the path leads to a directory, we need to look for every YAML configuration file with the given format in that directory.
 
-      print("{:<40} {:<100}".format("\nLooking for .yml or .yaml files in", config_inp + " ..."), end="")
+      if os.path.isdir(path):
 
-      config_inp_path = config_inp
+        print("{:<40} {:<100}".format("\nLooking for .yml or .yaml files in", path + " ..."), end="")
 
-      # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
+        # Define which type of file we are looking for in a case-insensitive way (see https://gist.github.com/techtonik/5694830)
 
-      rule = re.compile(fnmatch.translate("*.yml"), re.IGNORECASE)
-      rule2 = re.compile(fnmatch.translate("*.yaml"), re.IGNORECASE)
+        rule = re.compile(fnmatch.translate("*.yml"), re.IGNORECASE)
+        rule2 = re.compile(fnmatch.translate("*.yaml"), re.IGNORECASE)
 
-      # Find all matching files in config_inp directory
+        # Find all matching files in directory
 
-      config_inp_list = [config for config in os.listdir(config_inp) if (rule.match(config) or rule2.match(config))]
+        config_inp_list.extend([config for config in os.listdir(path) if (rule.match(config) or rule2.match(config))])
 
-      if config_inp_list == []:
-        raise abin_errors.AbinError ("ERROR: Can't find any .yml or .yaml file in %s" % config_inp_path)
+        print('%12s' % "[ DONE ]")
 
-      print('%12s' % "[ DONE ]")
+      # If the path leads to a single single YAML configuration file, check its extension.
 
-    # If given a single config file as argument, check its extension.
+      else:
 
-    else:
+        if os.path.isfile(path) and os.path.splitext(path)[-1].lower() != (".yml") and os.path.splitext(path)[-1].lower() != (".yaml"):
+          raise abin_errors.AbinError ("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
 
-      print ("{:<40} {:<100}".format('\nConfiguration file:',config_inp))
+        config_inp_list.append(path)
 
-      if os.path.isfile(config_inp) and os.path.splitext(config_inp)[-1].lower() != (".yml") and os.path.splitext(config_inp)[-1].lower() != (".yaml"):
-        raise abin_errors.AbinError ("  ^ ERROR: This is not a YAML file (YAML file extension is either .yml or .yaml).")
-
-      config_inp_path = os.path.dirname(config_inp)
-      config_inp_file = os.path.basename(config_inp)
-      config_inp_list = [config_inp_file]
+    if config_inp_list == []:
+      raise abin_errors.AbinError ("ERROR: Can't find any .yml or .yaml file in %s" % raw_config_inp)
 
     # Check dry run option
     # ====================
@@ -374,7 +396,7 @@ def main():
   if max_mol:
     mol_count = 0
 
-  for mol_filename in mol_inp_list:
+  for mol_filepath in mol_inp_list:
 
     # ========================================================= #
     # ========================================================= #
@@ -385,9 +407,14 @@ def main():
     # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
     try:
 
+      # Get the directory path and the filename of this geometry file
+
+      mol_dirpath = os.path.dirname(mol_filepath)
+      mol_filename = os.path.basename(mol_filepath)
+
       # Getting rid of the format extension to get the name of the molecule
 
-      mol_name = str(mol_filename.split('.')[0])
+      mol_name = str(os.path.splitext(mol_filename)[0])
       console_message = "Start procedure for the molecule " + mol_name
       print("")
       print(''.center(len(console_message)+11, '*'))
@@ -423,7 +450,7 @@ def main():
       print ("{:<50} {:<100}".format('\nScanning function:',scan_fct))
 
       print("{:<51}".format("\nLoading %s file ..." % mol_filename), end="")
-      with open(os.path.join(mol_inp_path,mol_filename), 'r') as mol_file:
+      with open(mol_filepath, 'r') as mol_file:
         mol_content = mol_file.read().splitlines()
       print("[ DONE ]")
 
@@ -583,13 +610,18 @@ def main():
 
     # We are still inside the geometry files "for" loop and we are going to iterate over each configuration file with that geometry
 
-    for config_filename in config_inp_list: 
+    for config_filepath in config_inp_list: 
 
       try:
 
+        # Get the directory path and the filename of this geometry file
+
+        config_dirpath = os.path.dirname(config_filepath)
+        config_filename = os.path.basename(config_filepath)
+
         # Getting rid of the format extension to get the name of the configuration
 
-        config_name = str(config_filename.split('.')[0])
+        config_name = str(os.path.splitext(config_filename)[0])
         print("{:<80}".format("\nTreating '%s' geometry with '%s' configuration ..." % (mol_name, config_name)), end="")
         
         # Create an output log file for each geometry - config combination, using the mol_log file as a basis
@@ -626,7 +658,7 @@ def main():
         # Load config file
 
         print ("{:<51}".format('\nLoading %s file ...' % config_filename), end="")
-        with open(os.path.join(config_inp_path,config_filename), 'r') as f_config:
+        with open(config_filepath, 'r') as f_config:
           config = yaml.load(f_config, Loader=yaml.FullLoader)
         print("[ DONE ]")
 
@@ -717,8 +749,8 @@ def main():
 
         # Copying the config file and the geometry file into the job subdirectory
         
-        shutil.copy(os.path.join(mol_inp_path,mol_filename), job_dir)
-        shutil.copy(os.path.join(config_inp_path,config_filename), job_dir)
+        shutil.copy(mol_filepath, job_dir)
+        shutil.copy(config_filepath, job_dir)
 
         print("    └── The geometry file (%s) and the configuration file (%s) have been successfully copied into the directory." % (mol_filename, config_filename))
 
@@ -809,11 +841,11 @@ def main():
     # Archive the geometry file if keep_mol has not been set and there was no problem
 
     if not keep_mol:
-      launched_dir = os.path.join(mol_inp_path,"launched")      # Directory where the geometry files will be put after having been treated by this script, it will be created inside the directory where were all the geometry files.
+      launched_dir = os.path.join(mol_dirpath,"launched")      # Directory where the geometry files will be put after having been treated by this script, it will be created inside the directory where were all the geometry files.
       os.makedirs(launched_dir, exist_ok=True)
       if os.path.exists(os.path.join(launched_dir,mol_filename)):
         os.remove(os.path.join(launched_dir,mol_filename))
-      shutil.move(os.path.join(mol_inp_path,mol_filename), launched_dir)
+      shutil.move(mol_filepath, launched_dir)
       print("\nGeometry file archived to %s" % launched_dir)
 
     console_message = "End of procedure for the molecule " + mol_name
@@ -839,11 +871,11 @@ def main():
   if not keep_cf:
     for config_filename in config_inp_list:
       if config_filename not in problem_cf:
-        launched_dir = os.path.join(config_inp_path,"launched") # Directory where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
+        launched_dir = os.path.join(config_dirpath,"launched") # Directory where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
         os.makedirs(launched_dir, exist_ok=True)
         if os.path.exists(os.path.join(launched_dir,config_filename)):
           os.remove(os.path.join(launched_dir,config_filename))
-        shutil.move(os.path.join(config_inp_path,config_filename), launched_dir)
+        shutil.move(config_filepath, launched_dir)
         print("\nThe '%s' config file has been archived to %s" % (config_filename,launched_dir))
 
   if not dry_run:
