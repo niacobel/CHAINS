@@ -310,7 +310,9 @@ def main():
 
         # Find all matching files in directory
 
-        mol_inp_list.extend([mol_file for mol_file in os.listdir(path) if rule.match(mol_file)])
+        relevant_files = [mol_file for mol_file in os.listdir(path) if rule.match(mol_file)]
+        files_path = [abin_errors.check_abspath(os.path.join(path,mol_file),"Command line argument -m / --mol_inp") for mol_file in relevant_files] 
+        mol_inp_list.extend(files_path)
 
         print('%12s' % "[ DONE ]")
 
@@ -350,7 +352,9 @@ def main():
 
         # Find all matching files in directory
 
-        config_inp_list.extend([config for config in os.listdir(path) if (rule.match(config) or rule2.match(config))])
+        relevant_files = [config for config in os.listdir(path) if (rule.match(config) or rule2.match(config))]
+        files_path = [abin_errors.check_abspath(os.path.join(path,config),"Command line argument -cf / --config") for config in relevant_files]
+        config_inp_list.extend(files_path)
 
         print('%12s' % "[ DONE ]")
 
