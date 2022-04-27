@@ -52,7 +52,7 @@ def gs_or_brightests_to_darkests_and_reverse(system:dict):
     # ========================================================= #
 
     # We need to consider each transition dipole moments matrix separately
-    for momdip_key in system['momdip_es_mtx']:
+    for momdip_key in system['momdip_mtx']:
 
       # ========================================================= #
       #                Defining the pair of states                #
@@ -62,7 +62,7 @@ def gs_or_brightests_to_darkests_and_reverse(system:dict):
       # =========================
 
       # Consider the dipole moments for transitions involving the ground state (and make sure it's a list and not a NumPy array)
-      gs_line = system['momdip_es_mtx'][momdip_key][0]
+      gs_line = system['momdip_mtx'][momdip_key][0]
       if isinstance(gs_line, np.ndarray):
         gs_line = gs_line.tolist()
 
@@ -81,7 +81,7 @@ def gs_or_brightests_to_darkests_and_reverse(system:dict):
       # =======================
 
       # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime)
-      dark_max_indices = [system['eigenstates_list'].index(eigenstate) for eigenstate in sorted(system['eigenstates_list'], key = lambda i: i['lifetime'], reverse=True) if eigenstate['lifetime'] != float('inf')]
+      dark_max_indices = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')]
 
       # Iterate over the dark states
       # ============================
@@ -92,13 +92,13 @@ def gs_or_brightests_to_darkests_and_reverse(system:dict):
       # iter_dark is the number of the current iteration of this loop, e.g if dmax = 2, then iter_dark will be 0, then 1. (useful to label the transition)
       # dark_index is the number of the state currently considered, e.g. if dark_max_indices = [4, 3, 2, 1] and iter_bright = 0, then dark_index = 4.
 
-        # Define the initial density matrix file name and content
+        # Define the target density matrix file name and content
 
-        dark_label = system['eigenstates_list'][dark_index]["label"]
+        dark_label = system['states_list'][dark_index]["label"]
 
         target_file = dark_label + "_"
 
-        target_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+        target_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
         target_content[dark_index][dark_index] = complex(1)
 
         # Iterate over the bright states
@@ -113,18 +113,18 @@ def gs_or_brightests_to_darkests_and_reverse(system:dict):
 
           # Exit if both states are the same (that transition will be skipped)
           if bright_index == dark_index:
-            state_label = system['eigenstates_list'][bright_index]["label"]
+            state_label = system['states_list'][bright_index]["label"]
             transition_label = momdip_key + "_" + str(iter_bright) + "B" + str(iter_dark+1) + "D"
             print("\nNOTICE: The transition %s will be skipped since both states are the same (%s)." % (transition_label,state_label))
             continue
 
           # Define the initial density matrix file name and content
 
-          bright_label = system['eigenstates_list'][bright_index]["label"]
+          bright_label = system['states_list'][bright_index]["label"]
 
           init_file = bright_label + "_"
 
-          init_content = np.zeros((len(system['eigenstates_list']), len(system['eigenstates_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+          init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
           init_content[bright_index][bright_index] = complex(1)
 
           # ========================================================= #
@@ -234,22 +234,22 @@ def dark_zero_order(system:dict):
 
     # Define the initial density matrix file name and content
 
-    gs_state = [state for state in system['states_list'] if state['number'] == 0][0]
+    gs_state = [state for state in system['zero_states_list'] if state['number'] == 0][0]
 
     init_file = gs_state['label'] + "_"
 
-    init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+    init_content = np.zeros((len(system['zero_states_list']), len(system['zero_states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
     init_content[gs_state['number']][gs_state['number']] = complex(1)
 
     # Iterate over the dark zero order states
 
-    for state in system['states_list']:
+    for state in system['zero_states_list']:
 
       if state['type'].lower() == "dark":
 
         # Build the target density matrix in the zero order states
 
-        target_mtx = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+        target_mtx = np.zeros((len(system['zero_states_list']), len(system['zero_states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
         target_mtx[state['number']][state['number']] = complex(1)
 
         # Convert target density matrix to the eigenstates basis set and define the target density matrix file name 
@@ -260,7 +260,7 @@ def dark_zero_order(system:dict):
 
         # Building the transition dictionary (one for each transition dipole moment matrix)
 
-        for momdip_key in system['momdip_mtx']:
+        for momdip_key in system['momdip_o_mtx']:
 
             # Building the transition dictionary
 

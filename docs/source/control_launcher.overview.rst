@@ -24,7 +24,7 @@ The ``CONTROL LAUNCHER`` `directory <https://github.com/niacobel/CHAINS/tree/mas
 
     control_launcher/
       ├── control_launcher.py
-      ├── source_parser.py
+      ├── modelling_fcts.py
       ├── transition_fcts.py
       ├── control_renderer.py
       ├── control_errors.py
@@ -34,7 +34,7 @@ The ``CONTROL LAUNCHER`` `directory <https://github.com/niacobel/CHAINS/tree/mas
 As for what each file does, everything will be explained in more details in the other sections of this documentation, but here is a short summary:
 
 - ``control_launcher.py`` is the main script itself, the one that needs to be executed.
-- ``source_parser.py`` is the library of functions that define how to parse the source file, i.e. how to fetch from it the needed molecular properties.
+- ``modelling_fcts.py`` is the library of functions that define how to parse the source file, i.e. how to fetch from it the needed molecular properties.
 - ``transition_fcts.py`` is the library of functions that define which transitions will be covered, by creating the various initial and target states files.
 - ``control_renderer.py`` is the library of functions that define how to render the Jinja templates, i.e. how to create the parameters files and the job scripts.
 - ``control_errors.py`` contains all the classes and functions defining :ref:`how to handle errors <control_errors>`.

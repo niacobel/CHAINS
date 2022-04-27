@@ -9,12 +9,12 @@ System modelling
 Parsing the source file
 =======================
 
-While ``CONTROL LAUNCHER`` parses the source file, it is looking for various information about the molecule, depending on what type of control is to be performed. What this parsing does and how it works is defined by a function present in the ``source_parser.py`` file, called a **parsing function**. The only argument this function needs is the content of the source file, stored as a list in the ``source_content`` variable (each element of the list corresponds to a line of the file). 
+While ``CONTROL LAUNCHER`` parses the source file, it is looking for various information about the molecule, depending on what type of control is to be performed. What this parsing does and how it works is defined by a function present in the ``modelling_fcts.py`` file, called a **parsing function**. The only argument this function needs is the content of the source file, stored as a list in the ``source_content`` variable (each element of the list corresponds to a line of the file). 
 
 General definition of the parsing functions
 -------------------------------------------
 
-All the parsing functions are defined in the ``source_parser.py`` file and obey some restrictions, in order to be callable by ``CONTROL LAUNCHER``:
+All the parsing functions are defined in the ``modelling_fcts.py`` file and obey some restrictions, in order to be callable by ``CONTROL LAUNCHER``:
 
 - They must only take one argument: a list containing the lines of the source file (``source_content``).
 - They must return a dictionary (``system``) containing two mandatory keys: ``mime`` and ``momdip_mtx`` (you can have additional keys if you want) where:
@@ -45,9 +45,9 @@ where ``mycluster`` corresponds to the name of your cluster (given as a :ref:`co
 Convert energy units
 --------------------
 
-Since the ``mime`` values need to be expressed in Hartree, a small function named ``energy_unit_conversion`` has been added at the beginning of the ``source_parser.py`` file to help you convert energy units:
+Since the ``mime`` values need to be expressed in Hartree, a small function named ``energy_unit_conversion`` has been added at the beginning of the ``modelling_fcts.py`` file to help you convert energy units:
 
-.. autofunction:: source_parser.energy_unit_conversion
+.. autofunction:: modelling_fcts.energy_unit_conversion
 
 This function works by first converting the value from the ``init`` unit to Hartree, then converting it from Hartree to the ``target`` unit.
 
@@ -118,7 +118,7 @@ As an example, let's consider here a TD-DFT calculation of the |H2O| molecule, f
 Function definition
 ~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: source_parser.qchem_tddft
+.. autofunction:: modelling_fcts.qchem_tddft
 
 The first noticeable thing is that the ``system`` dictionary returned by this function contains an additional key: ``states_list``. While this key is not explicitly needed by ``CONTROL LAUNCHER``, it contains useful information that can be used, for example, by a :ref:`transition function <pgt_transition>`.
 

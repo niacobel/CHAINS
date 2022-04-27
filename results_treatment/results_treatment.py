@@ -185,13 +185,13 @@ def main():
     geom_scan = import_path(geom_scan_path)
     print('%12s' % "[ DONE ]")
 
-    # CONTROL LAUNCHER's source_parser.py file
+    # CONTROL LAUNCHER's modelling_fcts.py file
     # =================================
 
-    source_parser_path = os.path.join(chains_path,"control_launcher","source_parser.py")
+    modelling_fcts_path = os.path.join(chains_path,"control_launcher","modelling_fcts.py")
 
-    print ("{:<140}".format("\nImporting CONTROL LAUNCHER's source_parser.py file ..."), end="")
-    source_parser = import_path(source_parser_path)
+    print ("{:<140}".format("\nImporting CONTROL LAUNCHER's modelling_fcts.py file ..."), end="")
+    modelling_fcts = import_path(modelling_fcts_path)
     print('%12s' % "[ DONE ]")
 
     # ========================================================= #
@@ -731,7 +731,7 @@ def main():
 
       with open(os.devnull, 'w') as devnull:
         with contextlib.redirect_stdout(devnull):
-          system = source_parser.qchem_tddft(qchem_content)
+          system = modelling_fcts.qchem_tddft(qchem_content)
 
       states_list = system['states_list']
 

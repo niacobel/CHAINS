@@ -194,8 +194,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       "source_name" : misc['source_name'],
       "process" : process, # Associated with the config file, but it has already been verified
       # DATA FILES
-      "energies_file_path" : data['eigenvalues_path'],
-      "momdip_e_path" : data['momdip_es_mtx_path'],
+      "energies_file_path" : data['energies_path'],
+      "momdip_path" : data['momdip_mtx_path'],
       "init_file_path" : data['init_path'],
       "target_file_path" : data['target_path']
     }
@@ -231,7 +231,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     init_number = np.argmax(np.diagonal(misc['transition']['init_content']))
     target_number = np.argmax(np.diagonal(misc['transition']['target_content']))
-    omegazero = abs(system['eigenstates_list'][init_number]['energy'] - system['eigenstates_list'][target_number]['energy'])
+    omegazero = abs(system['states_list'][init_number]['energy'] - system['states_list'][target_number]['energy'])
 
     # Convert the central frequency to nanometers and to wavenumbers
 
@@ -572,12 +572,12 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       # Consider each pair of excited states
 
-      for state_1 in range(len(system['eigenstates_list'])):
-        for state_2 in range(state_1 + 1, len(system['eigenstates_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
+      for state_1 in range(len(system['states_list'])):
+        for state_2 in range(state_1 + 1, len(system['states_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
 
           # Compute the energy difference and compare it to our frequency range
 
-          energy_diff = abs(system['eigenstates_list'][state_1]['energy'] - system['eigenstates_list'][state_2]['energy'])
+          energy_diff = abs(system['states_list'][state_1]['energy'] - system['states_list'][state_2]['energy'])
 
           if lower_limit <= energy_diff <= upper_limit:
 
@@ -603,10 +603,10 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
       # Check if the total duration of the pulse is not too long compared to the lifetime of our most populated target state
 
-      time_limit = 0.01 * system['eigenstates_list'][target_number]['lifetime']
+      time_limit = 0.01 * ( system['states_list'][target_number]['lifetime'] / constants.value('atomic unit of time') )
 
       if duration > time_limit:
-        raise control_common.ControlError ('ERROR: The duration of the pulse (%s a.u.) is too long compared to the radiative lifetime of this excited state (%s a.u.).' % (duration,system['eigenstates_list'][target_number]['lifetime']))
+        raise control_common.ControlError ('ERROR: The duration of the pulse (%s a.u.) is too long compared to the radiative lifetime of this excited state (%s a.u.).' % (duration,system['states_list'][target_number]['lifetime']))
 
       #! Correct the values rather than raise an exception? Or calculate the values based on nstep (user-supplied) and time_limit (duration = time_limit and time_step = time_limit / nstep, then check against NYQ-SHA and decrease time_step and duration if necessary.)
 
@@ -635,7 +635,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
       pulse_render_vars.update({
-        "basis" : data['eigenvalues_path'],
+        "basis" : data['energies_path'],
         "nb_subpulses" : len(subpulses),
         "subpulses" : subpulses,
         "amplitude" : amplitude_for
@@ -738,7 +738,8 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     print("{:<30} {:<30}".format("Label: ", ref_shaper['label']))
     print("{:<30} {:<30}".format("Input beam energy (µJ): ", ref_shaper['input_beam']['energy']))
     print("{:<30} {:<30}".format("Input beam diameter (mm): ", ref_shaper['input_beam']['diameter']))
-    print("{:<30} {:<30}".format("Shaper max fluence (J/m^2): ", "{:.4e}".format(shaper_fluence)))
+    if max_fluence:
+      print("{:<30} {:<30}".format("Shaper max fluence (J/m^2): ", "{:.4e}".format(shaper_fluence)))
     print("{:<30} {:<30}".format("Reference frequency (nm): ", ref_frequency))
     print("{:<30} {:<30}".format("Reference duration (ps): ", ref_duration))
     print(''.center(60, '-'))
@@ -840,8 +841,8 @@ def basic_opc_pcp_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
       "source_name" : misc['source_name'],
       "process" : "OPC",
       # DATA FILES
-      "energies_file_path" : data['eigenvalues_path'],
-      "momdip_e_path" : data['momdip_es_mtx_path'],
+      "energies_file_path" : data['energies_path'],
+      "momdip_path" : data['momdip_mtx_path'],
       "init_file_path" : data['init_path'],
       "target_file_path" : data['target_path'],
       # CONTROL
@@ -902,7 +903,7 @@ def basic_opc_pcp_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
     # ====================================
 
     pulse_render_vars = {
-      "basis" : data['eigenvalues_path'],
+      "basis" : data['energies_path'],
       "pulse_type" : config['guess_pulse']['pulse_type'],
       "subpulse_type" : config['guess_pulse']['subpulse_type'],
       "init_strength" : config['guess_pulse']['amplitude'],
@@ -917,9 +918,9 @@ def basic_opc_pcp_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
     subpulses = []
 
-    # Add all transitions from the ground state to each of the excited eigenstates
+    # Add all transitions from the ground state to each of the excited states
 
-    for state in range(1, len(system['eigenstates_list'])): # Starting at 1 to exclude the ground state 
+    for state in range(1, len(system['states_list'])): # Starting at 1 to exclude the ground state 
 
       subpulses.append("1 \t " + str(state + 1)) # +1 because Fortran starts numbering at 1 while Python starts at 0.
 

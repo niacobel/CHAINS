@@ -22,14 +22,13 @@ from inspect import getsourcefile
 import jinja2  # Only needed in the renderer subscript, it is loaded here to check if your python installation does support jinja2
 import numpy as np
 import yaml
-import scipy
 from scipy import constants
 
 # Subscripts (files that end with .py and must be placed in the same directory as this script)
 
 import control_common
 import control_renderer
-import source_parser
+import modelling_fcts
 import transition_fcts
 
 # =================================================================== #
@@ -166,16 +165,16 @@ def main():
     
     print ("{:<40} {:<100}".format('\nProfile:',profile))
 
-    # Get the parsing function that will fetch the relevant information from the source file - defined in source_parser.py and specified in the clusters configuration file
+    # Get the modelling function that will fetch the relevant information from the source file - defined in modelling_fcts.py and specified in the clusters configuration file
 
-    parsing_fct = clusters_cfg[cluster_name]["profiles"][profile].get("parsing_function")
+    modelling_fct = clusters_cfg[cluster_name]["profiles"][profile].get("modelling_function")
 
-    if parsing_fct is None:
-      raise control_common.ControlError ("ERROR: There is no defined parsing function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
-    if (parsing_fct) not in dir(source_parser) or not callable(getattr(source_parser, parsing_fct)):
-      raise control_common.ControlError ("ERROR: There is no parsing function named %s defined in source_parser.py." % parsing_fct)
+    if modelling_fct is None:
+      raise control_common.ControlError ("ERROR: There is no defined modelling function for the %s profile in the %s cluster in the clusters configuration file." % (profile, cluster_name))
+    if (modelling_fct) not in dir(modelling_fcts) or not callable(getattr(modelling_fcts, modelling_fct)):
+      raise control_common.ControlError ("ERROR: There is no modelling function named %s defined in modelling_fcts.py." % modelling_fct)
 
-    print ("{:<40} {:<100}".format('\nParsing function for that profile:',parsing_fct))
+    print ("{:<40} {:<100}".format('\nModelling function for that profile:',modelling_fct))
 
     # Get the transition function that will determine the initial and target states of the control procedure - defined in transition_fcts.py and specified in the clusters configuration file
 
@@ -355,20 +354,11 @@ def main():
     print(section_title.center(len(section_title)+10))
     print(''.center(len(section_title)+10, '*'))
 
-    #######################################################################
-
-    subsection_title = "A. Parsing the source file"
-
-    print("")
-    print("")
-    print(subsection_title)
-    print(''.center(len(subsection_title), '='))
-
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
 
     sys.stdout = original_stdout                                 
-    print ("{:<80}".format('\nParsing the source file ...'), end="")
-    sys.stdout = data_log    
+    print ("{:<80}".format('\nModelling the system ...'), end="")
+    sys.stdout = data_log  
 
     # ========================================================= #
     # Load the source file                                      #
@@ -385,156 +375,54 @@ def main():
     source_content = list(filter(None, source_content))     # Remove blank lines/no char
 
     # ========================================================= #
-    # Call the parsing function                                 #
+    # Modelling function                                        #
     # ========================================================= #
 
-    print ("{:<50} {:<100}".format('\nParsing function:',parsing_fct))
+    print ("{:<50} {:<100}".format('\nModelling function:',modelling_fct))
 
-    # Call the parsing function (defined in source_parser.py, see the documentation for more information)
+    # Call the modelling function (defined in modelling_fcts.py, see the documentation for more information)
 
-    system = eval("source_parser." + parsing_fct)(source_content)
+    system = eval("modelling_fcts." + modelling_fct)(source_content)
 
     # Check the system dictionary
 
     if not isinstance(system, dict):
-      raise control_common.ControlError ('ERROR: The "system" variable returned by the %s parsing function is not a dictionary.' % parsing_fct) 
+      raise control_common.ControlError ('ERROR: The "system" variable returned by the %s modelling function is not a dictionary.' % modelling_fct) 
 
-    required_keys = ["states_list", "mime", "momdip_mtx"]
-    control_common.check_keys(required_keys,system,"The 'system' dictionary returned by the %s parsing function." % parsing_fct)
+    required_keys = ["states_list", "momdip_mtx"]
+    control_common.check_keys(required_keys,system,"The 'system' dictionary returned by the %s modelling function." % modelling_fct)
 
     # Check the states list
 
     if not isinstance(system["states_list"], list):
-      raise control_common.ControlError ('ERROR: The "states_list" value in the system dictionary returned by the %s parsing function is not a list.' % parsing_fct)
+      raise control_common.ControlError ('ERROR: The "states_list" value in the system dictionary returned by the %s modelling function is not a list.' % modelling_fct)
 
-    required_keys = ["number", "type", "label", "energy"]
-    control_common.check_keys(required_keys,system["states_list"],"The 'states_list' list of the 'system' dictionary returned by the %s parsing function." % parsing_fct)
+    required_keys = ["number", "label", "energy"]
+    control_common.check_keys(required_keys,system["states_list"],"The 'states_list' list of the 'system' dictionary returned by the %s modelling function." % modelling_fct)
 
-    control_common.is_consecutive([state['number'] for state in system['states_list']],"Excited state numbers from the source file")
+    control_common.is_consecutive([state['number'] for state in system['states_list']],"State numbers from the modelling function")
 
-    # Check the MIME and the dipole moments matrices
-
-    if not isinstance(system["mime"], (list, np.ndarray)):
-      raise control_common.ControlError ('ERROR: The "mime" value in the system dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % parsing_fct)
+    # Check the dipole moments matrices
 
     if not isinstance(system["momdip_mtx"], dict):
-      raise control_common.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s parsing function is not a dictionary.' % parsing_fct)
+      raise control_common.ControlError ('ERROR: The "momdip_mtx" value in the system dictionary returned by the %s modelling function is not a dictionary.' % modelling_fct)
 
     for momdip_key in system["momdip_mtx"]:
       if not isinstance(system["momdip_mtx"][momdip_key], (list, np.ndarray)):
-        raise control_common.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s parsing function is neither a list nor a NumPy array.' % (momdip_key, parsing_fct))
+        raise control_common.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s modelling function is neither a list nor a NumPy array.' % (momdip_key, modelling_fct))
 
-    print("\nThe source file has been succesfully parsed.")
-
-    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
-    
-    sys.stdout = original_stdout                                 
-    print('%12s' % "[ DONE ]")
-    sys.stdout = data_log    
-
-    #######################################################################
-
-    subsection_title = "B. Eigenstates basis set"
-
-    print("")
-    print("")
-    print(subsection_title)
-    print(''.center(len(subsection_title), '='))
-
-    # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
-
-    sys.stdout = original_stdout                                 
-    print ("{:<80}".format('\nBuilding the eigenstates basis set ...'), end="")
-    sys.stdout = data_log    
-
-    # ========================================================= #
-    # MIME diagonalization                                      #
-    # ========================================================= #
-
-    # Diagonalization
-    # ===============
-
-    # Use SciPy to diagonalize the matrix (see https://personal.math.ubc.ca/~pwalls/math-python/linear-algebra/eigenvalues-eigenvectors/ for reference)
-    # Documentation page for the function used here : https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.eigh.html  
-     
-    print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
-    eigenvalues, system['eigenvectors'] = scipy.linalg.eigh(system['mime'])
-    eigenvalues = eigenvalues.tolist()
-    print("[ DONE ]")
-
-    # Build the eigenstates list
-    # ==========================
-
-    print("{:<50}".format("\nBuilding the eigenstates list ..."), end="")
-
-    # Initialize the variables
-
-    system['eigenstates_list'] = []
-
-    # Build the list
-
-    for eigenvalue in eigenvalues:
-
-      eigenstate = {
-        'energy' : eigenvalue,
-        'number' : eigenvalues.index(eigenvalue),
-        'label' : "E" + str(eigenvalues.index(eigenvalue)),
-        'degeneracy' : 1
-      }
-
-      system['eigenstates_list'].append(eigenstate)
-
-    print("[ DONE ]")
-
-    # Transpose the eigenvectors list
-    # ===============================
-
-    # Using SciPy to invert the eigenvectors matrix
-    # Note that the inverse of an orthonormal matrix is equal to its transpose, so each line of this matrix corresponds to an eigenvector. (see https://math.stackexchange.com/questions/156735/in-which-cases-is-the-inverse-of-a-matrix-equal-to-its-transpose)
-
-    print("{:<50}".format("\nInverting eigenvectors matrix ..."), end="")
-    system['eigenvectors_inv'] = scipy.linalg.inv(system['eigenvectors'])
-    print("[ DONE ]")
-
-    # Evaluate the diagonalization
-    # ============================
-
-    # Using NumPy to convert the MIME from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
-    system['mime_diag'] = np.matmul(np.matmul(system['eigenvectors_inv'],system['mime']),system['eigenvectors'])
-
-    # Get the absolute value of the matrix
-    abs_mime_diag = np.abs(system['mime_diag'])
-
-    # Average the diagonal elements
-    diag_mean = np.mean(np.trace(abs_mime_diag))
-
-    # Average the non-diagonal elements (sum everything minus the trace and divide by n*(n-1), where n is the number of states)
-    nondiag_mean = (np.sum(abs_mime_diag) - np.trace(abs_mime_diag)) / (len(system['eigenvectors']) * (len(system['eigenvectors']) - 1))
-
-    # Evaluate the ratio of the diagonalization
-    ratio = nondiag_mean / diag_mean
-        
-    print ("{:<50} {:<.2e}".format('\nDiagonalization ratio (non-diag/diag): ',ratio))
-
-    # ========================================================= #
-    # Dipole moment matrices in the eigenstates basis set       #
-    # ========================================================= #
-
-    # Intialize the momdip_es_mtx dictionary
-
-    system['momdip_es_mtx'] = {}
-
-    # Convert each matrix from the zero order basis set to the eigenstates basis set through a matrix product (see https://numpy.org/doc/stable/reference/generated/numpy.matmul.html#numpy.matmul for reference)
-
-    for momdip_key in system["momdip_mtx"]:
-
-      system['momdip_es_mtx'][momdip_key] = np.matmul(np.matmul(system['eigenvectors_inv'],system['momdip_mtx'][momdip_key]),system['eigenvectors'])
+    print("\nThe system has been succesfully modelled.")
           
     # ========================================================= #
-    # Handling eigenstates degeneracies                         #
+    # Handling states degeneracies                              #
     # ========================================================= #
 
     print ("{:<50} {:<.2e}".format('\nDegeneracy threshold: ',deg_threshold))
+
+    # Add the degeneracy key to the list of states
+
+    for state in system['states_list']:
+      state['degeneracy'] = 1
 
     # Initialize the list of degeneracies (each item of this list will be a group of degenerated states)
 
@@ -542,11 +430,11 @@ def main():
 
     # Look for every group of degenerated states
 
-    for eigenstate in system['eigenstates_list']:
+    for state in system['states_list']:
 
-      for other_state in [other_state for other_state in system['eigenstates_list'] if other_state['number'] < eigenstate['number']]:
+      for other_state in [other_state for other_state in system['states_list'] if other_state['number'] < state['number']]:
 
-        if abs(eigenstate['energy'] - other_state['energy']) < deg_threshold:
+        if abs(state['energy'] - other_state['energy']) < deg_threshold:
 
           # Define if and how to add this pair of degenerated states to the list of degeneracies
 
@@ -554,19 +442,19 @@ def main():
 
           for group in deg_list:
 
-            if other_state['number'] in group and eigenstate['number'] not in group:
-              group.append(eigenstate['number'])
+            if other_state['number'] in group and state['number'] not in group:
+              group.append(state['number'])
               added = True
 
-            elif eigenstate['number'] in group and other_state['number'] not in group:
+            elif state['number'] in group and other_state['number'] not in group:
               group.append(other_state['number'])
               added = True
               
-            elif other_state['number'] in group and eigenstate['number'] in group:
+            elif other_state['number'] in group and state['number'] in group:
               added = True
 
           if not added:
-              deg_list.append([eigenstate['number'],other_state['number']])
+              deg_list.append([state['number'],other_state['number']])
 
     # Update the transition dipole moments matrices
     # =============================================
@@ -581,19 +469,19 @@ def main():
 
       for number in group:
 
-        # Fetch the index corresponding to a particular eigenstate through its number and add it to the group_ind
-        index = system['eigenstates_list'].index(next(eigenstate for eigenstate in system['eigenstates_list'] if eigenstate['number'] == number))
+        # Fetch the index corresponding to a particular state through its number and add it to the group_ind
+        index = system['states_list'].index(next(state for state in system['states_list'] if state['number'] == number))
         group_ind.append(index)
       
       deg_list_ind.append(group_ind)
 
     # Iterate over each matrix separately
 
-    for momdip_key in system["momdip_es_mtx"]:
+    for momdip_key in system["momdip_mtx"]:
 
       # Initialize the new matrix that will replace the old one
 
-      new_mtx = np.copy(system["momdip_es_mtx"][momdip_key])
+      new_mtx = np.copy(system["momdip_mtx"][momdip_key])
 
       # Intialize the list that will contain the indices of the lines that need to be removed
 
@@ -631,18 +519,18 @@ def main():
 
       # Replace the old matrix with the new one
 
-      system["momdip_es_mtx"][momdip_key] = new_mtx
+      system["momdip_mtx"][momdip_key] = new_mtx
 
       #! Temporary (print it as a table rather than a matrix)
 
-      print("\nDipole moments matrix with the '%s' key in the eigenstates basis set (atomic units)" % momdip_key)
+      print("\nDipole moments matrix with the '%s' key (atomic units)" % momdip_key)
       print('')
-      for row in system['momdip_es_mtx'][momdip_key]:
+      for row in system['momdip_mtx'][momdip_key]:
         for val in row:
           print(np.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
         print('')
 
-    # Update the eigenstates list
+    # Update the states list
     # ===========================
 
     for group in deg_list:
@@ -655,34 +543,34 @@ def main():
 
       new_state['number'] = min(group)
       new_state['label'] = "E" + "-".join(map(str,sorted(group))) # e.g. for a group including the states number 2, 3 and 4, its label will be E2-3-4
-      new_state['energy'] = np.mean([eigenstate['energy'] for eigenstate in system['eigenstates_list'] if eigenstate['number'] in group])
+      new_state['energy'] = np.mean([state['energy'] for state in system['states_list'] if state['number'] in group])
       new_state['degeneracy'] = len(group)
 
       # Get the index of the state that has the same number as the new one
 
-      index = system['eigenstates_list'].index(next(eigenstate for eigenstate in system['eigenstates_list'] if eigenstate['number'] == new_state['number']))
+      index = system['states_list'].index(next(state for state in system['states_list'] if state['number'] == new_state['number']))
 
-      # Remove the degenerated states from the eigenstates_list (by keeping only the states not included in the group)
+      # Remove the degenerated states from the states_list (by keeping only the states not included in the group)
 
-      system['eigenstates_list'] = [eigenstate for eigenstate in system['eigenstates_list'] if eigenstate['number'] not in group]
+      system['states_list'] = [state for state in system['states_list'] if state['number'] not in group]
 
       # Add the new state to the list at the position occupied by the state that had the same number
 
-      system['eigenstates_list'].insert(index,new_state)
+      system['states_list'].insert(index,new_state)
 
     # Once all the list has been updated, correct the state numbers
 
-    energies = sorted([eigenstate['energy'] for eigenstate in system['eigenstates_list']])
+    energies = sorted([state['energy'] for state in system['states_list']])
 
-    for eigenstate in system['eigenstates_list']:
-      eigenstate['number'] = energies.index(eigenstate['energy'])
+    for state in system['states_list']:
+      state['number'] = energies.index(state['energy'])
 
     # ========================================================= #
-    # Eigenstates list                                          #
+    # States list                                               #
     # ========================================================= #
 
-    # Radiative lifetime of excited eigenstates
-    # =========================================
+    # Radiative lifetime of excited states
+    # ====================================
 
     # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
     # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
@@ -694,63 +582,64 @@ def main():
 
     # Iterate over each excited state
 
-    for eigenstate_m in system['eigenstates_list']:
+    for state_m in system['states_list']:
 
       sum_einstein_coeffs = 0
 
       # Get the index of the state (to locate it in the matrices)
 
-      m_index = system['eigenstates_list'].index(eigenstate_m)
+      m_index = system['states_list'].index(state_m)
 
       # Iterate over each state with an energy lower than the current one
 
-      for eigenstate_n in [eigenstate_n for eigenstate_n in system['eigenstates_list'] if eigenstate_n['energy'] < eigenstate_m['energy']]:
+      for state_n in [state_n for state_n in system['states_list'] if state_n['energy'] < state_m['energy']]:
 
         # Get the index of the state (to locate it in the matrices)
 
-        n_index = system['eigenstates_list'].index(eigenstate_n)
+        n_index = system['states_list'].index(state_n)
 
         # Compute the energy difference
 
-        energy_diff = eigenstate_m['energy'] - eigenstate_n['energy']
+        energy_diff = state_m['energy'] - state_n['energy']
 
         # Compute the square of the transition dipole moment
 
         square_dipole = 0
         
-        for momdip_key in system['momdip_es_mtx']:
-          square_dipole += system['momdip_es_mtx'][momdip_key][m_index][n_index] ** 2
+        for momdip_key in system['momdip_mtx']:
+          square_dipole += system['momdip_mtx'][momdip_key][m_index][n_index] ** 2
 
         # Calculate the A Einstein Coefficient          
 
-        einstein_coeff = (eigenstate_n['degeneracy']/eigenstate_m['degeneracy']) * (4/3) * square_dipole * (energy_diff**3) / (light_speed_au**3)
+        einstein_coeff = (state_n['degeneracy']/state_m['degeneracy']) * (4/3) * square_dipole * (energy_diff**3) / (light_speed_au**3)
         sum_einstein_coeffs += einstein_coeff
 
       # Compute the radiative lifetime
 
       if sum_einstein_coeffs == 0:
-        eigenstate_m['lifetime'] = float('inf')
+        state_m['lifetime'] = float('inf')
       else:
-        eigenstate_m['lifetime'] = 1 / sum_einstein_coeffs
+        state_m['lifetime'] = 1 / sum_einstein_coeffs
+        state_m['lifetime'] = state_m['lifetime'] * constants.value('atomic unit of time')
 
-    # Print the eigenstates list
-    # ==========================
+    # Print the states list
+    # =====================
 
     print("")
     print(''.center(75, '-'))
-    print('Eigenstates List'.center(75, ' '))
+    print('States List'.center(75, ' '))
     print(''.center(75, '-'))
-    print("{:<10} {:<10} {:<15} {:<10} {:<15}".format('Number','Label','Energy (Ha)','Degeneracy','Lifetime (a.u.)'))
+    print("{:<10} {:<10} {:<15} {:<10} {:<15}".format('Number','Label','Energy (Ha)','Degeneracy','Lifetime (s)'))
     print(''.center(75, '-'))
-    for eigenstate in system['eigenstates_list']:
-      print("{:<10} {:<10} {:<15.5e} {:<10} {:<15.5e}".format(eigenstate['number'],eigenstate['label'],eigenstate['energy'],eigenstate['degeneracy'],eigenstate['lifetime']))
+    for state in system['states_list']:
+      print("{:<10} {:<10} {:<15.5e} {:<10} {:<15.5e}".format(state['number'],state['label'],state['energy'],state['degeneracy'],state['lifetime']))
     print(''.center(75, '-'))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
     sys.stdout = original_stdout                                 
     print('%12s' % "[ DONE ]")
-    sys.stdout = data_log    
+    sys.stdout = data_log 
 
     # =================================================================== #
     # =================================================================== #
@@ -850,43 +739,19 @@ def main():
 
     state_file = "states.csv"
     with open(os.path.join(data_dir,state_file), "w") as f:
-      print("Number;Type;Label;Energy (Ha)", file = f)
+      print("Number;Label;Energy (Ha);Degeneracy;Lifetime (a.u.)", file = f)
       for state in system['states_list']:
-        state_line = ";".join((str(state['number']),state['type'],state['label'],"{:<18.10e}".format(state['energy']).strip()))
+        state_line = ";".join((str(state['number']),state['label'],"{:<18.10e}".format(state['energy']).strip(),str(state['degeneracy']),"{:<18.10e}".format(state['lifetime']).strip()))
         print(state_line, file = f)
     print("    ├── The states list file ('%s') has been created into the directory" % state_file)
 
-    # MIME
+    # Energies
 
-    mime_file = "mime"
-    np.savetxt(os.path.join(data_dir,mime_file),system['mime'],fmt='% 18.10e')
-    print("    ├── The MIME file ('%s') has been created into the directory" % mime_file)
-
-    # Dipole moments matrices
-
-    for momdip_key in system['momdip_mtx']:
-
-      momdip_mtx_file = 'momdip_mtx_' + momdip_key
-      np.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][momdip_key],fmt='% 18.10e')
-      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (momdip_key, momdip_mtx_file))
-
-    # Eigenstates list
-
-    eigenstate_file = "eigenstates.csv"
-    with open(os.path.join(data_dir,eigenstate_file), "w") as f:
-      print("Number;Label;Energy (Ha);Degeneracy;Lifetime (a.u.)", file = f)
-      for eigenstate in system['eigenstates_list']:
-        eigenstate_line = ";".join((str(eigenstate['number']),eigenstate['label'],"{:<18.10e}".format(eigenstate['energy']).strip(),str(eigenstate['degeneracy']),"{:<18.10e}".format(eigenstate['lifetime']).strip()))
-        print(eigenstate_line, file = f)
-    print("    ├── The eigenstates list file ('%s') has been created into the directory" % eigenstate_file)
-
-    # Eigenvalues
-
-    eigenvalues_file = "eigenvalues"
-    with open(os.path.join(data_dir,eigenvalues_file), "w") as f:
-      for eigenstate in system['eigenstates_list']:
-        print("{:1.10e}".format(eigenstate['energy']), file = f)
-    print("    ├── The eigenvalues file ('%s') has been created into the directory" % eigenvalues_file)
+    energies_file = "energies"
+    with open(os.path.join(data_dir,energies_file), "w") as f:
+      for state in system['states_list']:
+        print("{:1.10e}".format(state['energy']), file = f)
+    print("    ├── The energies file ('%s') has been created into the directory" % energies_file)
 
     # Eigenvectors matrix and its inverse
 
@@ -898,13 +763,13 @@ def main():
     np.savetxt(os.path.join(data_dir,eigenvectors_inv_file),system['eigenvectors_inv'],fmt='% 18.10e')
     print("    ├── The inverse of the eigenvectors matrix file ('%s') has been created into the directory" % eigenvectors_inv_file)
 
-    # Dipole moments matrices in the eigenstates basis set
+    # Dipole moments matrices
 
-    for momdip_key in system['momdip_es_mtx']:
+    for momdip_key in system['momdip_mtx']:
 
-      momdip_es_mtx_file = 'momdip_es_mtx_' + momdip_key
-      np.savetxt(os.path.join(data_dir,momdip_es_mtx_file),system['momdip_es_mtx'][momdip_key],fmt='% 18.10e')
-      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key in the eigenstates basis set ('%s') has been created into the directory" % (momdip_key, momdip_es_mtx_file))
+      momdip_mtx_file = 'momdip_mtx_' + momdip_key
+      np.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][momdip_key],fmt='% 18.10e')
+      print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (momdip_key, momdip_mtx_file))
 
     # Transitions list
 
@@ -996,7 +861,7 @@ def main():
 
     # Use the number of states to determine the job scale
 
-    scale_index = len(system['eigenstates_list'])
+    scale_index = len(system['states_list'])
 
     print("")
     print(''.center(50, '-'))
@@ -1141,15 +1006,13 @@ def main():
         data = {
           # Path of the generic data files
           "main_path" : data_dir,
-          "mime_path" : os.path.join(data_dir,mime_file),
-          "eigenvalues_path" : os.path.join(data_dir,eigenvalues_file),
+          "energies_path" : os.path.join(data_dir,energies_file),
           "eigenvectors_path" : os.path.join(data_dir,eigenvectors_file),
           "eigenvectors_inv_path" : os.path.join(data_dir,eigenvectors_inv_file),
           # Path of the data files specific to this transition          
           "init_path" : os.path.join(data_dir,transition['init_file']),
           "target_path" : os.path.join(data_dir,transition['target_file']),
-          "momdip_mtx_path" : os.path.join(data_dir,'momdip_mtx_' + transition['momdip_key']), 
-          "momdip_es_mtx_path" : os.path.join(data_dir,'momdip_es_mtx_' + transition['momdip_key'])
+          "momdip_mtx_path" : os.path.join(data_dir,'momdip_mtx_' + transition['momdip_key'])
         }
 
         # Build a dictionary that will contain all information related to the job

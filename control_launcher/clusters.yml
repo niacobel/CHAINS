@@ -10,14 +10,14 @@
 shared: 
   profiles:
     qoctra: &qoctra
-      parsing_function: qchem_tddft
+      modelling_function: qchem_tddft
       transition_function: gs_or_brightests_to_darkests_and_reverse
       rendering_function: chains_qoctra_render                
       job_scales:
         - 
           label: small
           scale_limit: 20
-          time: 0-12:00:00
+          time: 1-00:00:00
           memory: 2000 # in MB
         - 
           label: medium
@@ -25,7 +25,7 @@ shared:
           time: 2-00:00:00
           memory: 2500 # in MB
     basic: &basic
-      parsing_function: custom_file
+      modelling_function: custom_file
       transition_function: dark_zero_order
       rendering_function: basic_opc_pcp_render                
       job_scales:
