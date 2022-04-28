@@ -714,14 +714,24 @@ def main():
     print ("{:<20} {:<100}".format('\nMolecule directory:',mol_dir))
 
     # ========================================================= #
+    # Creating the profile subdirectory                         #
+    # ========================================================= #
+
+    pro_dir = os.path.join(mol_dir,profile)
+
+    os.makedirs(pro_dir,exist_ok=True)
+
+    print ("{:<20} {:<100}".format('\nProfile subdirectory:',pro_dir))
+
+    # ========================================================= #
     # Creating the data subdirectory                            #
     # ========================================================= #
 
-    data_dir = os.path.join(mol_dir,"data")
+    data_dir = os.path.join(pro_dir,"data")
 
     if os.path.exists(data_dir):
       if not overwrite:
-        raise control_common.ControlError ("ERROR: A data directory for the %s source file already exists in %s !" % (source_name, out_dir))
+        raise control_common.ControlError ("ERROR: A data directory for the %s source file already exists in %s !" % (source_name, pro_dir))
       else:
         print("\n/!\ Deleting the old %s data directory ..." % data_dir, end="")
         shutil.rmtree(data_dir)
@@ -956,7 +966,7 @@ def main():
         # Create an output log file for each transition - config combination
 
         log_name = transition["label"] + "_" + config_name + ".log"
-        log = open(os.path.join(mol_dir,log_name), 'w', encoding='utf-8')
+        log = open(os.path.join(pro_dir,log_name), 'w', encoding='utf-8')
 
         # Redirect standard output to the log file (see https://stackabuse.com/writing-to-a-file-with-pythons-print-function/ for reference)
 
@@ -965,10 +975,10 @@ def main():
         # Define the name and path of the job directory for that specific transition-configuration combination
 
         job_dirname = transition["label"] + "_" + config_name
-        job_dir = os.path.join(mol_dir,job_dirname)
+        job_dir = os.path.join(pro_dir,job_dirname)
 
         if os.path.exists(job_dir) and not overwrite:
-          raise control_common.ControlError ("ERROR: A directory for the %s transition with the '%s' configuration already exists in %s !" % (transition["label"], config_name, mol_dir))
+          raise control_common.ControlError ("ERROR: A directory for the %s transition with the '%s' configuration already exists in %s !" % (transition["label"], config_name, pro_dir))
 
         # ========================================================= #
         # Rendering the templates                                   #
@@ -1037,6 +1047,7 @@ def main():
             "source_name" : source_name,
             "source_content" : source_content,
             "mol_dir" : mol_dir,
+            "pro_dir" : pro_dir,
             "config_name" : config_name,
             "job_dirname" : job_dirname,
             "transition" : transition,
@@ -1142,7 +1153,7 @@ def main():
 
         sys.stdout = original_stdout                            # Reset the standard output to its original value
         log.close()                                             # End of logging
-        shutil.move(os.path.join(mol_dir,log_name), job_dir)    # Archive the log file in the job directory
+        shutil.move(os.path.join(pro_dir,log_name), job_dir)    # Archive the log file in the job directory
 
       # ========================================================= #
       # Exception handling for the rendering and submitting steps #
@@ -1154,7 +1165,7 @@ def main():
         sys.stdout = original_stdout                            # Reset the standard output to its original value
         print(error)
         print("Skipping configuration '%s'" % config_name)
-        os.remove(os.path.join(mol_dir,log_name))               # Remove the log file since there was a problem
+        os.remove(os.path.join(pro_dir,log_name))               # Remove the log file since there was a problem
         problem_cf.append(config_filename)                      # Add the name of this configuration file to the list as to enforce not archiving it
         arch_src = False                                        # Flag to notify that a problem has occurred with this configuration file and to enforce not archiving the source file
         continue        

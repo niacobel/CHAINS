@@ -21,13 +21,14 @@
 &OPC
 {% if process == "OPC" %}
   nb_steps = {{ nb_steps }},                               ! Number of time steps
-{% if max_fluence is sameas false %}
+{% if max_fluence is not defined or max_fluence is sameas false %}
   alpha = {{ alpha }},                                     ! Constraint on the field amplitude
 {%- endif %}
   write_freq = {{ write_freq }},                           ! Number of iterations between each writing of the field
 {% if max_fluence is sameas true %}
   fluence = {{ fluence }},                                 ! Maximum fluence of the pulse, in J/m^2
 {%- endif %}
+{% if spectral_filter is defined %}
 {% if spectral_filter == "SGW" or spectral_filter == "SPGW" %}
   spectral_filter_center = {{  spectral_filter_center  }}, ! Central frequency of the pulse, in cm-1
   spectral_filter_fwhm = {{  spectral_filter_fwhm  }}      ! Spectral bandwidth (FWHM) of the pulse, in cm-1
@@ -35,6 +36,7 @@
 {% elif spectral_filter.upper() == "MGW" %}
   spectral_filter_fwhm = {{  spectral_filter_fwhm  }}      ! Spectral bandwidth (FWHM) of the pulse, in cm-1
   filter_form = "{{  spectral_filter  }}"                  ! Form of the filter function: [SGW] = single Gaussian-type (default) ; [MGW] = multiple Gaussian-type ; [SPGW] = Super Gaussian-type
+{%- endif -%}
 {%- endif -%}
 {%- endif %}
 /

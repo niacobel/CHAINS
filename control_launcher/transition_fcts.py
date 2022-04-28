@@ -16,6 +16,122 @@ import control_common
 # =================================================================== #
 # =================================================================== #
 
+def brightest_to_darkest(system:dict):
+    """Determines the content of the files needed by QOCT-RA for the transition going from the brightest state to the darkest state. The brightest state is identified by its transition dipole moment with the ground state while the darkest state is identified by its radiative lifetime.
+
+    Parameters
+    ----------
+    system : dict
+        Information extracted by the parsing function and derived from it.
+
+    Returns
+    -------
+    transitions_list : list
+        List of dictionaries containing six keys each: 
+
+          - ``label`` is the label of the transition, which will be used for the name of the job directories.
+          - ``init_file`` is the name of the initial state file, minus the number at the end.
+          - ``init_content`` is the content of the initial state file.
+          - ``target_file`` is the name of the target state file, minus the number at the end.
+          - ``target_content`` is the content of the target state file.
+          - ``momdip_key`` is the key of the transition dipole moments matrix used for this transition.
+    """  
+
+    # Initialize the list of dictionaries that will be returned by the function
+
+    transitions_list = []
+
+    # ========================================================= #
+    #                   Defining transitions                    #
+    # ========================================================= #
+
+    # We need to consider each transition dipole moments matrix separately
+    for momdip_key in system['momdip_mtx']:
+
+      # ========================================================= #
+      #                Defining the pair of states                #
+      # ========================================================= #
+
+      # Get the brightest state
+      # =======================
+
+      # Consider the dipole moments for transitions involving the ground state (and make sure it's a list and not a NumPy array)
+      gs_line = system['momdip_mtx'][momdip_key][0]
+      if isinstance(gs_line, np.ndarray):
+        gs_line = gs_line.tolist()
+
+      # Get the index of the brightest state (maximum of the absolute values of those transition dipole moments)
+      abs_gs_line = [abs(mom) for mom in gs_line]
+      bright_index = abs_gs_line.index(max(abs_gs_line))
+
+      # Define the initial density matrix file name and content
+
+      bright_label = system['states_list'][bright_index]["label"]
+
+      init_file = bright_label + "_"
+
+      init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+      init_content[bright_index][bright_index] = complex(1)
+
+      # Get the darkest state
+      # =====================
+
+      # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime) and take the first element of that list
+      dark_index = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')][0]
+    
+      # Exit if both states are the same (that transition will be skipped)
+      if bright_index == dark_index:
+        print("\nNOTICE: The transition will be skipped for the %s transition dipole moment matrix since both states are the same (%s)." % (momdip_key,bright_label))
+        continue
+
+      # Define the target density matrix file name and content
+
+      dark_label = system['states_list'][dark_index]["label"]
+
+      target_file = dark_label + "_"
+
+      target_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+      target_content[dark_index][dark_index] = complex(1)
+
+      # ========================================================= #
+      #           Building the transition dictionary              #
+      # ========================================================= #
+
+      # Building the transition dictionary
+
+      transition_label = momdip_key + "_" + bright_label + "-" + dark_label
+
+      transition = {
+        "label" : transition_label,
+        "init_file" : init_file,
+        "init_content" : init_content,
+        "target_file" : target_file,
+        "target_content" : target_content,
+        "momdip_key" : momdip_key
+        }
+
+      # Pretty recap for the log file
+
+      print("")
+      print(''.center(70, '-'))
+      print("{:<30} {:<40}".format("Label: ", transition["label"]))
+      print(''.center(70, '-'))
+      print(''.center(70, '-'))
+      print("{:<30} {:<40}".format("Transition dipole matrix: ", momdip_key))
+      print(''.center(70, '-'))
+      print("{:<30} {:<40}".format("Initial state: ", "%s (%s)" % (bright_label,bright_index)))
+      print(''.center(70, '-'))
+      print("{:<30} {:<40}".format("Target state: ", "%s (%s)" % (dark_label,dark_index)))
+      print(''.center(70, '-'))
+
+      # Add the transition to the transitions list
+
+      transitions_list.append(transition)
+
+    return transitions_list
+
+#######################################################################
+
 def gs_or_brightests_to_darkests_and_reverse(system:dict):
     """Determines the content of the files needed by QOCT-RA for the transitions going from either the ground state or one of the first B brightest states to one of the first D darkest states, and vice versa. The brightest states are identified by their transition dipole moment with the ground state while the darkest states are identified by their radiative lifetime. B and D are fixed parameters that can easily be changed at the beginning of the function definition.
 

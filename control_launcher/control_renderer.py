@@ -50,6 +50,436 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 # =================================================================== #
 # =================================================================== #
 
+def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
+    """Renders the job script and the parameters files for each combination of two parameters values: the penalty factor (alpha) and the duration of the pulse (given by the number of steps for a specified time step). The job script will launch a job array where each job is a unique combination of an alpha value and a duration value. A PCP parameter file and a guess pulse file are also rendered but are independant of the chosen alpha and duration values.
+
+    Parameters
+    ----------
+    clusters_cfg : dict
+        Content of the YAML clusters configuration file.
+    config : dict
+        Content of the YAML configuration file.
+    system : dict
+        Information extracted by the parsing function and derived from it.
+    data : dict
+        Data directory path and the name of its files.
+    job_specs : dict
+        Contains all information related to the job.
+    misc : dict
+        Contains all the additional variables that did not pertain to the other arguments.
+
+    Returns
+    -------
+    rendered_content : dict
+        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
+    rendered_script : str
+        Name of the rendered job script, necessary to launch the job.
+    
+    Notes
+    -----
+    Pay a particular attention to the render_vars dictionaries, they contain all the definitions of the variables appearing in your Jinja templates.
+    """
+    # ========================================================= #
+    #                      Preparation step                     #
+    # ========================================================= #
+
+    # Check config file
+    # =================
+
+    # Check if a "general" block has been defined in the config file
+
+    if not config.get('general'):
+      raise control_common.ControlError ('ERROR: There is no "general" key defined in the "%s" configuration file.' % misc['config_name'])     
+
+    # Check if a "qoctra" block has been defined in the config file
+
+    if not config.get('qoctra'):
+      raise control_common.ControlError ('ERROR: There is no "qoctra" key defined in the "%s" configuration file.' % misc['config_name'])      
+
+    # Check if a "parameters" block has been defined in the config file
+
+    if not config.get('parameters'):
+      raise control_common.ControlError ('ERROR: There is no "parameters" key defined in the "%s" configuration file.' % misc['config_name'])  
+
+    # Check the options defined in the config file
+
+    copy_files = config['qoctra'].get('copy_files',True)
+
+    if not isinstance(copy_files, bool):
+      raise control_common.ControlError ('ERROR: The "copy_files" value given in the "qoctra" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    # Define the templates
+    # ====================
+
+    # Define the names of the default templates.
+
+    template_param = "param.nml.jinja"
+    template_script = "aldu_param_search_job.sh.jinja"
+    template_pulse = "guess_pulse_OPC.jinja"
+
+    # Check if the specified templates exist in the "templates" directory of CONTROL LAUNCHER.
+    
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_param),"Jinja template for the qoctra parameters files","file")
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the qoctra job script","file")
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_pulse),"Jinja template for the OPC guess pulse","file")
+
+    # Define rendered files
+    # =====================
+
+    # Define the names of the rendered files.
+
+    rendered_script = "aldu_param_search_job.sh"
+    rendered_pulse = "guess_pulse"
+    rendered_param_pcp = "PCP_param.nml"
+
+    # Define the prefix for the parameters files.
+
+    prefix_param = "param_"
+
+    # Define the name of the text file containing all the parameters filenames
+
+    input_names = "input_filenames.txt"
+
+    # Initialize the dictionary that will be returned by the function
+
+    rendered_content = {}
+
+    # Load CHAINS configuration file if needed
+    # ========================================
+
+    if copy_files:
+
+      chains_path = os.path.dirname(misc['code_dir']) 
+      chains_config_file = control_common.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
+
+      print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+      with open(chains_config_file, 'r') as chains:
+        chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+      print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #           Rendering the control parameters files          #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the control parameters files ...  "), end="")
+
+    # Defining the main Jinja variables
+    # =================================
+
+    # Variables not associated with the config file
+
+    param_render_vars = {
+      # GENERAL
+      "source_name" : misc['source_name'],
+      "process" : "OPC",
+      "energies_file_path" : data['energies_path'],
+      "momdip_path" : data['momdip_mtx_path'],
+      "init_file_path" : data['init_path'],
+      "target_file_path" : data['target_path']
+    }
+
+    # Check if a "control" block has been defined in the "qoctra" block of the config file
+
+    if not config['qoctra'].get('control'):
+      raise control_common.ControlError ('ERROR: There is no "control" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "control" block of the "qoctra" block in the config file
+
+    try:
+      
+      time_step = float(config['qoctra']['control']['time_step'])
+      time_step_for = "{:.5e}".format(time_step).replace('e','d') # Replace the 'e' from Python with the 'd' from Fortran double precision
+
+      threshold = float(config['qoctra']['control']['threshold'])
+      threshold_for = "{:.5e}".format(threshold).replace('e','d')
+
+      param_render_vars.update({
+        # CONTROL
+        "max_iter" : config['qoctra']['control']['max_iter'],
+        "threshold" : threshold_for,
+        "time_step" : time_step_for,
+        "start_pulse" : " ",
+        "guess_pulse" : rendered_pulse
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "control" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    #! Temporary
+
+    param_render_vars.update({
+      # POST CONTROL
+      "mat_et0_path" : data['eigenvectors_path']
+    })
+
+    # Handle the parameters
+    # =====================
+
+    # Check the parameters
+
+    param_keys = ["alpha","duration"]
+
+    for key in param_keys:
+      if not config['parameters'].get(key):
+        raise control_common.ControlError ('ERROR: There is no "%s" key in the "parameters" block of the "%s" configuration file.' % (key,misc['config_name']))
+      if not isinstance(config['parameters'][key], list):
+        raise control_common.ControlError ('ERROR: The value of the "%s" key in the "parameters" block of the "%s" configuration file is not a list.' % (key,misc['config_name']))
+      if not all(isinstance(value,(int,float)) for value in config['parameters'][key]):
+        raise control_common.ControlError ('ERROR: Some or all of the values in the list of the "%s" key in the "parameters" block of the "%s" configuration file are neither integer nor floats.' % (key,misc['config_name']))
+
+    # Iterate over the parameters value unique combinations
+
+    alpha_list = config['parameters']['alpha']
+    duration_list = config['parameters']['duration'] # in ps
+    filenames = []
+
+    for alpha in alpha_list:
+      for duration in duration_list:
+
+        #! Check if the total duration of the pulse is not too long compared to the lifetime of our most populated target state
+
+        alpha_for = "{:.5e}".format(alpha).replace('e','d')
+        nb_steps = round((duration * 1e-12/constants.value('atomic unit of time'))/time_step)
+
+        param_render_vars.update({
+          # OPC
+          "alpha" : alpha_for,
+          "nb_steps" : nb_steps
+        })
+
+        # Rendering the file for those parameters
+        # =======================================
+
+        rendered_param = prefix_param + "alpha" + str(alpha) + "_dur" + str(duration) + ".nml"
+        rendered_content[rendered_param] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+
+        # Add the name of this file to the list
+
+        filenames.append(rendered_param)
+
+    # Add to the dictionary the content of the text file containing all the parameters filenames
+
+    rendered_content[input_names] = "\n".join(filenames)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #             Rendering the PCP parameters file             #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the PCP parameters file ...  "), end="")
+
+    # Defining the Jinja variables (via updating the dictionary from the control parameters file)
+    # ============================
+
+    # Variables not associated with the config file
+
+    param_render_vars.update({
+      # GENERAL
+      "process" : "PCP",
+      # CONTROL
+      "start_pulse" : "../Pulse/Pulse",
+      # POST CONTROL
+      "mat_et0_path" : data['eigenvectors_path']
+    })
+
+    # Check if a "post_control" block has been defined in the "qoctra" block of the config file
+
+    if not config['qoctra'].get('post_control'):
+      raise control_common.ControlError ('ERROR: There is no "post_control" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "post_control" block of the "qoctra" block in the config file
+
+    try:
+      param_render_vars.update({
+        # POST CONTROL
+        "analy_freq" : config['qoctra']['post_control']['analy_freq']
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "post_control" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Rendering the file
+    # ==================
+     
+    rendered_content[rendered_param_pcp] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #              Rendering the guess pulse file               #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the guess pulse file ...  "), end="")
+
+    # Defining the Jinja variables
+    # ============================
+
+    # Check if a "guess_pulse" block has been defined in the "qoctra" block of the config file
+
+    if not config['qoctra'].get('guess_pulse'):
+      raise control_common.ControlError ('ERROR: There is no "guess_pulse" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "guess_pulse" block of the "qoctra" block in the config file
+
+    try:
+
+      amplitude = float(config['qoctra']['guess_pulse']['amplitude']) / constants.value('atomic unit of electric field')
+      amplitude_for = "{:.5e}".format(amplitude).replace('e','d') # Replace the 'e' from Python with the 'd' from Fortran double precision
+
+      phase_change = float(config['qoctra']['guess_pulse']['phase_change'])
+      phase_change_for = "{:.5e}".format(phase_change).replace('e','d')
+
+      pulse_render_vars = {
+        "amplitude" : amplitude_for,
+        "pulse_type" : config['qoctra']['guess_pulse']['pulse_type'],
+        "subpulse_type" : config['qoctra']['guess_pulse']['subpulse_type'],
+        "phase_change" : phase_change_for,
+        "sign" : config['qoctra']['guess_pulse']['sign']
+      }
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "guess_pulse" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Determine the subpulses constituting the guess pulse
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    subpulses = []
+    max_energy_diff = 0
+
+    # Consider each pair of excited states
+
+    for state_1 in range(len(system['states_list'])):
+      if state_1 == 0:
+        continue # Skip the ground state
+      for state_2 in range(state_1 + 1, len(system['states_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
+
+        # Add it to the subpulses list
+
+        subpulses.append(str(state_1 + 1) + " \t " + str(state_2 + 1)) # +1 because Fortran starts numbering at 1 while Python starts at 0.
+
+        # Compute the energy difference
+
+        energy_diff = abs(system['states_list'][state_1]['energy'] - system['states_list'][state_2]['energy'])
+
+        # Store the maximum transition energy to apply Nyquist–Shannon sampling theorem
+
+        if energy_diff > max_energy_diff:
+          max_energy_diff = energy_diff
+
+    # Check the time step
+    # ~~~~~~~~~~~~~~~~~~~
+
+    # Nyquist–Shannon sampling theorem: check if the sampling rate is bigger than the double of the highest frequency
+
+    sampling_freq = 1 / (time_step * constants.value('atomic unit of time'))
+    max_freq = control_common.energy_unit_conversion(max_energy_diff,'ha','hz')
+    
+    if not sampling_freq > (2 * max_freq):
+      raise control_common.ControlError ('ERROR: The time step value (%s a.u.) is too big for this transition. The sampling rate (%e Hz) is not bigger than the double of the highest frequency of the signal (%e Hz).' % (time_step,sampling_freq, max_freq))
+
+    # Set the variables not associated with the config file
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    pulse_render_vars.update({
+      "basis" : data['energies_path'],
+      "nb_subpulses" : len(subpulses),
+      "subpulses" : subpulses
+    })
+
+    # Rendering the file
+    # ==================
+     
+    rendered_content[rendered_pulse] = jinja_render(misc['templates_dir'], template_pulse, pulse_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #                  Rendering the job script                 #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the qoctra job script ..."), end="")
+
+    # Defining the mandatory Jinja variables
+    # ======================================
+
+    # Variables not associated with the config file
+
+    array_size = (len(alpha_list) * len(duration_list)) - 1 # array begins at 0 in the template
+
+    script_render_vars = {
+      "source_name" : misc['source_name'],
+      "transition" : misc['transition']['label'],
+      "config_name" : misc['config_name'],
+      "job_walltime" : job_specs['walltime'],
+      "job_memory" : job_specs['memory'], # in MB
+      "partition" : job_specs['partition'],
+      "array_size" : array_size,
+      "input_names": input_names,
+      "prefix_param" : prefix_param,
+      "rendered_param_PCP" : rendered_param_pcp,
+      "guess_pulse" : rendered_pulse,
+      "copy_files" : copy_files # Associated with the config file, but it has already been verified
+    }
+
+    # Variables associated with the "general" block of the config file
+
+    try:
+      script_render_vars.update({
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type']
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Variables associated with the clusters configuration file
+
+    try:
+      script_render_vars.update({
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env']     
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "%s" profile of the clusters configuration file.' % (error,job_specs['profile']))
+
+    # Defining the specific Jinja variables
+    # =====================================
+
+    # Variables specific to the copy_files portion of the template
+
+    if copy_files:
+
+      # Variables not associated with the config file
+
+      script_render_vars.update({
+        "data_dir" : data['main_path'],
+        "job_script" : rendered_script
+      })
+
+      # Variables associated with the CHAINS configuration file
+
+      try:
+        script_render_vars.update({
+          "results_dir" : chains_config['results_dir']
+        })
+
+      except KeyError as error:
+        raise control_common.ControlError ('ERROR: The "%s" key is missing in the CHAINS configuration file (chains_config.yml).' % error)
+
+    # Rendering the file
+    # ==================
+
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    return rendered_content, rendered_script
+
+
+######################################################################################################################################
+
+
 def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
     """Renders the job script and the two parameters files (OPM & PCP) associated with the QOCT-RA program in CHAINS.
 

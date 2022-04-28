@@ -1,0 +1,53 @@
+# ========================================================= #
+#                    General Information                    #
+# ========================================================= #
+
+general: 
+  user_email: nicolas.iacobellis@ulb.be
+  mail_type: END,FAIL
+
+# ========================================================= #
+#                    QOCT-RA Information                    #
+# ========================================================= #
+
+# QOCT-RA PARAMETERS
+
+qoctra:
+  copy_files: True
+  control:
+    time_step: 3.0                                # Duration of a time step (a.u. of time)
+    max_iter: 300                                 # Maximum number of iterations
+    threshold: 0.99                               # Convergence threshold for the fidelity
+  guess_pulse:
+    amplitude: 1.0e7                              # Amplitude of the subpulses (in V/m)
+    pulse_type: SIM                               # Type of starting guess pulse
+    subpulse_type: sin                            # Type of subpulses ([sin], [pip] ou [gau])
+    phase_change: 0.0                             # Dephasing
+    sign: 1                                       # Sign
+  post_control:
+    analy_freq: 100                               # Number of steps between each analysis of the populations, phases, positions and energies
+
+# Parameters to be considered for the OPC (only integers or float types values)
+parameters:
+  alpha:
+    - 25
+    - 50
+    - 100
+    - 250
+    - 500
+    - 1000
+    - 2500
+    - 5000
+    - 10000
+    - 25000
+  duration: # in ps
+    - 5
+    - 10
+    - 15
+    - 20
+    - 25
+    - 30
+    - 35
+    - 40
+    - 45
+    - 50
