@@ -13,48 +13,52 @@
 {% if partition != None -%}
 #SBATCH --partition={{ partition }}
 {%- endif %}
-echo -e "******************************************************************************"
+echo -e "\n******************************************************************************"
 echo -e "**************************   Beginning of the job   **************************"
 echo -e "******************************************************************************\n"
 
-echo -e "========================================================================"
-echo -e "=========================   Running GAUSSIAN   ========================="
-echo -e "========================================================================"
+date
+cd "${SLURM_SUBMIT_DIR}"
 
 # A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
 # See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
 
-SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
+SCRATCH=${LOCALSCRATCH}/${SLURM_JOB_ID}
 
-echo -e "Creating temporary directory ${SCRATCH} on node(s) ${SLURM_JOB_NODELIST} for handling temporary files."
-mkdir -p $SCRATCH || exit $?
-cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.com $SCRATCH/ || exit $?
+echo -e "Creating temporary directory ${SCRATCH} on node(s) ${SLURM_JOB_NODELIST} from ${CLUSTER_NAME} cluster for handling temporary files."
+mkdir -p "${SCRATCH}" || exit $?
+cp -rf "${SLURM_SUBMIT_DIR}/{{ mol_name }}.com" "${SCRATCH}/" || exit $?
 
-cd $SCRATCH
+echo -e "\n========================================================================"
+echo -e "=========================   Running GAUSSIAN   ========================="
+echo -e "========================================================================"
+
+cd "${SCRATCH}"
 
 echo -e "\n================= GAUSSIAN execution begins now =================="
 
 {% for set_env_line in set_env -%}
 {{ set_env_line }}
 {% endfor -%}
-{{ command }} {{ mol_name }}.com || { cp {{ mol_name }}.log $SLURM_SUBMIT_DIR/ && rm -rf $SCRATCH ; exit $?; }
+{{ command }} "{{ mol_name }}.com" || { cp "{{ mol_name }}.log" "${SLURM_SUBMIT_DIR}/" && rm -rf "${SCRATCH}" ; exit $?; }
 
 echo -e "\n=================  GAUSSIAN execution ends now  =================="
 
 echo -e "\nCopying GAUSSIAN output files to the submit directory."
-cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
+cp -r  ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/"  || exit $?
 
-echo -e "\nRemoving $SCRATCH directory."
-rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
+echo -e "\nRemoving ${SCRATCH} directory."
+rm -rf "${SCRATCH}" || echo "A problem might have occurred when trying to remove temporary files."
 
 echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
 echo -e "===================================================================="
 
+cd "${SLURM_SUBMIT_DIR}"
+
 # Quality control (was there any problem with GAUSSIAN?)
-cd $SLURM_SUBMIT_DIR
-source {{ chains_dir }}/load_modules.sh
-python {{ check_dir }}/gaussian_check.py {{ mol_name }}.log  || exit $?
+source "{{ chains_dir }}/load_modules.sh"
+python "{{ check_dir }}/gaussian_check.py" "{{ mol_name }}.log"  || exit $?
 
 # Reload Gaussian in order to use some of its useful scripts
 {% for set_env_line in set_env -%}
@@ -63,14 +67,14 @@ python {{ check_dir }}/gaussian_check.py {{ mol_name }}.log  || exit $?
 
 # Archive checkpoint file
 echo -e "\nArchiving checkpoint file."
-formchk {{ mol_name }}_cation.chk {{ mol_name }}_cation.fchk # Convert the checkpoint file from binary to text file
-bzip2 {{ mol_name }}_cation.fchk
-rm {{ mol_name }}.chk {{ mol_name }}_cation.chk
+formchk "{{ mol_name }}_cation.chk" "{{ mol_name }}_cation.fchk" # Convert the checkpoint file from binary to text file
+bzip2 "{{ mol_name }}_cation.fchk"
+rm "{{ mol_name }}.chk" "{{ mol_name }}_cation.chk"
 
 # Execute the Python script computing the ionization potential (IP) of the molecule.
 echo -e "\nComputing the ionization potential (IP) of the molecule ...\n\n"
-source {{ chains_dir }}/load_modules.sh
-python {{ chains_dir }}/IP_calc.py -s {{ mol_name }}.log -o {{ ip_file }}
+source "{{ chains_dir }}/load_modules.sh"
+python "{{ chains_dir }}/IP_calc.py" -s "{{ mol_name }}.log" -o "{{ ip_file }}"
 
 {% if benchmark is sameas true -%}
 {% include "benchmark.jinja" %}

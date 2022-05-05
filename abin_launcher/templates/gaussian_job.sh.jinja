@@ -22,22 +22,22 @@ function restart_handler() {
   echo -e "\nApproaching walltime, calculation will now restart."
 
   # Recover the important files and erase the temporary directory
-  cp $SCRATCH/{{ mol_name }}.chk $SLURM_SUBMIT_DIR/
+  cp "${SCRATCH}/{{ mol_name }}.chk" "${SLURM_SUBMIT_DIR}/"
   (( nb_run = ${SLURM_RESTART_COUNT-0} + 1 ))
-  cp $SCRATCH/{{ mol_name }}.log $SLURM_SUBMIT_DIR/{{ mol_name }}_run${nb_run}.log
-  rm -rf $SCRATCH
+  cp "${SCRATCH}/{{ mol_name }}.log" "${SLURM_SUBMIT_DIR}/{{ mol_name }}_run${nb_run}.log"
+  rm -rf "${SCRATCH}"
 
   # Requeue the job
 {%- if cluster_name == "dragon2" %}
   # On dragon2, this needs to be executed through the login nodes
   # (To match indentation, make sure that each line of this heredoc starts with a tab and not spaces!)
   ssh dragon2-ctrl0 /bin/bash <<-EOF
-	cd $SLURM_SUBMIT_DIR
-	scontrol requeue ${SLURM_JOB_ID}
+	cd "${SLURM_SUBMIT_DIR}"
+	scontrol requeue "${SLURM_JOB_ID}"
 	EOF
 {%- else %}
-  cd $SLURM_SUBMIT_DIR
-  scontrol requeue ${SLURM_JOB_ID}
+  cd "${SLURM_SUBMIT_DIR}"
+  scontrol requeue "${SLURM_JOB_ID}"
 {%- endif %}
   exit
 }
@@ -48,13 +48,13 @@ echo -e "**************************   Beginning of the job   *******************
 echo -e "******************************************************************************\n"
 
 date
-cd $SLURM_SUBMIT_DIR
+cd "${SLURM_SUBMIT_DIR}"
 
 {% if auto_restart is sameas true -%}
 if [ ${SLURM_RESTART_COUNT-0} -eq 0 ] # First run only
 then
   echo -e "\nRenaming the original .xyz file to avoid overwriting it with the new one."
-  mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
+  mv "{{ mol_name }}.xyz" "{{ mol_name }}_ori.xyz"
 else
   echo -e "\nThis job has been restarted ${SLURM_RESTART_COUNT-0} time(s)."
   if [ ${SLURM_RESTART_COUNT-0} -eq 1 ] # First restart only
@@ -66,22 +66,22 @@ else
 fi
 {%- else %}
 echo -e "\nRenaming the original .xyz file to avoid overwriting it with the new one."
-mv {{ mol_name }}.xyz {{ mol_name }}_ori.xyz
+mv "{{ mol_name }}.xyz" "{{ mol_name }}_ori.xyz"
 {%- endif %}
 
 # A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
 # See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
 
-SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
+SCRATCH=${LOCALSCRATCH}/${SLURM_JOB_ID}
 
-echo -e "\nCreating temporary directory $SCRATCH on node(s) ${SLURM_JOB_NODELIST} for handling temporary files."
-mkdir -p $SCRATCH || exit $?
-cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.com $SCRATCH/ || exit $?
+echo -e "\nCreating temporary directory ${SCRATCH} on node(s) ${SLURM_JOB_NODELIST} from ${CLUSTER_NAME} cluster for handling temporary files."
+mkdir -p "${SCRATCH}" || exit $?
+cp -rf "${SLURM_SUBMIT_DIR}/{{ mol_name }}.com" "${SCRATCH}/" || exit $?
 
 {% if auto_restart is sameas true -%}
 if [ ${SLURM_RESTART_COUNT-0} -gt 0 ]
 then
-  cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.chk $SCRATCH/ || exit $?
+  cp -rf "${SLURM_SUBMIT_DIR}/{{ mol_name }}.chk" "${SCRATCH}/" || exit $?
 fi
 {%- endif %}
 
@@ -89,7 +89,7 @@ echo -e "\n=====================================================================
 echo -e "=========================   Running GAUSSIAN   ========================="
 echo -e "========================================================================"
 
-cd $SCRATCH
+cd "${SCRATCH}"
 
 echo -e "\n================= GAUSSIAN execution begins now =================="
 
@@ -99,40 +99,40 @@ echo -e "\n================= GAUSSIAN execution begins now =================="
 
 {% if auto_restart is sameas true -%}
 trap restart_handler SIGUSR1
-{{ command }} {{ mol_name }}.com & 
+{{ command }} "{{ mol_name }}.com" & 
 echo -e "\nRestarting trap command has been set up. Now waiting ..."
-wait || (cp {{ mol_name }}.log $SLURM_SUBMIT_DIR/ && rm -rf $SCRATCH ; exit $?)
+wait || (cp "{{ mol_name }}.log" "${SLURM_SUBMIT_DIR}/" && rm -rf "${SCRATCH}" ; exit $?)
 {%- else %}
-{{ command }} {{ mol_name }}.com || (cp {{ mol_name }}.log $SLURM_SUBMIT_DIR/ && rm -rf $SCRATCH ; exit $?)
+{{ command }} "{{ mol_name }}.com" || (cp "{{ mol_name }}.log" "${SLURM_SUBMIT_DIR}/" && rm -rf "${SCRATCH}" ; exit $?)
 {%- endif %}
 
 echo -e "\n=================  GAUSSIAN execution ends now  =================="
 
 echo -e "\nCopying GAUSSIAN output files to the submit directory."
-cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
+cp -r  ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/"  || exit $?
 
-echo -e "\nRemoving $SCRATCH directory."
-rm -rf $SCRATCH || echo "A problem might have occurred when trying to remove temporary files."
+echo -e "\nRemoving ${SCRATCH} directory."
+rm -rf "${SCRATCH}" || echo "A problem might have occurred when trying to remove temporary files."
 
 echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
 echo -e "===================================================================="
 
-cd $SLURM_SUBMIT_DIR
+cd "${SLURM_SUBMIT_DIR}"
 
 {% if auto_restart is sameas true -%}
 # Merge the log files
 if [ ${SLURM_RESTART_COUNT-0} -gt 0 ]
 then
   (( nb_run = ${SLURM_RESTART_COUNT-0} + 1 ))
-  mv {{ mol_name }}.log {{ mol_name }}_run${nb_run}.log
-  ls -v {{ mol_name }}_run*.log | xargs cat > {{ mol_name }}.log
+  mv "{{ mol_name }}.log" "{{ mol_name }}_run${nb_run}.log"
+  ls -v "{{ mol_name }}_run*.log" | xargs cat > "{{ mol_name }}.log"
 fi
 {%- endif %}
 
 # Quality control (was there any problem with GAUSSIAN?)
-source {{ chains_dir }}/load_modules.sh
-python {{ check_dir }}/gaussian_check.py {{ mol_name }}.log  || exit $?
+source "{{ chains_dir }}/load_modules.sh"
+python "{{ check_dir }}/gaussian_check.py" "{{ mol_name }}.log"  || exit $?
 
 # Reload Gaussian in order to use some of its useful scripts
 {% for set_env_line in set_env -%}
@@ -141,49 +141,49 @@ python {{ check_dir }}/gaussian_check.py {{ mol_name }}.log  || exit $?
 
 # Extracting optimized geometry from checkpoint file
 echo -e "\nExtracting optimized geometry from checkpoint file."
-newzmat -ichk -oxyz -step 9999 {{ mol_name }}.chk {{ mol_name }}.xyz
+newzmat -ichk -oxyz -step 9999 "{{ mol_name }}.chk" "{{ mol_name }}.xyz"
 echo -e "\nAdding missing header to XYZ file."
 NUMBER_ATOMS=$(wc -l < {{ mol_name }}.xyz)
 sed -i "1s;^;${NUMBER_ATOMS}\nOptimized geometry from job ${SLURM_JOB_ID} on cluster {{ cluster_name }} \n;" {{ mol_name }}.xyz
 
 # Archive checkpoint file
 echo -e "\nArchiving checkpoint file."
-formchk {{ mol_name }}.chk {{ mol_name }}.fchk # Convert the checkpoint file from binary to text file
-gzip {{ mol_name }}.fchk
-rm {{ mol_name }}.chk
+formchk "{{ mol_name }}.chk" "{{ mol_name }}.fchk" # Convert the checkpoint file from binary to text file
+gzip "{{ mol_name }}.fchk"
+rm "{{ mol_name }}.chk"
 
 {% if copy_files is sameas true -%}
 
 # Copy the various output files to their respective results directory
 
 echo -e "\n\nCopying optimized geometry to {{ output_dir }}."
-mkdir -p {{ output_dir }}
-cp {{ mol_name }}.xyz {{ output_dir }}/
+mkdir -p "{{ output_dir }}"
+cp "{{ mol_name }}.xyz" "{{ output_dir }}/"
 
 res_dir="{{ results_dir }}/{{ mol_name }}/GAUSSIAN"
-echo -e "\nCopying output files to $res_dir."
-mkdir -p $res_dir
-cp {{ mol_name }}.com {{ mol_name }}.log {{ mol_name }}.xyz {{ mol_name }}_ori.xyz {{ job_script }} slurm_output.log {{ mol_name }}_{{ config_file }}.log $res_dir
+echo -e "\nCopying output files to ${res_dir}."
+mkdir -p "${res_dir}"
+cp "{{ mol_name }}.com" "{{ mol_name }}.log" "{{ mol_name }}.xyz" "{{ mol_name }}_ori.xyz" "{{ job_script }}" "slurm_output.log" "{{ mol_name }}_{{ config_file }}.log" "${res_dir}"
 
 {% if ip_calc == "vertical" -%}
 # Execute the Python script computing the ionization potential (IP) of the molecule.
 echo -e "\nComputing the ionization potential (IP) of the molecule ...\n\n"
-source {{ chains_dir }}/load_modules.sh
-python {{ chains_dir }}/IP_calc.py -s {{ mol_name }}.log -o {{ ip_file }}
-rm {{ mol_name }}_cation.chk
+source "{{ chains_dir }}/load_modules.sh"
+python "{{ chains_dir }}/IP_calc.py" -s "{{ mol_name }}.log" -o "{{ ip_file }}"
+rm "{{ mol_name }}_cation.chk"
 {% elif ip_calc == "adiabatic" -%}
 # Execute ABIN LAUNCHER on the optimized geometry with the cation profile to compute the ionization potential (IP) of the molecule.
 {% if cluster_name == "dragon2" -%}
 # On dragon2, this needs to be executed through the login nodes
 ssh dragon2-ctrl0 /bin/bash <<EOF
-cd $SLURM_SUBMIT_DIR
+cd ${SLURM_SUBMIT_DIR}
 {%- endif %}
 echo -e "\nLaunching energy calculation of the cation in order to compute the ionization potential (IP) of the molecule ...\n\n"
-source {{ chains_dir }}/load_modules.sh
-cp {{ config_file }}.yml cation.yml # Rename the config file in order to name the new job subdirectory {{ mol_name }}_cation instead of {{ mol_name }}_{{ config_file }}
-python {{ chains_dir }}/abin_launcher/abin_launcher.py -p gaussian_cation -o $SLURM_SUBMIT_DIR -m {{ mol_name }}.xyz -cf cation.yml -kc -km -cl $CLUSTER_NAME > cation_launch.log
-mv cation_launch.log $SLURM_SUBMIT_DIR/{{ mol_name }}_cation/
-rm cation.yml
+source "{{ chains_dir }}/load_modules.sh"
+cp "{{ config_file }}.yml" "cation.yml" # Rename the config file in order to name the new job subdirectory {{ mol_name }}_cation instead of {{ mol_name }}_{{ config_file }}
+python "{{ chains_dir }}/abin_launcher/abin_launcher.py" -p "gaussian_cation" -o "${SLURM_SUBMIT_DIR}" -m "{{ mol_name }}.xyz" -cf "cation.yml" -kc -km -cl "${CLUSTER_NAME}" > "cation_launch.log"
+mv "cation_launch.log" "${SLURM_SUBMIT_DIR}/{{ mol_name }}_cation/"
+rm "cation.yml"
 {% if cluster_name == "dragon2" -%}
 EOF
 {%- endif %}

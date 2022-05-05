@@ -18,53 +18,56 @@ echo -e "***********************************************************************
 echo -e "**************************   Beginning of the job   **************************"
 echo -e "******************************************************************************\n"
 
-echo -e "===================================================================="
-echo -e "=========================   Running ORCA   ========================="
-echo -e "===================================================================="
+date
+cd "${SLURM_SUBMIT_DIR}"
 
 # A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
 # See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
 
-SCRATCH=$LOCALSCRATCH/$SLURM_JOB_ID
+SCRATCH=${LOCALSCRATCH}/${SLURM_JOB_ID}
 
-echo -e "\nCreating temporary directory $SCRATCH on node(s) ${SLURM_JOB_NODELIST} from ${CLUSTER_NAME} cluster for handling temporary files."
-srun mkdir -p $SCRATCH || exit $?
-srun -n $SLURM_NNODES --ntasks-per-node=1 cp -rf $SLURM_SUBMIT_DIR/{{ mol_name }}.inp $SLURM_SUBMIT_DIR/{{ mol_name }}.xyz $SCRATCH/ || exit $?
+echo -e "\nCreating temporary directory ${SCRATCH} on node(s) ${SLURM_JOB_NODELIST} from ${CLUSTER_NAME} cluster for handling temporary files."
+srun mkdir -p "${SCRATCH}" || exit $?
+srun -n "${SLURM_NNODES}" --ntasks-per-node=1 cp -rf "${SLURM_SUBMIT_DIR}/{{ mol_name }}.inp" "${SLURM_SUBMIT_DIR}/{{ mol_name }}.xyz" "${SCRATCH}/" || exit $?
 
-cd $SCRATCH
+echo -e "===================================================================="
+echo -e "=========================   Running ORCA   ========================="
+echo -e "===================================================================="
+
+cd "${SCRATCH}"
 
 echo -e "\n================= ORCA execution begins now =================="
 
 {% for set_env_line in set_env -%}
 {{ set_env_line }}
 {% endfor -%}
-{{ command }} {{ mol_name }}.inp > $SLURM_SUBMIT_DIR/{{ mol_name }}.out  || (rm -rf $SCRATCH ; exit $?)
+{{ command }} "{{ mol_name }}.inp" > "${SLURM_SUBMIT_DIR}/{{ mol_name }}.out"  || (rm -rf "${SCRATCH}" ; exit $?)
 
 echo -e "\n=================  ORCA execution ends now  =================="
 
 echo -e "\nCopying ORCA output files to the submit directory."
-cp -r  $SCRATCH/* $SLURM_SUBMIT_DIR/  || exit $?
+cp -r  ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/"  || exit $?
 
 echo -e "\n===================================================================="
 echo -e "==============   Post-calculation files manipulation   ============="
 echo -e "===================================================================="
 
 # Quality control (was there any problem with ORCA?)
-cd $SLURM_SUBMIT_DIR
-source {{ chains_dir }}/load_modules.sh
-python {{ check_dir }}/orca_check.py {{ mol_name }}.out  || exit $?
+cd "${SLURM_SUBMIT_DIR}"
+source "{{ chains_dir }}/load_modules.sh"
+python "{{ check_dir }}/orca_check.py" "{{ mol_name }}.out"  || exit $?
 
 {% if copy_files is sameas true -%}
 # Copy the various output files to their respective results directory
 
 echo -e "\nCopying ORCA output file to {{ output_dir }}."
-mkdir -p {{ output_dir }}
-cp {{ mol_name }}.out {{ output_dir }}/
+mkdir -p "{{ output_dir }}"
+cp "{{ mol_name }}.out" "{{ output_dir }}/"
 
 res_dir="{{ results_dir }}/{{ mol_name }}/ORCA"
-echo -e "\nCopying output files to $res_dir."
-mkdir -p $res_dir
-cp {{ mol_name }}.inp {{ mol_name }}.out {{ mol_name }}.xyz {{ job_script }} slurm_output.log {{ mol_name }}_{{ config_file }}.log $res_dir
+echo -e "\nCopying output files to ${res_dir}."
+mkdir -p "${res_dir}"
+cp "{{ mol_name }}.inp" "{{ mol_name }}.out" "{{ mol_name }}.xyz" "{{ job_script }}" "slurm_output.log" "{{ mol_name }}_{{ config_file }}.log" "${res_dir}"
 {%- endif %}
 
 {% if benchmark is sameas true -%}
