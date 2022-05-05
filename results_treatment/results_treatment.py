@@ -194,6 +194,15 @@ def main():
     modelling_fcts = import_path(modelling_fcts_path)
     print('%12s' % "[ DONE ]")
 
+    # CONTROL LAUNCHER's transition_fcts.py file
+    # =================================
+
+    transition_fcts_path = os.path.join(chains_path,"control_launcher","transition_fcts.py")
+
+    print ("{:<140}".format("\nImporting CONTROL LAUNCHER's transition_fcts.py file ..."), end="")
+    transition_fcts = import_path(transition_fcts_path)
+    print('%12s' % "[ DONE ]")
+
     # ========================================================= #
     # Check molecule directories                                #
     # ========================================================= #
@@ -733,22 +742,22 @@ def main():
         with contextlib.redirect_stdout(devnull):
           system = modelling_fcts.qchem_tddft(qchem_content)
 
-      states_list = system['states_list']
+      zero_states_list = system['zero_states_list']
 
       # Get the list of bright states and sort them by ascending number
 
-      bright_states = [state for state in states_list if state['type'].lower() == "bright"]
+      bright_states = [state for state in zero_states_list if state['type'].lower() == "bright"]
       bright_states.sort(key=lambda state: state['number'])
 
       # Get the energy of the first bright state (with a nonzero transition dipole moment)
 
-      gs_number = [state['number'] for state in system['states_list'] if state['label'] == 'S0'][0]
+      gs_number = [state['number'] for state in zero_states_list if state['label'] == 'S0'][0]
 
       for bright_state in bright_states:
 
         momdip = 0
-        for momdip_key in system['momdip_mtx']:
-          momdip += system['momdip_mtx'][momdip_key][gs_number][bright_state['number']]**2
+        for momdip_key in system['momdip_o_mtx']:
+          momdip += system['momdip_o_mtx'][momdip_key][gs_number][bright_state['number']]**2
         momdip = math.sqrt(momdip)    
 
         if momdip != 0:
@@ -758,8 +767,8 @@ def main():
       # Singlet-Triplet gap
       # ===================
 
-      bright_energies = [float(state['energy']) for state in states_list if state['type'].lower() == "bright"]
-      dark_energies = [float(state['energy']) for state in states_list if state['type'].lower() == "dark"]
+      bright_energies = [float(state['energy']) for state in zero_states_list if state['type'].lower() == "bright"]
+      dark_energies = [float(state['energy']) for state in zero_states_list if state['type'].lower() == "dark"]
       st_gap = abs( min(dark_energies) - min(bright_energies) )
 
       # Store data
@@ -788,7 +797,7 @@ def main():
 
       pairs = []
 
-      singlet_states = [state for state in states_list if state['label'].startswith('S') and state['label'] != 'S0']
+      singlet_states = [state for state in zero_states_list if state['label'].startswith('S') and state['label'] != 'S0']
       singlet_states.sort(key=lambda state: state['number'])
 
       prev_energy = 0
@@ -810,14 +819,14 @@ def main():
 
         # Fetch the number of the involved states
 
-        first_number = [state['number'] for state in system['states_list'] if state['label'] == pair[0]][0]
-        second_number = [state['number'] for state in system['states_list'] if state['label'] == pair[1]][0]
+        first_number = [state['number'] for state in zero_states_list if state['label'] == pair[0]][0]
+        second_number = [state['number'] for state in zero_states_list if state['label'] == pair[1]][0]
 
         # Compute the module of the transition dipole moment
 
         momdip = 0
-        for momdip_key in system['momdip_mtx']:
-          momdip += system['momdip_mtx'][momdip_key][first_number][second_number]**2
+        for momdip_key in system['momdip_o_mtx']:
+          momdip += system['momdip_o_mtx'][momdip_key][first_number][second_number]**2
         momdip = math.sqrt(momdip)          
 
         # Store the value
@@ -1016,6 +1025,11 @@ def main():
       if dir_list == []:
         raise results_common.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % aldu_dir)
 
+      """
+      # ========================================================= #
+      # Constrained control results                               #
+      # ========================================================= #
+
       # Check the data directory
 
       data_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
@@ -1058,7 +1072,7 @@ def main():
       # Load the transition dipole moment matrices
 
       momdip_es_mtx = {}
-      for momdip_key in system['momdip_mtx']:
+      for momdip_key in system['momdip_o_mtx']:
         file = results_common.check_abspath(os.path.join(data_dir, "momdip_es_mtx_" + momdip_key),"Transition dipole moment matrix associated with the %s key" % momdip_key,"file")
         momdip_es_mtx[momdip_key] = np.loadtxt(file)
 
@@ -1155,6 +1169,7 @@ def main():
       if dir_list == []:
         raise results_common.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % os.path.join(mol_dir,"CONTROL"))
    
+      """
     # ========================================================= #
     #    Exception handling for the control results             #
     # ========================================================= #
