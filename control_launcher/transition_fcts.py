@@ -17,7 +17,7 @@ import control_common
 # =================================================================== #
 
 def brightest_to_darkest(system:dict):
-    """Determines the content of the files needed by QOCT-RA for the transition going from the brightest state to the darkest state. The brightest state is identified by its transition dipole moment with the ground state while the darkest state is identified by its radiative lifetime.
+    """Determines the content of the files needed by QOCT-RA for the transition going from the brightest state to the darkest state. The brightest state is identified by its transition dipole moment with the ground state while the darkest state is identified by its radiative lifetime. This function ensures a stimulated emmission controle scheme so the chosen dark state will have a lower energy compared to the chosen bright state (other cases will be skipped).
 
     Parameters
     ----------
@@ -52,46 +52,70 @@ def brightest_to_darkest(system:dict):
       #                Defining the pair of states                #
       # ========================================================= #
 
-      # Get the brightest state
-      # =======================
+      # Sorting the bright states
+      # =========================
 
       # Consider the dipole moments for transitions involving the ground state (and make sure it's a list and not a NumPy array)
       gs_line = system['momdip_mtx'][momdip_key][0]
       if isinstance(gs_line, np.ndarray):
         gs_line = gs_line.tolist()
 
-      # Get the index of the brightest state (maximum of the absolute values of those transition dipole moments)
+      # Sort the indices of the states by decreasing order of the absolute value of their transition dipole moments
+      # e.g. if gs_line = [0.0, 0.0, 0.0, 0.0, 0.0, -1.2, 0.8, 1.0, -0.4] then bright_max_indices = [5, 7, 6, 8]
       abs_gs_line = [abs(mom) for mom in gs_line]
-      bright_index = abs_gs_line.index(max(abs_gs_line))
+      bright_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line, reverse=True)]
 
-      # Define the initial density matrix file name and content
+      # Sorting the dark states
+      # =======================
 
-      bright_label = system['states_list'][bright_index]["label"]
+      # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime)
+      dark_max_indices = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')]
 
-      init_file = bright_label + "_"
+      # Iterate over the states
+      # =======================
 
-      init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
-      init_content[bright_index][bright_index] = complex(1)
+      pair_found = False
 
-      # Get the darkest state
-      # =====================
+      # Start iterating over the darkest states
+      for b_index in bright_max_indices:
 
-      # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime) and take the first element of that list
-      dark_index = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')][0]
+        if pair_found:
+          break
+
+        # Start iterating over the darkest states
+        for d_index in dark_max_indices:
     
-      # Exit if both states are the same (that transition will be skipped)
-      if bright_index == dark_index:
-        print("\nNOTICE: The transition will be skipped for the %s transition dipole moment matrix since both states are the same (%s)." % (momdip_key,bright_label))
-        continue
+          # Skip if both states are the same
+          if b_index == d_index:
+            continue
 
-      # Define the target density matrix file name and content
+          # Skip if the dark state energy is higher than the one of the brightest state (stimulated emission scheme)
+          if system['states_list'][b_index]["energy"] < system['states_list'][d_index]["energy"]:
+            continue
 
-      dark_label = system['states_list'][dark_index]["label"]
+          # Define the initial density matrix file name and content
 
-      target_file = dark_label + "_"
+          bright_index = b_index
+          bright_label = system['states_list'][bright_index]["label"]
 
-      target_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
-      target_content[dark_index][dark_index] = complex(1)
+          init_file = bright_label + "_"
+
+          init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+          init_content[bright_index][bright_index] = complex(1)
+
+          # Define the target density matrix file name and content
+
+          dark_index = d_index
+          dark_label = system['states_list'][dark_index]["label"]
+
+          target_file = dark_label + "_"
+
+          target_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
+          target_content[dark_index][dark_index] = complex(1)
+
+          pair_found = True
+
+          break
 
       # ========================================================= #
       #           Building the transition dictionary              #
