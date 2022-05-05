@@ -16,8 +16,8 @@ shared:
       job_scales:
         - 
           label: small
-          scale_limit: 20
-          time: 1-00:00:00
+          scale_limit: 25
+          time: 1-12:00:00
           memory: 2000 # in MB
         - 
           label: medium
@@ -31,8 +31,8 @@ shared:
       job_scales:
         - 
           label: small
-          scale_limit: 20
-          time: 1-00:00:00
+          scale_limit: 25
+          time: 1-12:00:00
           memory: 2000 # in MB
         - 
           label: medium
@@ -46,7 +46,7 @@ shared:
       job_scales:
         - 
           label: small
-          scale_limit: 20
+          scale_limit: 25
           time: 0-5:00:00
           memory: 2000 # in MB
         - 
