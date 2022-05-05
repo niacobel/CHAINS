@@ -54,7 +54,6 @@ optional.add_argument("-ow","--overwrite",action="store_true",help="If a data di
 optional.add_argument("-d","--dry_run",action="store_true",help="Do not launch the jobs, just create the files and directories.")
 optional.add_argument("-as","--arch_src",action="store_true",help="Archive the source file after it has been processed.")
 optional.add_argument("-ac","--arch_cf",action="store_true",help="Archive the configuration files after they have been processed.")
-optional.add_argument('-dt','--degen_tresh',type=float,default=1e-5,help="Energy difference below which states are considered degenerated (in Hartree). A negative value will turn off the handling of degenerated states and leave them as is.")
 
 # =================================================================== #
 # =================================================================== #
@@ -116,8 +115,6 @@ def main():
 
     arch_src = args.arch_src                 # Flag for archiving the source file after it has been processed
     arch_cf = args.arch_cf                   # Flag for archiving the configuration files after they have been processed
-
-    deg_threshold = args.degen_tresh         # Energy difference below which states are considered degenerated (in Ha).
 
     # ========================================================= #
     # Define codes directory                                    #
@@ -412,228 +409,6 @@ def main():
         raise control_common.ControlError ('ERROR: The "%s" value in the "momdip_mtx" dictionary returned by the %s modelling function is neither a list nor a NumPy array.' % (momdip_key, modelling_fct))
 
     print("\nThe system has been succesfully modelled.")
-          
-    # ========================================================= #
-    # Handling states degeneracies                              #
-    # ========================================================= #
-
-    print ("{:<50} {:<.2e}".format('\nDegeneracy threshold: ',deg_threshold))
-
-    # Add the degeneracy key to the list of states
-
-    for state in system['states_list']:
-      state['degeneracy'] = 1
-
-    # Initialize the list of degeneracies (each item of this list will be a group of degenerated states)
-
-    deg_list = []
-
-    # Look for every group of degenerated states
-
-    for state in system['states_list']:
-
-      for other_state in [other_state for other_state in system['states_list'] if other_state['number'] < state['number']]:
-
-        if abs(state['energy'] - other_state['energy']) < deg_threshold:
-
-          # Define if and how to add this pair of degenerated states to the list of degeneracies
-
-          added = False
-
-          for group in deg_list:
-
-            if other_state['number'] in group and state['number'] not in group:
-              group.append(state['number'])
-              added = True
-
-            elif state['number'] in group and other_state['number'] not in group:
-              group.append(other_state['number'])
-              added = True
-              
-            elif other_state['number'] in group and state['number'] in group:
-              added = True
-
-          if not added:
-              deg_list.append([state['number'],other_state['number']])
-
-    # Update the transition dipole moments matrices
-    # =============================================
-
-    # Build a version of the list of degeneracies that uses the indices of the states rather than their number (to locate them in the matrices)
-
-    deg_list_ind = []
-
-    for group in deg_list:
-
-      group_ind = []
-
-      for number in group:
-
-        # Fetch the index corresponding to a particular state through its number and add it to the group_ind
-        index = system['states_list'].index(next(state for state in system['states_list'] if state['number'] == number))
-        group_ind.append(index)
-      
-      deg_list_ind.append(group_ind)
-
-    # Iterate over each matrix separately
-
-    for momdip_key in system["momdip_mtx"]:
-
-      # Initialize the new matrix that will replace the old one
-
-      new_mtx = np.copy(system["momdip_mtx"][momdip_key])
-
-      # Intialize the list that will contain the indices of the lines that need to be removed
-
-      to_remove = []
-
-      # Iterate over each group separately
-
-      for group_ind in deg_list_ind:
-
-        # Determine where the new line will be placed
-
-        spot = min(group_ind)
-
-        # Determine the new line by taking the maximum (disregarding the sign) of each dipole moments from each line of the group
-        # See https://stackoverflow.com/questions/51209928/get-maximum-of-absolute-along-axis for details
-
-        max_idx = np.argmax(np.absolute(new_mtx[group_ind]), axis=0)
-        values = new_mtx[group_ind][tuple([max_idx,np.arange(new_mtx[group_ind].shape[1])])]
-
-        #! Other possibility: determine the new line by summing the dipole moments from each line of the group using the reduce method from NumPy (see https://numpy.org/doc/stable/reference/generated/numpy.ufunc.reduce.html)
-        #! values = np.sum.reduce(new_mtx[group_ind])
-
-        # Insert the new line and prepare to remove the old ones (do not remove them immediately to not mess with the other groups)
-
-        for index in group_ind:
-          if index == spot:
-            new_mtx[spot] = values
-            new_mtx[:,spot] = values
-          else:
-            to_remove.append(index)
-
-      # Remove the now useless lines and columns
-
-      new_mtx = np.delete(np.delete(new_mtx,to_remove,0), to_remove, 1)
-
-      # Replace the old matrix with the new one
-
-      system["momdip_mtx"][momdip_key] = new_mtx
-
-      #! Temporary (print it as a table rather than a matrix)
-
-      print("\nDipole moments matrix with the '%s' key (atomic units)" % momdip_key)
-      print('')
-      for row in system['momdip_mtx'][momdip_key]:
-        for val in row:
-          print(np.format_float_scientific(val,precision=3,unique=False,pad_left=2), end = " ")
-        print('')
-
-    # Update the states list
-    # ===========================
-
-    for group in deg_list:
-
-      # Initialize the new state resulting from the combination
-
-      new_state = {}
-
-      # Determine the new values for the new degenerated state
-
-      new_state['number'] = min(group)
-      new_state['label'] = "E" + "-".join(map(str,sorted(group))) # e.g. for a group including the states number 2, 3 and 4, its label will be E2-3-4
-      new_state['energy'] = np.mean([state['energy'] for state in system['states_list'] if state['number'] in group])
-      new_state['degeneracy'] = len(group)
-
-      # Get the index of the state that has the same number as the new one
-
-      index = system['states_list'].index(next(state for state in system['states_list'] if state['number'] == new_state['number']))
-
-      # Remove the degenerated states from the states_list (by keeping only the states not included in the group)
-
-      system['states_list'] = [state for state in system['states_list'] if state['number'] not in group]
-
-      # Add the new state to the list at the position occupied by the state that had the same number
-
-      system['states_list'].insert(index,new_state)
-
-    # Once all the list has been updated, correct the state numbers
-
-    energies = sorted([state['energy'] for state in system['states_list']])
-
-    for state in system['states_list']:
-      state['number'] = energies.index(state['energy'])
-
-    # ========================================================= #
-    # States list                                               #
-    # ========================================================= #
-
-    # Radiative lifetime of excited states
-    # ====================================
-
-    # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
-    # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
-    # Note that this calculation is performed using atomic units, which means the Planck constant equals 2*pi and the vacuum permittivity equals 1/(4*pi)
-
-    # Constants
-
-    light_speed_au = constants.value('speed of light in vacuum') / constants.value('atomic unit of velocity')
-
-    # Iterate over each excited state
-
-    for state_m in system['states_list']:
-
-      sum_einstein_coeffs = 0
-
-      # Get the index of the state (to locate it in the matrices)
-
-      m_index = system['states_list'].index(state_m)
-
-      # Iterate over each state with an energy lower than the current one
-
-      for state_n in [state_n for state_n in system['states_list'] if state_n['energy'] < state_m['energy']]:
-
-        # Get the index of the state (to locate it in the matrices)
-
-        n_index = system['states_list'].index(state_n)
-
-        # Compute the energy difference
-
-        energy_diff = state_m['energy'] - state_n['energy']
-
-        # Compute the square of the transition dipole moment
-
-        square_dipole = 0
-        
-        for momdip_key in system['momdip_mtx']:
-          square_dipole += system['momdip_mtx'][momdip_key][m_index][n_index] ** 2
-
-        # Calculate the A Einstein Coefficient          
-
-        einstein_coeff = (state_n['degeneracy']/state_m['degeneracy']) * (4/3) * square_dipole * (energy_diff**3) / (light_speed_au**3)
-        sum_einstein_coeffs += einstein_coeff
-
-      # Compute the radiative lifetime
-
-      if sum_einstein_coeffs == 0:
-        state_m['lifetime'] = float('inf')
-      else:
-        state_m['lifetime'] = 1 / sum_einstein_coeffs
-        state_m['lifetime'] = state_m['lifetime'] * constants.value('atomic unit of time')
-
-    # Print the states list
-    # =====================
-
-    print("")
-    print(''.center(75, '-'))
-    print('States List'.center(75, ' '))
-    print(''.center(75, '-'))
-    print("{:<10} {:<10} {:<15} {:<10} {:<15}".format('Number','Label','Energy (Ha)','Degeneracy','Lifetime (s)'))
-    print(''.center(75, '-'))
-    for state in system['states_list']:
-      print("{:<10} {:<10} {:<15.5e} {:<10} {:<15.5e}".format(state['number'],state['label'],state['energy'],state['degeneracy'],state['lifetime']))
-    print(''.center(75, '-'))
 
     # Console screen notification (we need to temporarily switch the standard outputs to show this message on screen and not in the log file)
     
@@ -745,16 +520,6 @@ def main():
     # Creating the system data files                            #
     # ========================================================= #
 
-    # States list
-
-    state_file = "states.csv"
-    with open(os.path.join(data_dir,state_file), "w") as f:
-      print("Number;Label;Energy (Ha);Degeneracy;Lifetime (a.u.)", file = f)
-      for state in system['states_list']:
-        state_line = ";".join((str(state['number']),state['label'],"{:<18.10e}".format(state['energy']).strip(),str(state['degeneracy']),"{:<18.10e}".format(state['lifetime']).strip()))
-        print(state_line, file = f)
-    print("    ├── The states list file ('%s') has been created into the directory" % state_file)
-
     # Energies
 
     energies_file = "energies"
@@ -780,16 +545,6 @@ def main():
       momdip_mtx_file = 'momdip_mtx_' + momdip_key
       np.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][momdip_key],fmt='% 18.10e')
       print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (momdip_key, momdip_mtx_file))
-
-    # Transitions list
-
-    transitions_file = "transitions.csv"
-    with open(os.path.join(data_dir,transitions_file), "w") as f:
-      print("Label;Transition dipole moments matrix;Initial file name;Target file name", file = f)
-      for transition in transitions_list:
-        transition_line = ";".join((transition['label'],transition['momdip_key'],str(transition['init_file'] + "1"),str(transition['target_file'] + "1")))
-        print(transition_line, file = f)
-    print("    ├── The transitions list file ('%s') has been created into the directory" % transitions_file)
 
     # ========================================================= #
     # Creating the transition files                             #
