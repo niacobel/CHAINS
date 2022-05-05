@@ -866,6 +866,156 @@ def main():
     
       print ("{:<140}".format('\nControl results'))
 
+      # ========================================================= #
+      # Alpha / Duration parameters search                        #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tCompiling alpha and duration parameters search results ...'))      
+
+      # Check the main directory
+
+      aldu_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","aldu_param_search"),"Main directory for the alpha and duration parameters search","directory")
+
+      # Check the data directory
+
+      data_dir = results_common.check_abspath(os.path.join(aldu_dir,"data"),"Data directory created by control_launcher.py","directory")
+
+      # Initialize the results dictionary
+
+      comp_results[mol_name].update({ 
+          "Control" : 
+            { "Alpha/duration parameters search" : {}
+            }
+        })
+
+      # Call the transition function from CONTROL LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
+
+      with open(os.devnull, 'w') as devnull:
+        with contextlib.redirect_stdout(devnull):
+          transitions_list = transition_fcts.brightest_to_darkest(system)
+
+      # Look for directories in the main directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
+
+      dir_list_all = [dir.name for dir in os.scandir(aldu_dir) if dir.is_dir()]
+
+      # Only keep the 'transition_config'-type directories
+
+      dir_list = []
+
+      for transition in transitions_list:
+
+        momdip_key = transition["momdip_key"]
+
+        # Iterate over the directories
+
+        for dirname in dir_list_all:
+        
+          # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+          try:
+
+            # Define the '<transition>' regex and apply it to the dirname
+
+            pattern = re.compile(r"^" + re.escape(transition["label"]) + r"$")
+            matching_dir = pattern.match(dirname)
+
+            # If it is a directory named after a transition, collect the data
+
+            if matching_dir is not None:
+
+              dir_list.append(dirname)
+              trans_dir = os.path.join(aldu_dir, dirname)
+
+              print ("{:<126}".format("\n\t\tTreating the '%s' transition ..." % transition["label"]), end="")
+
+              # Create an entry for this transition
+
+              comp_results[mol_name]['Control']['Alpha/duration parameters search'].update({ 
+                  transition["label"] : 
+                    { "Orientation" : momdip_key,
+                      "Values" : []
+                    }
+                })
+
+              # Look for files in the directory
+
+              file_list_all = [file.name for file in os.scandir(trans_dir) if file.is_file()]
+
+              # Only keep the 'xxx-alphaXXX_durXXX_obj_PCP.res'-type files
+
+              file_list = []
+
+              for filename in file_list_all:
+              
+                # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+                try:
+
+                  # Define the 'xxx-alphaXXX_durXXX_obj_PCP.res' regex and apply it to the filename
+
+                  pattern = re.compile(r"^\d+_alpha(?P<alpha>\d+)_dur(?P<duration>\d+)_obj_PCP\.res$")
+                  matching_file = pattern.match(filename)
+
+                  # If it matches the regex, collect the data
+
+                  if matching_file is not None:
+
+                    file_list.append(filename)
+                    file_path = os.path.join(trans_dir, filename)
+
+                    alpha = float(matching_file.group("alpha"))
+                    duration = float(matching_file.group("duration"))
+
+                    with open(file_path, 'r') as pcp_f:
+                      file_content = pcp_f.read()
+
+                    # Define the expression patterns for the lines of the iterations file
+                    # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
+                    rx_pcp_line = re.compile(r"^\s+\d+\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+(?P<fluence>\d\.\d+D[+-]\d+)\s\|Recou\(i\)\s+(?P<overlap>\d\.\d+D[+-]\d+)\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
+
+                    # Get the values
+
+                    line_data = rx_pcp_line.match(file_content)
+                    if line_data is not None:
+                      fidelity_raw = line_data.group("fidelity")
+                      fidelity = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fidelity_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
+                      if fidelity >= 1:
+                        fidelity = 1
+                      fluence_raw = line_data.group("fluence")
+                      fluence = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fluence_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
+                      overlap_raw = line_data.group("overlap")
+                      overlap = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', overlap_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
+                      if overlap >= 1:
+                        overlap = 1
+                    else:
+                      raise results_common.ResultsError ("ERROR: Unable to get the values from the file %s" % file_path) 
+
+                    # Store information specific to this calculation
+
+                    comp_results[mol_name]['Control']['Alpha/duration parameters search'][transition["label"]]['Values'].append({
+                      "Alpha" : alpha,
+                      "Duration (ps)" : duration,
+                      "Fidelity" : fidelity,
+                      "Fluence" : fluence,
+                      "Overlap" : overlap
+                    })
+
+                except results_common.ResultsError as error:
+                  print(error)
+                  print("Skipping %s file" % filename)
+                  continue
+
+              if file_list == []:
+                raise results_common.ResultsError ("ERROR: Can't find any 'xxx-alphaXXX_durXXX_obj_PCP.res' file in %s" % trans_dir)
+
+              print('%12s' % "[ DONE ]")
+
+          except results_common.ResultsError as error:
+            print(error)
+            print("Skipping %s directory" % dirname)
+            continue
+
+      if dir_list == []:
+        raise results_common.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % aldu_dir)
+
       # Check the data directory
 
       data_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
@@ -886,11 +1036,9 @@ def main():
 
       # Store general information about the control system
 
-      comp_results[mol_name].update({ 
-          "Control" : 
-            { "Nb excited states" : len(eigenstates_list) - 1,
-              "Transitions" : []
-            }
+      comp_results[mol_name]['Control'].update({
+        "Nb excited states" : len(eigenstates_list) - 1,
+        "Transitions" : []
         })
 
       # Load the transitions list

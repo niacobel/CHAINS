@@ -20,6 +20,8 @@ import matplotlib.mathtext
 import matplotlib.pyplot as plt
 import yaml
 from matplotlib.ticker import AutoMinorLocator
+from matplotlib.cm import ScalarMappable
+import numpy as np
 
 import results_common
 
@@ -713,11 +715,132 @@ def main():
 
   # =================================================================== #
   # =================================================================== #
+  #                     PLOTTING PARAMETERS SEARCH                      #
+  # =================================================================== #
+  # =================================================================== #
+
+  section_title = "4. Alpha / Duration parameters search"
+
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
+
+  # Create a subdirectory for those graphs
+
+  aldu_param_dir = os.path.join(out_dir,"aldu_param_search")
+  os.makedirs(aldu_param_dir, exist_ok=True)
+
+  # Iterate over each transition of each molecule
+  # =============================================
+
+  for mol_group in mol_groups:
+    for mol in yml_sorted[mol_group]:
+      if yml_sorted[mol_group][mol].get('Control'):
+        if yml_sorted[mol_group][mol]['Control'].get('Alpha/duration parameters search'):
+
+          print ("{:<140}".format('\nTreating the %s molecule ...' % mol))
+
+          for transition in yml_sorted[mol_group][mol]['Control']['Alpha/duration parameters search']:
+
+            print ("{:<133}".format('\n\tTreating the %s transition ...' % transition), end="")
+
+            # Get the values
+
+            values_list = yml_sorted[mol_group][mol]['Control']['Alpha/duration parameters search'][transition]['Values']
+
+            alpha_list = []
+            duration_list = []
+            overlap_list = []
+
+            for data in values_list:
+              alpha_list.append(data['Alpha'])
+              duration_list.append(data['Duration (ps)'])
+              overlap_list.append(data['Overlap'])
+            
+            # Prepare the data (as shown on https://stackoverflow.com/questions/54437559/numpy-meshgrid-from-unordered-x-y-z-data)
+            # ~~~~~~~~~~~~~~~~
+
+            alpha_array = np.asarray(alpha_list)
+            duration_array = np.asarray(duration_list)
+            overlap_array = np.asarray(overlap_list)
+
+            # Sort coordinates and reshape in grid
+            
+            len_alpha = len(list(dict.fromkeys(alpha_list))) # Remove duplicates (https://www.w3schools.com/python/python_howto_remove_duplicates.asp)
+            len_dur = len(list(dict.fromkeys(duration_list)))
+            idx = np.lexsort((duration_array, alpha_array)).reshape(len_alpha, len_dur)
+
+            # Plot the data
+            # ~~~~~~~~~~~~~
+
+            plt.style.use('ggplot')
+
+            fig, ax = plt.subplots()
+
+            vmin=0
+            vmax=1
+
+            #aldu_plot = ax.pcolormesh(alpha_array[idx], duration_array[idx], overlap_array[idx], vmin=vmin, vmax=vmax, shading='auto')
+            aldu_plot = ax.scatter(alpha_array[idx], duration_array[idx], c=overlap_array[idx], cmap='viridis', vmin=vmin, vmax=vmax)
+
+            # Add visible precise data points
+
+            #X, Y = np.meshgrid(alpha_array[idx], duration_array[idx])
+            #ax.plot(X.flat, Y.flat, 'o', color='r')
+
+            # Add the titles
+
+            ax.set_title('Parameters search for the $%s$ molecule,\n with a polarization along the %s axis\n' % (yml_sorted[mol_group][mol]['ID']['LateX Name'],yml_sorted[mol_group][mol]['Control']['Alpha/duration parameters search'][transition]['Orientation']))
+            ax.set_xlabel('Penalty factor ' + r'$\alpha_{0}$')
+            ax.set_ylabel('Duration of the pulse (ps)')
+
+            # Set the ticks for alpha (only major ticks corresponding to the data)
+
+            ax.set_xscale("log")
+            ax.set_xticks(list(dict.fromkeys(alpha_list)))
+            ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+            ax.minorticks_off()
+
+            # Set other parameters
+
+            ax.set_yticks(list(dict.fromkeys(duration_list)))
+
+            cb = fig.colorbar(ScalarMappable(norm=aldu_plot.norm, cmap=aldu_plot.cmap),ticks=np.linspace(vmin, vmax, num=2))
+            cb.set_label("Overlap")
+
+            plt.tight_layout()
+
+            params = {'mathtext.default': 'regular' }          
+            plt.rcParams.update(params)
+
+            # Save the file and close the figure
+
+            plt.savefig(os.path.join(aldu_param_dir,'%s_%s.png' % (mol,transition)),dpi=200)
+            plt.close()
+
+            # Store the values in a CSV file
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+            csv_header = list(values_list[0].keys())
+
+            with open(os.path.join(aldu_param_dir,'%s_%s.csv' % (mol,transition)), 'w', newline='', encoding='utf-8') as csvfile:
+
+              csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+              csv_writer.writeheader()
+
+              for data in values_list:
+                csv_writer.writerow(data) 
+
+            print('%12s' % "[ DONE ]")
+
+  # =================================================================== #
+  # =================================================================== #
   #                     PLOTTING HIGHEST FIDELITIES                     #
   # =================================================================== #
   # =================================================================== #
 
-  section_title = "4. Fidelities"
+  section_title = "5. Fidelities"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
@@ -935,7 +1058,7 @@ def main():
   # =================================================================== #
   # =================================================================== #
 
-  section_title = "5. Transition dipole moments"
+  section_title = "6. Transition dipole moments"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
