@@ -100,7 +100,7 @@ def orca_tddft(source_content:list):
     #                Non-relativistic states List               #
     # ========================================================= #
 
-    print("{:<50}".format("\nParsing the excited zero order states ...  "), end="")
+    print("{:<50}".format("\nParsing the excited states ...  "), end="")
 
     # Initialization of the variables
 
@@ -534,20 +534,25 @@ def orca_tddft(source_content:list):
   
     for soc in it:
 
-     state_1 = it.multi_index[0]
-     label_1 = [state['label'] for state in system['zero_states_list'] if state_1 == state['number']][0]
-     state_2 = it.multi_index[1]
-     label_2 = [state['label'] for state in system['zero_states_list'] if state_2 == state['number']][0]
-     value = complex(soc)
+      state_1 = it.multi_index[0]
+      label_1 = [state['label'] for state in system['zero_states_list'] if state_1 == state['number']][0]
+      state_2 = it.multi_index[1]
+      label_2 = [state['label'] for state in system['zero_states_list'] if state_2 == state['number']][0]
+      value = complex(soc)
 
-     # Add the information to the soc_list
-     soc_line = (state_1, label_1, state_2, label_2, value)
-     eq_soc_line = (state_2, label_2, state_1, label_1, value.conjugate())
-     if eq_soc_line not in soc_list:
-       soc_list.append(soc_line)
+      # Skip diagonal values and singlet-singlet values
+      if state_1 == state_2 or (label_1.startswith('S') and label_2.startswith('S')):
+        continue
+
+      # Add the information to the soc_list
+      soc_line = (state_1, label_1, state_2, label_2, value)
+      eq_soc_line = (state_2, label_2, state_1, label_1, value.conjugate())
+      if eq_soc_line not in soc_list:
+        soc_list.append(soc_line)
   
     print("[ DONE ]")
   
+    """
     # ========================================================= #
     #           Radiative lifetime of excited states            #
     # ========================================================= #
@@ -594,6 +599,7 @@ def orca_tddft(source_content:list):
         state['lifetime'] = state['lifetime'] * constants.value('atomic unit of time')
 
     print("[ DONE ]")
+    """
   
     # ========================================================= #
     #              Printing values in the log file              #
@@ -607,10 +613,10 @@ def orca_tddft(source_content:list):
     print(''.center(table_width, '-'))
     print('Non-relativistic states list'.center(table_width, ' '))
     print(''.center(table_width, '-'))
-    print("{:<10} {:<15} {:<15} {:<15} {:<15}".format('Number','Label','Energy (cm-1)','Energy (Ha)','Lifetime (s)'))
+    print("{:<10} {:<15} {:<15} {:<15} {:<15}".format('Number','Label','Energy (cm-1)','Energy (Ha)','Energy (nm)'))
     print(''.center(table_width, '-'))
     for state in system['zero_states_list']:
-      print("{:<10} {:<15} {:<15.2f} {:<15.5f} {:<15.5e}".format(state['number'],state['label'],control_common.energy_unit_conversion(state['energy'],"ha","cm-1"),state['energy'],state['lifetime']))
+      print("{:<10} {:<15} {:<15.2f} {:<15.5f} {:<15.2f}".format(state['number'],state['label'],control_common.energy_unit_conversion(state['energy'],"ha","cm-1"),state['energy'],control_common.energy_unit_conversion(state['energy'],"ha","nm")))
     print(''.center(table_width, '-'))
 
     # Print the SOC list
@@ -660,8 +666,10 @@ def orca_tddft(source_content:list):
     print(''.center(len(section_title)+30, '='))
 
     # ========================================================= #
-    # MIME diagonalization                                      #
+    #                    MIME diagonalization                   #
     # ========================================================= #
+
+    print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
 
     # Diagonalization
     # ===============
@@ -669,15 +677,11 @@ def orca_tddft(source_content:list):
     # Use SciPy to diagonalize the matrix (see https://personal.math.ubc.ca/~pwalls/math-python/linear-algebra/eigenvalues-eigenvectors/ for reference)
     # Documentation page for the function used here : https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.eigh.html  
      
-    print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
     eigenvalues, system['eigenvectors'] = linalg.eigh(system['mime'])
     eigenvalues = eigenvalues.tolist()
-    print("[ DONE ]")
 
     # Build the relativistic states list
     # ==================================
-
-    print("{:<50}".format("\nBuilding the relativistic states list ..."), end="")
 
     # Initialize the variables
 
@@ -695,16 +699,14 @@ def orca_tddft(source_content:list):
 
       system['states_list'].append(eigenstate)
 
-    print("[ DONE ]")
-
     # Transpose the eigenvectors list
     # ===============================
 
     # Using SciPy to invert the eigenvectors matrix
     # Note that the inverse of an orthonormal matrix is equal to its transpose, so each line of this matrix corresponds to an eigenvector. (see https://math.stackexchange.com/questions/156735/in-which-cases-is-the-inverse-of-a-matrix-equal-to-its-transpose)
 
-    print("{:<50}".format("\nInverting eigenvectors matrix ..."), end="")
     system['eigenvectors_inv'] = linalg.inv(system['eigenvectors'])
+
     print("[ DONE ]")
 
     # Evaluate the diagonalization
@@ -728,8 +730,13 @@ def orca_tddft(source_content:list):
     print ("{:<50} {:<.2e}".format('\nDiagonalization ratio (non-diag/diag): ',ratio))
 
     # ========================================================= #
-    # Dipole moment matrices in the relativistic basis set      #
+    #          Relativistic transition dipole moments           #
     # ========================================================= #
+
+    print("{:<50}".format("\nComputing new transition dipole moments ..."), end="")
+
+    # Convert the matrices
+    # ====================    
 
     # Intialize the momdip_mtx dictionary
 
@@ -740,16 +747,8 @@ def orca_tddft(source_content:list):
     for momdip_key in system["momdip_o_mtx"]:
       system['momdip_mtx'][momdip_key] = np.absolute(np.matmul(np.matmul(system['eigenvectors_inv'],system['momdip_o_mtx'][momdip_key]),system['eigenvectors']))
 
-    #! Temporary: add the degeneracy key to the list of states
-
-    for state in system['states_list']:
-      state['degeneracy'] = 1
-
-    # ========================================================= #
-    # Relativistic dipole moments list                          #
-    # ========================================================= #
-
-    print("{:<50}".format("\nEstablishing the new dipole moments list ..."), end="")
+    # Build the new list
+    # ==================
 
     # Initialization of the variables
 
@@ -780,11 +779,32 @@ def orca_tddft(source_content:list):
     print("[ DONE ]")
 
     # ========================================================= #
-    # Relativistic states list                                  #
+    #                     Mixing percentages                    #
     # ========================================================= #
 
+    print("{:<50}".format("\nComputing mixing percentages ..."), end="")
+
+    for state in system['states_list']:
+      state['sing_percent'] = 0.0
+      state['trip_percent'] = 0.0
+      weights_list = [val**2 for val in np.absolute(system['eigenvectors'][state['number']])]
+      for idx, weight in enumerate(weights_list):
+        if system['zero_states_list'][idx]['label'].startswith('S'):
+          state['sing_percent'] += weight
+        elif system['zero_states_list'][idx]['label'].startswith('T'):
+          state['trip_percent'] += weight        
+
+    print("[ DONE ]")
+    
+    """
+    
     # Radiative lifetime of excited states
     # ====================================
+
+    #! Temporary: add the degeneracy key to the list of states
+
+    for state in system['states_list']:
+      state['degeneracy'] = 1
 
     # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
     # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
@@ -835,6 +855,11 @@ def orca_tddft(source_content:list):
       else:
         state_m['lifetime'] = 1 / sum_einstein_coeffs
         state_m['lifetime'] = state_m['lifetime'] * constants.value('atomic unit of time')
+    """
+
+    # ========================================================= #
+    #              Printing values in the log file              #
+    # ========================================================= #
 
     # Print the relativistic states list
     # ==================================
@@ -844,10 +869,10 @@ def orca_tddft(source_content:list):
     print(''.center(table_width, '-'))
     print('Relativistic states list'.center(table_width, ' '))
     print(''.center(table_width, '-'))
-    print("{:<10} {:<15} {:<15} {:<15} {:<15}".format('Number','Label','Energy (Ha)','Energy (cm-1)','Lifetime (s)'))
+    print("{:<9} {:<9} {:<15} {:<15} {:<10} {:<10}".format('Number','Label','Energy (Ha)','Energy (cm-1)','% Singlet','% Triplet'))
     print(''.center(table_width, '-'))
     for state in system['states_list']:
-      print("{:<10} {:<15} {:<15.5e} {:<15.4f} {:<15.5e}".format(state['number'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"ha","cm-1"),state['lifetime']))
+      print("{:<9} {:<9} {:<15.5e} {:<15.4f} {:<10.2f} {:<10.2f}".format(state['number'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"ha","cm-1"),state['sing_percent']*100,state['trip_percent']*100))
     print(''.center(table_width, '-'))
 
     # Print the relativistic transition dipole moments list
@@ -1012,7 +1037,7 @@ def qchem_tddft(source_content:list):
     #                        Zero states List                   #
     # ========================================================= #
 
-    print("{:<50}".format("\nParsing the excited zero order states ...  "), end="")
+    print("{:<50}".format("\nParsing the excited states ...  "), end="")
 
     # Initialization of the variables
 
@@ -1423,7 +1448,8 @@ def qchem_tddft(source_content:list):
       # Remove the rest from the transition dipole moments list
     
       momdip_list = [momdip for momdip in momdip_list if momdip[0] in qchem_states_to_keep and momdip[1] in qchem_states_to_keep]
-        
+
+    """        
     # ========================================================= #
     #           Radiative lifetime of excited states            #
     # ========================================================= #
@@ -1470,6 +1496,7 @@ def qchem_tddft(source_content:list):
         state['lifetime'] = state['lifetime'] * constants.value('atomic unit of time')
 
     print("[ DONE ]")
+    """
 
     # ========================================================= #
     #              Printing values in the log file              #
@@ -1483,10 +1510,10 @@ def qchem_tddft(source_content:list):
     print(''.center(table_width, '-'))
     print('Non-relativistic states list'.center(table_width, ' '))
     print(''.center(table_width, '-'))
-    print("{:<10} {:<15} {:<15} {:<15} {:<15}".format('Number','Label','Energy (cm-1)','Energy (Ha)','Lifetime (s)'))
+    print("{:<10} {:<15} {:<15} {:<15} {:<15}".format('Number','Label','Energy (cm-1)','Energy (Ha)','Energy (nm)'))
     print(''.center(table_width, '-'))
     for state in system['zero_states_list']:
-      print("{:<10} {:<15} {:<15.2f} {:<15.5f} {:<15.5e}".format(state['number'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"cm-1","ha"),state['lifetime']))
+      print("{:<10} {:<15} {:<15.2f} {:<15.5f} {:<15.2f}".format(state['number'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"cm-1","ha"),control_common.energy_unit_conversion(state['energy'],"cm-1","nm")))
     print(''.center(table_width, '-'))
 
     # Print the SOC list
@@ -1538,8 +1565,10 @@ def qchem_tddft(source_content:list):
     print(''.center(len(section_title)+30, '='))
 
     # ========================================================= #
-    # MIME diagonalization                                      #
+    #                    MIME diagonalization                   #
     # ========================================================= #
+
+    print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
 
     # Diagonalization
     # ===============
@@ -1547,15 +1576,11 @@ def qchem_tddft(source_content:list):
     # Use SciPy to diagonalize the matrix (see https://personal.math.ubc.ca/~pwalls/math-python/linear-algebra/eigenvalues-eigenvectors/ for reference)
     # Documentation page for the function used here : https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.eigh.html  
      
-    print("{:<50}".format("\nDiagonalizing the MIME ..."), end="")
     eigenvalues, system['eigenvectors'] = linalg.eigh(system['mime'])
     eigenvalues = eigenvalues.tolist()
-    print("[ DONE ]")
 
     # Build the eigenstates list
     # ==========================
-
-    print("{:<50}".format("\nBuilding the eigenstates list ..."), end="")
 
     # Initialize the variables
 
@@ -1573,16 +1598,14 @@ def qchem_tddft(source_content:list):
 
       system['states_list'].append(eigenstate)
 
-    print("[ DONE ]")
-
     # Transpose the eigenvectors list
     # ===============================
 
     # Using SciPy to invert the eigenvectors matrix
     # Note that the inverse of an orthonormal matrix is equal to its transpose, so each line of this matrix corresponds to an eigenvector. (see https://math.stackexchange.com/questions/156735/in-which-cases-is-the-inverse-of-a-matrix-equal-to-its-transpose)
 
-    print("{:<50}".format("\nInverting eigenvectors matrix ..."), end="")
     system['eigenvectors_inv'] = linalg.inv(system['eigenvectors'])
+
     print("[ DONE ]")
 
     # Evaluate the diagonalization
@@ -1606,8 +1629,13 @@ def qchem_tddft(source_content:list):
     print ("{:<50} {:<.2e}".format('\nDiagonalization ratio (non-diag/diag): ',ratio))
 
     # ========================================================= #
-    # Dipole moment matrices in the eigenstates basis set       #
+    #          Relativistic transition dipole moments           #
     # ========================================================= #
+
+    print("{:<50}".format("\nComputing new transition dipole moments ..."), end="")
+
+    # Convert the matrices
+    # ==================== 
 
     # Intialize the momdip_mtx dictionary
 
@@ -1617,11 +1645,6 @@ def qchem_tddft(source_content:list):
 
     for momdip_key in system["momdip_o_mtx"]:
       system['momdip_mtx'][momdip_key] = np.absolute(np.matmul(np.matmul(system['eigenvectors_inv'],system['momdip_o_mtx'][momdip_key]),system['eigenvectors']))
-
-    #! Temporary: add the degeneracy key to the list of states
-
-    for state in system['states_list']:
-      state['degeneracy'] = 1
 
     """
     # ========================================================= #
@@ -1778,11 +1801,8 @@ def qchem_tddft(source_content:list):
       state['number'] = energies.index(state['energy'])
     """
 
-    # ========================================================= #
-    # Relativistic dipole moments list                          #
-    # ========================================================= #
-
-    print("{:<50}".format("\nEstablishing the new dipole moments list ..."), end="")
+    # Build the new list
+    # ==================
 
     # Initialization of the variables
 
@@ -1813,11 +1833,31 @@ def qchem_tddft(source_content:list):
     print("[ DONE ]")
 
     # ========================================================= #
-    # Relativistic states list                                  #
+    #                     Mixing percentages                    #
     # ========================================================= #
 
+    print("{:<50}".format("\nComputing mixing percentages ..."), end="")
+
+    for state in system['states_list']:
+      state['sing_percent'] = 0.0
+      state['trip_percent'] = 0.0
+      weights_list = [val**2 for val in np.absolute(system['eigenvectors'][state['number']])]
+      for idx, weight in enumerate(weights_list):
+        if system['zero_states_list'][idx]['label'].startswith('S'):
+          state['sing_percent'] += weight
+        elif system['zero_states_list'][idx]['label'].startswith('T'):
+          state['trip_percent'] += weight        
+
+    print("[ DONE ]")
+
+    """
     # Radiative lifetime of excited states
     # ====================================
+
+    #! Temporary: add the degeneracy key to the list of states
+
+    for state in system['states_list']:
+      state['degeneracy'] = 1
 
     # This calculation is based on the A_mn Einstein Coefficients and their link with the transition dipole moment
     # See https://aapt.scitation.org/doi/pdf/10.1119/1.12937 for reference
@@ -1868,6 +1908,11 @@ def qchem_tddft(source_content:list):
       else:
         state_m['lifetime'] = 1 / sum_einstein_coeffs
         state_m['lifetime'] = state_m['lifetime'] * constants.value('atomic unit of time')
+    """
+
+    # ========================================================= #
+    #              Printing values in the log file              #
+    # ========================================================= #
 
     # Print the relativistic states list
     # ==================================
@@ -1877,10 +1922,10 @@ def qchem_tddft(source_content:list):
     print(''.center(table_width, '-'))
     print('Relativistic states list'.center(table_width, ' '))
     print(''.center(table_width, '-'))
-    print("{:<10} {:<15} {:<15} {:<15} {:<15}".format('Number','Label','Energy (Ha)','Energy (cm-1)','Lifetime (s)'))
+    print("{:<9} {:<9} {:<15} {:<15} {:<10} {:<10}".format('Number','Label','Energy (Ha)','Energy (cm-1)','% Singlet','% Triplet'))
     print(''.center(table_width, '-'))
     for state in system['states_list']:
-      print("{:<10} {:<15} {:<15.5e} {:<15.4f} {:<15.5e}".format(state['number'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"ha","cm-1"),state['lifetime']))
+      print("{:<9} {:<9} {:<15.5e} {:<15.4f} {:<10.2f} {:<10.2f}".format(state['number'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"ha","cm-1"),state['sing_percent']*100,state['trip_percent']*100))
     print(''.center(table_width, '-'))
 
     # Print the relativistic transition dipole moments list
