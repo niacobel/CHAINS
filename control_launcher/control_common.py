@@ -228,11 +228,13 @@ def energy_unit_conversion(value:float,init:str,target:str) -> float:
     
     # Convert the value
 
-    if target_low == 'nm':
+    if target_low != 'nm' and init_low != 'nm':
+      conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low] 
+    elif target_low == 'nm' and value != 0:
       conv_value = conv_factors_low['nm'] / (value / conv_factors_low[init_low])
-    elif init_low == 'nm':
+    elif init_low == 'nm' and value != 0:
       conv_value = (conv_factors_low['nm'] / value) * conv_factors_low[target_low]
-    else:
-      conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
+    elif (target_low == 'nm' or init_low == 'nm') and value == 0:
+      conv_value = 0
 
     return conv_value
