@@ -69,7 +69,10 @@ def brightest_to_darkest(system:dict):
       # =======================
 
       # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime)
-      dark_max_indices = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')]
+      # dark_max_indices = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')]
+
+      # Sort the indices of the states by increasing order of the absolute value of their transition dipole moments 
+      dark_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line)]
 
       # Iterate over the states
       # =======================
