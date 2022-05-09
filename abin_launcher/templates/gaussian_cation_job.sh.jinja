@@ -58,7 +58,31 @@ cd "${SLURM_SUBMIT_DIR}"
 
 # Quality control (was there any problem with GAUSSIAN?)
 source "{{ chains_dir }}/load_modules.sh"
-python "{{ check_dir }}/gaussian_check.py" "{{ mol_name }}.log"  || exit $?
+python "{{ check_dir }}/gaussian_check.py" "{{ mol_name }}.log"
+status=$?
+if [ "${status}" -eq 1 ]
+then
+  # Exit code 1 means an unknown error has occurred, the job is considered as FAILED and must be terminated.
+  exit 1
+elif [ "${status}" -eq 2 ]
+then
+  # Exit code 2 means a known error has been handled and a new job needs to be relaunched while this job will be normally stopped.
+  cdate=$(date +"%Y_%m_%d")
+  mv "{{ mol_name }}.log" "{{ mol_name }}_${cdate}.log"
+  mv "slurm_output.log" "slurm_output_${cdate}.log"
+{%- if cluster_name == "dragon2" %}
+  # On dragon2, this needs to be executed through the login nodes
+  # (To match indentation, make sure that each line of this heredoc starts with a tab and not spaces!)
+  ssh dragon2-ctrl0 /bin/bash <<-EOF
+	cd "${SLURM_SUBMIT_DIR}"
+	sbatch "{{ job_script }}"
+	EOF
+{%- else %}
+  cd "${SLURM_SUBMIT_DIR}"
+  sbatch "{{ job_script }}"
+{%- endif %}
+  exit 0
+fi
 
 # Reload Gaussian in order to use some of its useful scripts
 {% for set_env_line in set_env -%}
