@@ -19,6 +19,7 @@ import re
 import shutil
 import sys
 from inspect import getsourcefile
+from itertools import combinations
 
 import numpy as np
 import yaml
@@ -186,7 +187,7 @@ def main():
     print('%12s' % "[ DONE ]")
 
     # CONTROL LAUNCHER's modelling_fcts.py file
-    # =================================
+    # =========================================
 
     modelling_fcts_path = os.path.join(chains_path,"control_launcher","modelling_fcts.py")
 
@@ -195,7 +196,7 @@ def main():
     print('%12s' % "[ DONE ]")
 
     # CONTROL LAUNCHER's transition_fcts.py file
-    # =================================
+    # ==========================================
 
     transition_fcts_path = os.path.join(chains_path,"control_launcher","transition_fcts.py")
 
@@ -315,10 +316,6 @@ def main():
       atoms.insert(0, atoms.pop(atoms.index("Si")))
 
       mol_group = ''.join(atoms)
-
-      if mol_group == 'SiC':
-        if chemical_formula["H"] == 3*chemical_formula["C"]:
-          mol_group = "SiC (100 %)"
 
       # ========================================================= #
       # Total number of atoms                                     #
@@ -736,7 +733,7 @@ def main():
       # Optical gap
       # ===========
 
-      # Call the parsing function from CONTROL LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
+      # Call the modelling function from CONTROL LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
 
       with open(os.devnull, 'w') as devnull:
         with contextlib.redirect_stdout(devnull):
@@ -744,32 +741,32 @@ def main():
 
       zero_states_list = system['zero_states_list']
 
-      # Get the list of bright states and sort them by ascending number
+      # Get the list of singlet states and sort them by ascending number
 
-      bright_states = [state for state in zero_states_list if state['type'].lower() == "bright"]
-      bright_states.sort(key=lambda state: state['number'])
+      singlet_states = [state for state in zero_states_list if state['label'].startswith('S') and state['label'] != 'S0']
+      singlet_states.sort(key=lambda state: state['number'])
 
       # Get the energy of the first bright state (with a nonzero transition dipole moment)
 
       gs_number = [state['number'] for state in zero_states_list if state['label'] == 'S0'][0]
 
-      for bright_state in bright_states:
+      for singlet in singlet_states:
 
         momdip = 0
         for momdip_key in system['momdip_o_mtx']:
-          momdip += system['momdip_o_mtx'][momdip_key][gs_number][bright_state['number']]**2
+          momdip += system['momdip_o_mtx'][momdip_key][gs_number][singlet['number']]**2
         momdip = math.sqrt(momdip)    
 
         if momdip != 0:
-          opt_gap = bright_state['energy']
+          opt_gap = singlet['energy']
           break
 
       # Singlet-Triplet gap
       # ===================
 
-      bright_energies = [float(state['energy']) for state in zero_states_list if state['type'].lower() == "bright"]
-      dark_energies = [float(state['energy']) for state in zero_states_list if state['type'].lower() == "dark"]
-      st_gap = abs( min(dark_energies) - min(bright_energies) )
+      singlet_energies = [float(state['energy']) for state in zero_states_list if state['label'].startswith('S') and state['label'] != 'S0']
+      triplet_energies = [float(state['energy']) for state in zero_states_list if state['label'].startswith('T')]
+      st_gap = abs( min(triplet_energies) - min(singlet_energies) )
 
       # Store data
       # ==========
@@ -782,60 +779,6 @@ def main():
         })
 
       print('%12s' % "[ DONE ]")
-
-      # ========================================================= #
-      # Fetch transition dipole moments                           #
-      # ========================================================= #
-
-      print ("{:<133}".format('\n\tFetching transition dipole moments with the ground state ...'), end="")
-
-      # Initialize the dictionary that will contain the values
-
-      comp_results[mol_name]["Transition dipole moments (au)"] = {}
-
-      # Define the pairs of states that will be considered (here we consider the ground state with each of the first three non-degenerate singlets)
-
-      pairs = []
-
-      singlet_states = [state for state in zero_states_list if state['label'].startswith('S') and state['label'] != 'S0']
-      singlet_states.sort(key=lambda state: state['number'])
-
-      prev_energy = 0
-
-      for state in singlet_states:
-        if state['energy'] == prev_energy:
-          # Skip the singlet if it has the same energy as the previous one
-          continue
-        else:
-          pairs.append(('S0',state['label']))
-          prev_energy = state['energy']
-          if len(pairs) == 3:
-            # Stop after the third value
-            break
-
-      # Iterate over the pairs of states
-
-      for pair in pairs:
-
-        # Fetch the number of the involved states
-
-        first_number = [state['number'] for state in zero_states_list if state['label'] == pair[0]][0]
-        second_number = [state['number'] for state in zero_states_list if state['label'] == pair[1]][0]
-
-        # Compute the module of the transition dipole moment
-
-        momdip = 0
-        for momdip_key in system['momdip_o_mtx']:
-          momdip += system['momdip_o_mtx'][momdip_key][first_number][second_number]**2
-        momdip = math.sqrt(momdip)          
-
-        # Store the value
-
-        comp_results[mol_name]["Transition dipole moments (au)"].update({
-          pair[0] + '-' + pair[1] : momdip
-          })
-
-      print('%12s' % "[ DONE ]")      
 
       # ========================================================= #
       # Fetch ionization potentials                               #
@@ -854,6 +797,74 @@ def main():
           break
 
       print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
+      # Fetch transition dipole moments                           #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching transition dipole moments ...'), end="")
+
+      # Initialize the dictionary that will contain the values
+
+      comp_results[mol_name]["Transition dipole moments (au)"] = {}
+
+      # Define the pairs of states
+
+      pairs = []
+
+      singlet_states = [state for state in zero_states_list if state['label'].startswith('S')]
+      singlet_states.sort(key=lambda state: state['number'])
+
+      pairs.extend(list(combinations(singlet_states, 2))) # Look for all possible pairs of singlet states (see https://www.geeksforgeeks.org/python-all-possible-pairs-in-list/)
+
+      triplet_states = []
+      for state in zero_states_list:
+        # Only add one substate of each triplet (no need to add ms=0 and ms=1 and ms=-1 as they all have the same transition dipole moments)
+        if state['label'].startswith('T') and state['qchem_number'] not in [state['qchem_number'] for state in triplet_states]:
+          triplet_states.append(state)
+      triplet_states.sort(key=lambda state: state['number'])
+
+      pairs.extend(list(combinations(triplet_states, 2)))
+
+      # Iterate over the pairs of states
+
+      for pair in pairs:
+
+        # Compute the module of the transition dipole moment
+
+        momdip = 0
+        for momdip_key in system['momdip_o_mtx']:
+          momdip += system['momdip_o_mtx'][momdip_key][pair[0]['number']][pair[1]['number']]**2
+        momdip = math.sqrt(momdip)          
+
+        # Store the value
+
+        comp_results[mol_name]["Transition dipole moments (au)"].update({
+          # Use partition to only keep the 'Tx' part of the 'Tx(ms=y)' labels
+          pair[0]['label'].partition("(")[0] + '-' + pair[1]['label'].partition("(")[0] : momdip
+          })
+
+      print('%12s' % "[ DONE ]")      
+
+      # ========================================================= #
+      # Fetch singlet percentages                                 #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching singlet percentages ...'), end="")
+
+      # Initialize the dictionary that will contain the values
+
+      comp_results[mol_name]["Singlet percentages"] = {}
+
+      # Iterate over the states and store the value
+
+      for state in system['states_list']:
+
+        comp_results[mol_name]['Singlet percentages'].update({
+          state['label'] : float(state['sing_percent'])
+          })
+
+      print('%12s' % "[ DONE ]") 
 
     # ========================================================= #
     # Exception handling for the characterization results       #
@@ -879,11 +890,11 @@ def main():
       # Alpha / Duration parameters search                        #
       # ========================================================= #
 
-      print ("{:<133}".format('\n\tCompiling alpha and duration parameters search results ...'))      
+      print ("{:<133}".format('\n\tFetching alpha and duration parameters search results ...'))      
 
       # Check the main directory
 
-      aldu_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","aldu_param_search"),"Main directory for the alpha and duration parameters search","directory")
+      aldu_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","aldu_param"),"Main directory for the alpha and duration parameters search","directory")
 
       # Check the data directory
 
@@ -945,75 +956,24 @@ def main():
                     }
                 })
 
-              # Look for files in the directory
+              # Load the CSV file
 
-              file_list_all = [file.name for file in os.scandir(trans_dir) if file.is_file()]
+              aldu_file = results_common.check_abspath(os.path.join(trans_dir,"aldu_comp_results.csv"),"Alpha/duration parameters search compiled results CSV file","file")
+              with open(aldu_file, 'r', newline='') as csv_file:
+                aldu_content = csv.DictReader(csv_file, delimiter=';')
+                aldu_list = list(aldu_content)
+          
+             # Store information specific to this calculation
 
-              # Only keep the 'xxx-alphaXXX_durXXX_obj_PCP.res'-type files
+              for line in aldu_list:
+                for key in line.keys():
+                  if key == 'Best':
+                    line['Best'] = str(line['Best'])
+                  else:
+                    line[key] = float(line[key])
 
-              file_list = []
-
-              for filename in file_list_all:
-              
-                # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-                try:
-
-                  # Define the 'xxx-alphaXXX_durXXX_obj_PCP.res' regex and apply it to the filename
-
-                  pattern = re.compile(r"^\d+_alpha(?P<alpha>\d+)_dur(?P<duration>\d+)_obj_PCP\.res$")
-                  matching_file = pattern.match(filename)
-
-                  # If it matches the regex, collect the data
-
-                  if matching_file is not None:
-
-                    file_list.append(filename)
-                    file_path = os.path.join(trans_dir, filename)
-
-                    alpha = float(matching_file.group("alpha"))
-                    duration = float(matching_file.group("duration"))
-
-                    with open(file_path, 'r') as pcp_f:
-                      file_content = pcp_f.read()
-
-                    # Define the expression patterns for the lines of the iterations file
-                    # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
-                    rx_pcp_line = re.compile(r"^\s+\d+\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+(?P<fluence>\d\.\d+D[+-]\d+)\s\|Recou\(i\)\s+(?P<overlap>\d\.\d+D[+-]\d+)\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
-
-                    # Get the values
-
-                    line_data = rx_pcp_line.match(file_content)
-                    if line_data is not None:
-                      fidelity_raw = line_data.group("fidelity")
-                      fidelity = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fidelity_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-                      if fidelity >= 1:
-                        fidelity = 1
-                      fluence_raw = line_data.group("fluence")
-                      fluence = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fluence_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-                      overlap_raw = line_data.group("overlap")
-                      overlap = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', overlap_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-                      if overlap >= 1:
-                        overlap = 1
-                    else:
-                      raise results_common.ResultsError ("ERROR: Unable to get the values from the file %s" % file_path) 
-
-                    # Store information specific to this calculation
-
-                    comp_results[mol_name]['Control']['Alpha/duration parameters search'][transition["label"]]['Values'].append({
-                      "Alpha" : alpha,
-                      "Duration (ps)" : duration,
-                      "Fidelity" : fidelity,
-                      "Fluence" : fluence,
-                      "Overlap" : overlap
-                    })
-
-                except results_common.ResultsError as error:
-                  print(error)
-                  print("Skipping %s file" % filename)
-                  continue
-
-              if file_list == []:
-                raise results_common.ResultsError ("ERROR: Can't find any 'xxx-alphaXXX_durXXX_obj_PCP.res' file in %s" % trans_dir)
+                # Add dict(line) in order to ensure line is not an OrderedDict, incompatible with YAML
+                comp_results[mol_name]['Control']['Alpha/duration parameters search'][transition["label"]]['Values'].append(dict(line))
 
               print('%12s' % "[ DONE ]")
 
@@ -1024,6 +984,7 @@ def main():
 
       if dir_list == []:
         raise results_common.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % aldu_dir)
+
 
       """
       # ========================================================= #
