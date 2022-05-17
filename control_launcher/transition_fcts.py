@@ -61,9 +61,8 @@ def brightest_to_darkest(system:dict):
         gs_line = gs_line.tolist()
 
       # Sort the indices of the states by decreasing order of the absolute value of their transition dipole moments
-      # e.g. if gs_line = [0.0, 0.0, 0.0, 0.0, 0.0, -1.2, 0.8, 1.0, -0.4] then bright_max_indices = [5, 7, 6, 8]
       abs_gs_line = [abs(mom) for mom in gs_line]
-      bright_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line, reverse=True)]
+      bright_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line, reverse=True) if abs_gs_line.index(mom) != 0]
 
       # Sorting the dark states
       # =======================
@@ -72,7 +71,7 @@ def brightest_to_darkest(system:dict):
       # dark_max_indices = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')]
 
       # Sort the indices of the states by increasing order of the absolute value of their transition dipole moments 
-      dark_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line)]
+      dark_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line) if abs_gs_line.index(mom) != 0]
 
       # Iterate over the states
       # =======================
