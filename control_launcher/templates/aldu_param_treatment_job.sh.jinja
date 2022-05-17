@@ -16,6 +16,11 @@ echo -e "***********************************************************************
 date
 cd "${SLURM_SUBMIT_DIR}"
 
+{% if cluster_name == "lyra" -%}
+# Temporary: for Lyra, define the GLOBALSCRATCH as a directory in HOME (empty it regularly)
+GLOBALSCRATCH="/home/ulb/cqp/niacobel/GLOBALSCRATCH"
+{%- endif %}
+
 # Define the scratch directory where all the results can be found
 scratch_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}"
 

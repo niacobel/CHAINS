@@ -56,6 +56,27 @@ shared:
           memory: 2500 # in MB
 
 # ========================================================= #
+#                        ULB Clusters                       #
+# ========================================================= #
+
+lyra:
+# address lyra-login.hpda.ulb.ac.be (temporary?)
+  submit_command: sbatch
+  profiles:
+    aldu_param:
+      <<: *aldu_param
+      set_env: &lyra_qoctra
+        - module --force purge
+        - module load releases/2020b
+        - module load OpenBLAS/0.3.12-GCC-10.2.0
+    qoctra:
+      <<: *qoctra
+      set_env: *lyra_qoctra
+    basic:
+      <<: *basic
+      set_env: *lyra_qoctra
+
+# ========================================================= #
 #                        UCL Clusters                       #
 # ========================================================= #
 
