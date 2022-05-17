@@ -17,7 +17,7 @@ qoctra:
   control:
     time_step: 3.0                                # Duration of a time step (a.u. of time)
     max_iter: 300                                 # Maximum number of iterations
-    threshold: 0.99                               # Convergence threshold for the fidelity
+    threshold: 0.999                               # Convergence threshold for the fidelity
   guess_pulse:
     amplitude: 1.0e7                              # Amplitude of the subpulses (in V/m)
     pulse_type: SIM                               # Type of starting guess pulse

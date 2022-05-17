@@ -23,6 +23,12 @@ cd "${SLURM_SUBMIT_DIR}"
 # Define the QOCT-RA directory here
 QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
 
+# Setup the treatment job
+if [ ${SLURM_ARRAY_TASK_ID} -eq 0 ]
+then
+  sbatch "--dependency=afterok:${SLURM_ARRAY_JOB_ID}" "{{ treatment_script }}"
+fi
+
 echo -e "\n============================================================================="
 echo -e "=====================   Defining the parameters files   ====================="
 echo -e "=============================================================================\n"
@@ -107,8 +113,15 @@ echo -e "\n================= PCP QOCT-RA execution begins now ==================
 rm "Controle.out"
 echo -e "\n================= PCP QOCT-RA execution ends now =================="
 
-echo -e "\nCopying output files to the submit directory."
+pulse_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}/${subdirname}/"
+echo -e "\nCopying scratch files to ${pulse_dir}."
+mkdir -p "${pulse_dir}"
 rm -r ${SCRATCH}/Pulse/Pulse_iter*
+cp -r ${SCRATCH}/* "${pulse_dir}" || { echo "ERROR: Unable to copy files to ${pulse_dir}" && exit $?; }
+
+echo -e "\nCopying non-Pulse and non-PCP output files to the submit directory."
+rm -r "${SCRATCH}/Pulse"
+rm -r "${SCRATCH}/PCP"
 cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}"  || { echo "ERROR: Unable to copy SCRATCH directory in ${SLURM_SUBMIT_DIR}/${subdirname}" && exit $?; }
 
 echo -e "\nRemoving ${SCRATCH} directory."
@@ -118,43 +131,10 @@ rm -rf "${SCRATCH}" || echo "ERROR: A problem might have occurred when trying to
 echo -e "\nMoving input file to its corresponding subdirectory."
 mv "${param_nml}" "${subdirname}/"
 
-{% if copy_files is sameas true -%}
-echo -e "\n===================================================================="
-echo -e "==============   Post-calculation files manipulation   ============="
-echo -e "===================================================================="
-
-# Copy data directory (only once, with the ARRAY_ID = 1)
-if [ ${SLURM_ARRAY_TASK_ID} -eq 1 ]
-then
-  res_data_dir="{{ results_dir }}/{{ source_name }}/CONTROL/aldu_param_search"
-  echo -e "\nCopying data files to ${res_data_dir}."
-  mkdir -p "${res_data_dir}"
-  cp -rf  "{{ data_dir }}" "${res_data_dir}"
-fi
-
-# Copy job files
-dirname="{{ transition }}"
-res_dir="{{ results_dir }}/{{ source_name }}/CONTROL/aldu_param_search/${dirname}"
-mkdir -p "${res_dir}"
-echo -e "\nCopying job files from ${dirname} to ${res_dir}."
-if [ ${SLURM_ARRAY_TASK_ID} -eq 1 ]
-then
-cp "{{ rendered_param_PCP }}" "{{ guess_pulse }}" "{{ job_script }}" "{{ config_name }}.yml" "${res_dir}" # Copy those files only once as they are the same for each job in the array
-fi
-cp "${subdirname}/${param_nml}" "${res_dir}/${subdirname}_param.nml"
-cp "${subdirname}/obj.res" "${res_dir}/${subdirname}_obj.res"
-cp "${subdirname}/PCP/obj.res" "${res_dir}/${subdirname}_obj_PCP.res"
-
 echo -e "\n******************************************************************************"
 echo -e "*****************************   End of the job   *****************************"
 echo -e "******************************************************************************"
 
-# Copy slurm output file
-cp "slurm_output_${SLURM_ARRAY_TASK_ID}.log" "${res_dir}/${subdirname}_slurm_output.log"
-{% else %}
-echo -e "\n******************************************************************************"
-echo -e "*****************************   End of the job   *****************************"
-echo -e "******************************************************************************"
-{%- endif %}
-# Move slurm output file to its corresponding subdirectory
+# Copy slurm output file to the GLOBALSCRATCH and then move the original file to its corresponding subdirectory
+cp "slurm_output_${SLURM_ARRAY_TASK_ID}.log" "${pulse_dir}"
 mv "slurm_output_${SLURM_ARRAY_TASK_ID}.log" "${subdirname}/"

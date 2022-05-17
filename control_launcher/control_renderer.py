@@ -116,12 +116,14 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     template_param = "param.nml.jinja"
     template_script = "aldu_param_search_job.sh.jinja"
     template_pulse = "guess_pulse_OPC.jinja"
+    template_treatment = "aldu_param_treatment_job.sh.jinja"
 
     # Check if the specified templates exist in the "templates" directory of CONTROL LAUNCHER.
     
     control_common.check_abspath(os.path.join(misc['templates_dir'],template_param),"Jinja template for the qoctra parameters files","file")
     control_common.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the qoctra job script","file")
     control_common.check_abspath(os.path.join(misc['templates_dir'],template_pulse),"Jinja template for the OPC guess pulse","file")
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_treatment),"Jinja template for the treatment job script","file")
 
     # Define rendered files
     # =====================
@@ -129,6 +131,7 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     # Define the names of the rendered files.
 
     rendered_script = "aldu_param_search_job.sh"
+    rendered_treatment = "aldu_param_treatment_job.sh"
     rendered_pulse = "guess_pulse"
     rendered_param_pcp = "PCP_param.nml"
 
@@ -147,9 +150,10 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     # Load CHAINS configuration file if needed
     # ========================================
 
-    if copy_files:
+    chains_path = os.path.dirname(misc['code_dir']) 
 
-      chains_path = os.path.dirname(misc['code_dir']) 
+    if copy_files:
+      
       chains_config_file = control_common.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
 
       print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
@@ -395,7 +399,7 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     print('%12s' % "[ DONE ]")
 
     # ========================================================= #
-    #                  Rendering the job script                 #
+    #               Rendering the main job script               #
     # ========================================================= #
 
     print("{:<80}".format("\nRendering the jinja template for the qoctra job script ..."), end="")
@@ -415,11 +419,13 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
       "job_memory" : job_specs['memory'], # in MB
       "partition" : job_specs['partition'],
       "array_size" : array_size,
+      "cluster_name": job_specs['cluster_name'],
+      "treatment_script" : rendered_treatment,
       "input_names": input_names,
       "prefix_param" : prefix_param,
       "rendered_param_PCP" : rendered_param_pcp,
       "guess_pulse" : rendered_pulse,
-      "copy_files" : copy_files # Associated with the config file, but it has already been verified
+      "profile" : job_specs['profile']
     }
 
     # Variables associated with the "general" block of the config file
@@ -443,6 +449,45 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     except KeyError as error:
       raise control_common.ControlError ('ERROR: The "%s" key is missing in the "%s" profile of the clusters configuration file.' % (error,job_specs['profile']))
 
+    # Rendering the file
+    # ==================
+
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #             Rendering the treatment job script            #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the treatment job script ..."), end="")
+
+    # Defining the mandatory Jinja variables
+    # ======================================
+
+    # Variables not associated with the config file
+
+    treatment_render_vars = {
+      "source_name" : misc['source_name'],
+      "transition" : misc['transition']['label'],
+      "config_name" : misc['config_name'],
+      "cluster_name": job_specs['cluster_name'],
+      "profile" : job_specs['profile'],
+      "chains_dir" : chains_path,
+      "copy_files" : copy_files # Associated with the config file, but it has already been verified
+    }
+
+    # Variables associated with the "general" block of the config file
+
+    try:
+      treatment_render_vars.update({
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type']
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
     # Defining the specific Jinja variables
     # =====================================
 
@@ -452,15 +497,21 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
 
       # Variables not associated with the config file
 
-      script_render_vars.update({
+      treatment_render_vars.update({
         "data_dir" : data['main_path'],
-        "job_script" : rendered_script
+        "rendered_param_PCP" : rendered_param_pcp,
+        "guess_pulse" : rendered_pulse,
+        "job_script" : rendered_script,
+        "treatment_script" : rendered_treatment,
+        "momdip_key" : misc['transition']['momdip_key'],
+        "pro_dir" : misc['pro_dir']
       })
 
       # Variables associated with the CHAINS configuration file
 
       try:
-        script_render_vars.update({
+        treatment_render_vars.update({
+          "output_dir" : chains_config['output_aldu'],
           "results_dir" : chains_config['results_dir']
         })
 
@@ -470,7 +521,7 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     # Rendering the file
     # ==================
 
-    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
+    rendered_content[rendered_treatment] = jinja_render(misc['templates_dir'], template_treatment, treatment_render_vars)
 
     print('%12s' % "[ DONE ]")
 

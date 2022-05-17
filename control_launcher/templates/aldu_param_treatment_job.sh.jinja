@@ -1,0 +1,59 @@
+#!/bin/bash
+
+{# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
+#SBATCH --output=slurm_output_treatment.log
+#SBATCH --job-name={{ source_name }}_{{ transition }}_aldu_treatment
+#SBATCH --mail-user={{ user_email }}
+#SBATCH --mail-type=FAIL
+#SBATCH --time=0-00:05:00
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=500
+
+echo -e "******************************************************************************"
+echo -e "**************************   Beginning of the job   **************************"
+echo -e "******************************************************************************\n"
+
+date
+cd "${SLURM_SUBMIT_DIR}"
+
+# Define the scratch directory where all the results can be found
+scratch_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}"
+
+# Treat the data
+echo -e "\nTreating the data from ${scratch_dir} ...\n\n"
+source "{{ chains_dir }}/load_modules.sh"
+python "{{ chains_dir }}/aldu_param_treatment.py" -r "${scratch_dir}" -o "${SLURM_SUBMIT_DIR}"
+
+{% if copy_files is sameas true -%}
+# Copy data directory
+res_dir="{{ results_dir }}/{{ source_name }}/CONTROL/{{ profile }}"
+echo -e "\nCopying data files to ${res_dir}."
+mkdir -p "${res_dir}"
+cp -rf  "{{ data_dir }}" "${res_dir}"
+
+# Copy job files
+trans_dir="${res_dir}/{{ transition }}"
+mkdir -p "${trans_dir}"
+echo -e "\nCopying job files from {{ transition }} to ${trans_dir}."
+cp "{{ rendered_param_PCP }}" "{{ guess_pulse }}" "{{ job_script }}" "{{ config_name }}.yml" "aldu_comp_results.csv" "{{ treatment_script }}" "${trans_dir}"
+if [[ -d "best_pulse" ]]
+then
+    cp -r "best_pulse" "${trans_dir}"
+fi
+
+# Notify the end of this array calculation and copy the source file to the output dir if all arrays have finished
+touch "{{ pro_dir }}/{{ momdip_key }}.end"
+end_files="{{ pro_dir }}/*.end"
+if [ $(ls ${end_files} 2>/dev/null | wc -l) -eq 3 ]
+then
+  echo -e "\n\nCopying {{ data_dir }}/{{ source_name }}.out to {{ output_dir }}."
+  mkdir -p "{{ output_dir }}"
+  cp "{{ data_dir }}/{{ source_name }}.out" "{{ output_dir }}/"
+  rm "${end_files}"
+fi
+{%- endif %}
+
+echo -e "\n******************************************************************************"
+echo -e "*****************************   End of the job   *****************************"
+echo -e "******************************************************************************"
+
