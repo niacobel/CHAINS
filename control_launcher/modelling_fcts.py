@@ -787,7 +787,7 @@ def orca_tddft(source_content:list):
     for state in system['states_list']:
       state['sing_percent'] = 0.0
       state['trip_percent'] = 0.0
-      weights_list = [val**2 for val in np.absolute(system['eigenvectors'][state['number']])]
+      weights_list = [val**2 for val in np.absolute(system['eigenvectors_inv'][state['number']])]
       for idx, weight in enumerate(weights_list):
         if system['zero_states_list'][idx]['label'].startswith('S'):
           state['sing_percent'] += weight
@@ -1841,7 +1841,7 @@ def qchem_tddft(source_content:list):
     for state in system['states_list']:
       state['sing_percent'] = 0.0
       state['trip_percent'] = 0.0
-      weights_list = [val**2 for val in np.absolute(system['eigenvectors'][state['number']])]
+      weights_list = [val**2 for val in np.absolute(system['eigenvectors_inv'][state['number']])]
       for idx, weight in enumerate(weights_list):
         if system['zero_states_list'][idx]['label'].startswith('S'):
           state['sing_percent'] += weight

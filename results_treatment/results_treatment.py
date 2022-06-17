@@ -749,6 +749,7 @@ def main():
       # Get the energy of the first bright state (with a nonzero transition dipole moment)
 
       gs_number = [state['number'] for state in zero_states_list if state['label'] == 'S0'][0]
+      opt_gap = 0.0
 
       for singlet in singlet_states:
 

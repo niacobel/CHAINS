@@ -54,7 +54,7 @@ then
   echo -e "\n\nCopying {{ data_dir }}/{{ source_name }}.out to {{ output_dir }}."
   mkdir -p "{{ output_dir }}"
   cp "{{ data_dir }}/{{ source_name }}.out" "{{ output_dir }}/"
-  rm "${end_files}"
+  rm ${end_files}
 fi
 {%- endif %}
 
