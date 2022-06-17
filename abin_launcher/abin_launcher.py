@@ -832,7 +832,7 @@ def main():
         print(error)
         print("Skipping configuration '%s'" % config_name)
         os.remove(os.path.join(out_dir,log_name))               # Remove the log file since there was a problem
-        problem_cf.append(config_filename)                      # Add the name of this configuration file to the list as to not archive it
+        problem_cf.append(config_filepath)                      # Add the path to this configuration file to the list as to not archive it
         keep_mol = True                                         # Flag to notify that a problem has occurred and to not archive the geometry file
         continue        
 
@@ -873,9 +873,11 @@ def main():
   # After all geometries have been treated, archive the configuration files if keep_cf has not been set and there was no problem
 
   if not keep_cf:
-    for config_filename in config_inp_list:
-      if config_filename not in problem_cf:
-        launched_dir = os.path.join(config_dirpath,"launched") # Directory where the configuration files will be put after having been treated by this script, it will be created inside the directory where were all the configuration files.
+    for config_filepath in config_inp_list:
+      if config_filepath not in problem_cf:
+        config_dirpath = os.path.dirname(config_filepath)
+        config_filename = os.path.basename(config_filepath)
+        launched_dir = os.path.join(config_dirpath,"launched") # Directory where the configuration files will be put after having been treated by this script, it will be created inside the directory where was the configuration file.
         os.makedirs(launched_dir, exist_ok=True)
         if os.path.exists(os.path.join(launched_dir,config_filename)):
           os.remove(os.path.join(launched_dir,config_filename))
