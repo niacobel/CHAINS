@@ -179,7 +179,8 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
       "energies_file_path" : data['energies_path'],
       "momdip_path" : data['momdip_mtx_path'],
       "init_file_path" : data['init_path'],
-      "target_file_path" : data['target_path']
+      "target_file_path" : data['target_path'],
+      "projector_path" : data.get('projector_path',"no")
     }
 
     # Check if a "control" block has been defined in the "qoctra" block of the config file
@@ -213,7 +214,7 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
 
     param_render_vars.update({
       # POST CONTROL
-      "mat_et0_path" : data['eigenvectors_path']
+      "conv_mtx_path" : data['conv_mtx_path']
     })
 
     # Handle the parameters
@@ -284,7 +285,7 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
       # CONTROL
       "start_pulse" : "../Pulse/Pulse",
       # POST CONTROL
-      "mat_et0_path" : data['eigenvectors_path']
+      "conv_mtx_path" : data['conv_mtx_path']
     })
 
     # Check if a "post_control" block has been defined in the "qoctra" block of the config file

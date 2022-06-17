@@ -756,7 +756,7 @@ def main():
             for data in values_list:
               alpha_list.append(data['Alpha'])
               duration_list.append(data['Duration (ps)'])
-              overlap_list.append(data['Overlap'])
+              overlap_list.append(data['Projector'])
             
             # Prepare the data (as shown on https://stackoverflow.com/questions/54437559/numpy-meshgrid-from-unordered-x-y-z-data)
             # ~~~~~~~~~~~~~~~~

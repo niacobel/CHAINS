@@ -528,16 +528,6 @@ def main():
         print("{:1.10e}".format(state['energy']), file = f)
     print("    ├── The energies file ('%s') has been created into the directory" % energies_file)
 
-    # Eigenvectors matrix and its inverse
-
-    eigenvectors_file = "eigenvectors"
-    np.savetxt(os.path.join(data_dir,eigenvectors_file),system['eigenvectors'],fmt='% 18.10e')
-    print("    ├── The eigenvectors matrix file ('%s') has been created into the directory" % eigenvectors_file)
-
-    eigenvectors_inv_file = "eigenvectors_inv"
-    np.savetxt(os.path.join(data_dir,eigenvectors_inv_file),system['eigenvectors_inv'],fmt='% 18.10e')
-    print("    ├── The inverse of the eigenvectors matrix file ('%s') has been created into the directory" % eigenvectors_inv_file)
-
     # Dipole moments matrices
 
     for momdip_key in system['momdip_mtx']:
@@ -545,6 +535,22 @@ def main():
       momdip_mtx_file = 'momdip_mtx_' + momdip_key
       np.savetxt(os.path.join(data_dir,momdip_mtx_file),system['momdip_mtx'][momdip_key],fmt='% 18.10e')
       print("    ├── The transition dipole moment matrix file corresponding to the '%s' key ('%s') has been created into the directory" % (momdip_key, momdip_mtx_file))
+
+    # Conversion matrix from zero order states to eigenstates (if it has been provided in the modelling function, otherwise it will just be a unitary matrix)
+
+    if 'conv_mtx' in system.keys():
+
+      conv_mtx_file = 'conv_mtx'
+      np.savetxt(os.path.join(data_dir,conv_mtx_file),system['conv_mtx'],fmt='% 18.10e')
+      print("    ├── The conversion matrix file ('%s') has been created into the directory" % conv_mtx_file)
+
+    else:
+
+      conv_mtx_file = 'conv_mtx'
+      conv_mtx = np.zeros((len(system['states_list']), len(system['states_list'])), dtype=float)
+      np.fill_diagonal(conv_mtx, 1.0)
+      np.savetxt(os.path.join(data_dir,conv_mtx_file),conv_mtx,fmt='% 18.10e')
+      print("    ├── A matrix of ones ('%s') has been created into the directory, acting as a conversion matrix" % conv_mtx_file)
 
     # ========================================================= #
     # Creating the transition files                             #
@@ -569,6 +575,16 @@ def main():
               print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
             print('', file = f)
         print("    ├── The %s target states file has been created into the directory" % target_filename)
+    
+      if 'projector' in transition.keys():
+        projector_filename = 'projector_' + transition["target_file"] + "1"
+        if not os.path.exists(os.path.join(data_dir, projector_filename)):
+          with open(os.path.join(data_dir, projector_filename), "w") as f:
+            for line in transition["projector"]:
+              for val in line:
+                print('( {0.real:.10e} , {0.imag:.10e} )'.format(val), end = " ", file = f)
+              print('', file = f)
+          print("    ├── The projector for the %s target states file ('%s') has been created into the directory" % (target_filename,projector_filename))
 
     # ========================================================= #
     # Other files                                               #
@@ -772,13 +788,17 @@ def main():
           # Path of the generic data files
           "main_path" : data_dir,
           "energies_path" : os.path.join(data_dir,energies_file),
-          "eigenvectors_path" : os.path.join(data_dir,eigenvectors_file),
-          "eigenvectors_inv_path" : os.path.join(data_dir,eigenvectors_inv_file),
+          "conv_mtx_path" : os.path.join(data_dir,conv_mtx_file),
           # Path of the data files specific to this transition          
           "init_path" : os.path.join(data_dir,transition['init_file']),
           "target_path" : os.path.join(data_dir,transition['target_file']),
           "momdip_mtx_path" : os.path.join(data_dir,'momdip_mtx_' + transition['momdip_key'])
         }
+
+        if 'projector' in transition.keys():
+          data.update({
+            "projector_path" : os.path.join(data_dir,'projector_' + transition["target_file"])
+          })
 
         # Build a dictionary that will contain all information related to the job
 

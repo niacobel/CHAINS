@@ -6,7 +6,7 @@
 ################################################################################################################################################
 
 import numpy as np
-import scipy
+import math
 
 import control_common
 
@@ -40,6 +40,60 @@ def brightest_to_darkest(system:dict):
     # Initialize the list of dictionaries that will be returned by the function
 
     transitions_list = []
+
+    # ========================================================= #
+    #              Identifying degenerated states               #
+    # ========================================================= #
+
+    # Initialize some variables
+
+    deg_threshold = 1e-5 # Degeneracy threshold (in Ha)
+    deg_groups = []
+
+    # Iterate over the states and identify groups of degenerated states
+
+    for state in system['states_list']:
+
+      degenerated = False
+
+      for other_state in [other_state for other_state in system['states_list'] if other_state['number'] < state['number']]:
+
+        if math.isclose(state['energy'],other_state['energy'],abs_tol=deg_threshold):
+
+          degenerated = True
+
+          # Define if and how to add this pair of degenerated states to the list of degeneracies
+
+          added = False
+
+          for group in deg_groups:
+
+            if other_state['number'] in group and state['number'] not in group:
+              group.append(state['number'])
+              added = True
+
+            elif state['number'] in group and other_state['number'] not in group:
+              group.append(other_state['number'])
+              added = True
+              
+            elif other_state['number'] in group and state['number'] in group:
+              added = True
+
+          if not added:
+            deg_groups.append([state['number'],other_state['number']])
+      
+      if not degenerated:
+        deg_groups.append([state['number']])
+
+    # Pretty recap for the log file
+
+    print("")
+    print(''.center(70, '-'))
+    print("{:<70}".format("Degenerated groups"))
+    print(''.center(70, '-'))
+    for idx, group in enumerate(deg_groups):
+      print("{:<30} {:<40}".format("Group %s: " % str(idx), " - ".join(map(str,group)) if len(group) > 1 else str(group[0])))
+    print(''.center(70, '-'))
 
     # ========================================================= #
     #                   Defining transitions                    #
@@ -87,37 +141,82 @@ def brightest_to_darkest(system:dict):
         # Start iterating over the darkest states
         for d_index in dark_max_indices:
     
-          # Skip if both states are the same
-          if b_index == d_index:
+          # Skip if both states are in the same degenerated group
+          if any([b_index in group and d_index in group for group in deg_groups]):
             continue
 
           # Skip if the dark state energy is higher than the one of the brightest state (stimulated emission scheme)
           if system['states_list'][b_index]["energy"] < system['states_list'][d_index]["energy"]:
             continue
 
-          # Define the initial density matrix file name and content
+          # Identify the pair
 
           bright_index = b_index
           bright_label = system['states_list'][bright_index]["label"]
 
-          init_file = bright_label + "_"
-
-          init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
-          init_content[bright_index][bright_index] = complex(1)
-
-          # Define the target density matrix file name and content
-
           dark_index = d_index
           dark_label = system['states_list'][dark_index]["label"]
-
-          target_file = dark_label + "_"
-
-          target_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)  # Quick init of a zero-filled matrix
-          target_content[dark_index][dark_index] = complex(1)
 
           pair_found = True
 
           break
+
+      # ========================================================= #
+      #               Defining the density matrices               #
+      # ========================================================= #
+
+      # Initial states
+      # ~~~~~~~~~~~~~~
+
+      # Initialize the density matrix
+
+      init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
+
+      # Define the initial density matrix file name (will be modified if the initial state is degenerated)
+
+      init_file = bright_label
+
+      # Find the degenerated group to which the bright state belongs
+
+      bright_group = [group for group in deg_groups if bright_index in group][0]
+
+      # The starting populations are proportional to the transition dipole moments between each state of the "bright group" and the ground state
+      # If the bright state is not degenerated, its starting population will be 1
+
+      total_momdip = sum([system['momdip_mtx'][momdip_key][0][state_number] for state_number in bright_group])
+      for state_number in bright_group:
+        if state_number != bright_index:
+          init_file += "-" + str(state_number) # Add the number of this state to the init filename
+        init_content[state_number][state_number] = complex(system['momdip_mtx'][momdip_key][0][state_number] / total_momdip)
+
+      # Target states
+      # ~~~~~~~~~~~~~
+
+      target_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
+      target_content[dark_index][dark_index] = complex(1)
+
+      # ========================================================= #
+      #                  Defining the projector                   #
+      # ========================================================= #
+
+      # Initialize the projector matrix
+
+      projector_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
+
+      # Define the target density matrix file name (will be modified if the target state is degenerated)
+
+      target_file = dark_label
+
+      # Find the degenerated group to which the dark state belongs
+
+      dark_group = [group for group in deg_groups if dark_index in group][0]
+
+      # We need to 'open the channel' (put a 1) for each state belonging to the "dark group"
+
+      for state_number in dark_group:
+        if state_number != dark_index:
+            target_file += "-" + str(state_number) # Add the number of this state to the target filename
+        projector_content[state_number][state_number] = complex(1)
 
       # ========================================================= #
       #           Building the transition dictionary              #
@@ -125,15 +224,16 @@ def brightest_to_darkest(system:dict):
 
       # Building the transition dictionary
 
-      transition_label = momdip_key + "_" + bright_label + "-" + dark_label
+      transition_label = momdip_key + "_" + init_file + "_" + target_file
 
       transition = {
         "label" : transition_label,
-        "init_file" : init_file,
+        "init_file" : init_file + "_",
         "init_content" : init_content,
-        "target_file" : target_file,
+        "target_file" : target_file + "_",
         "target_content" : target_content,
-        "momdip_key" : momdip_key
+        "momdip_key" : momdip_key,
+        "projector" : projector_content
         }
 
       # Pretty recap for the log file
@@ -145,9 +245,9 @@ def brightest_to_darkest(system:dict):
       print(''.center(70, '-'))
       print("{:<30} {:<40}".format("Transition dipole matrix: ", momdip_key))
       print(''.center(70, '-'))
-      print("{:<30} {:<40}".format("Initial state: ", "%s (%s)" % (bright_label,bright_index)))
+      print("{:<30} {:<40}".format("Initial state: ", "%s" % init_file))
       print(''.center(70, '-'))
-      print("{:<30} {:<40}".format("Target state: ", "%s (%s)" % (dark_label,dark_index)))
+      print("{:<30} {:<40}".format("Target state: ", "%s" % target_file))
       print(''.center(70, '-'))
 
       # Add the transition to the transitions list

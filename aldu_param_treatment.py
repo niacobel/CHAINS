@@ -217,37 +217,39 @@ def main():
         with open(pcp_file_path, 'r') as pcp_f:
           file_content = pcp_f.read()
 
+        # Prepare to store information specific to this calculation
+
+        data = {
+            "Directory" : dirname,
+            "Alpha" : alpha,
+            "Duration (ps)" : duration
+        }
+
         # Define the expression patterns for the lines of the iterations file
         # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
-        rx_pcp_line = re.compile(r"^\s+\d+\s+\d+\s+\d+(?:sec|min)\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+(?P<fluence>\d\.\d+D[+-]\d+)\s\|Recou\(i\)\s+(?P<overlap>\d\.\d+D[+-]\d+)\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
+        rx_pcp_line = re.compile(r"^\s+\d+\s+\d+\s+\d+(?:sec|min)\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+(?P<fluence>\d\.\d+D[+-]\d+)\s\|Recou\(i\)\s+(?P<overlap>\d\.\d+D[+-]\d+)\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+(?P<projector>\d\.\d+D[+-]\d+)")
 
         # Get the values
 
         line_data = rx_pcp_line.match(file_content)
         if line_data is not None:
-          fidelity_raw = line_data.group("fidelity")
-          fidelity = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fidelity_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-          if fidelity >= 1:
-            fidelity = 1
-          fluence_raw = line_data.group("fluence")
-          fluence = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fluence_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-          overlap_raw = line_data.group("overlap")
-          overlap = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', overlap_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-          if overlap >= 1:
-            overlap = 1
+          for key in ['projector','overlap','fidelity','fluence']:
+
+            raw_value = line_data.group(key)
+            value = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', raw_value)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
+            if key != 'fluence':
+              value = min (value, 1)
+            
+            data.update({
+              key.capitalize() : value
+            })
+
         else:
           raise AD_Error ("ERROR: Unable to get the values from the file %s" % pcp_file_path) 
 
         # Store information specific to this calculation
 
-        comp_results.append({
-            "Directory" : dirname,
-            "Alpha" : alpha,
-            "Duration (ps)" : duration,
-            "Overlap" : overlap,
-            "Fidelity" : fidelity,
-            "Fluence" : fluence
-        })
+        comp_results.append(data)
 
     if dir_list == []:
       raise AD_Error ("ERROR: Can't find any 'xxx_alphaXXX_durXXX' directory in %s" % results_dir)
@@ -284,7 +286,7 @@ def main():
   best_result = {'Fluence': float('inf')}
   max_eff = 0
   for result in comp_results:
-    if result['Overlap'] >= threshold:
+    if result['Projector'] >= threshold:
       alpha_score = alpha_list.index(result['Alpha'])
       duration_score = duration_list.index(result['Duration (ps)'])
       eff_score = alpha_score + duration_score
@@ -316,7 +318,7 @@ def main():
     shutil.copytree(os.path.join(results_dir,best_result['Directory']),os.path.join(out_dir,"best_pulse"))
     print("[ DONE ]")
   else:
-    print("None of the pulses have reached an overlap of %s or higher in %s" % (threshold,results_dir))
+    print("None of the pulses have reached a projector value of %s or higher in %s" % (threshold,results_dir))
 
   # Write the compiled results into a CSV file
 

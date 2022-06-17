@@ -5,9 +5,10 @@
 
 &DATA_FILES
   energies = "{{ energies_file_path }}",        ! Path towards the energies file in Hartree
-  dip_mtx = "{{ momdip_path }}",              ! Path towards the transition dipole moments matrix file in atomic units
+  dip_mtx = "{{ momdip_path }}",                ! Path towards the transition dipole moments matrix file in atomic units
   initial = "{{ init_file_path }}",             ! Path towards the initial state file
   target = "{{ target_file_path }}"             ! Path towards the target state file
+  projector = "{{ projector_path }}"            ! Path towards the projector file
 /
 
 &CONTROL
@@ -53,10 +54,10 @@
 &POST_CONTROL
 {% if process == "PCP" %}
   analy_freq = {{ analy_freq }},                ! Number of steps between each analysis of the populations, phases, positions and energies
-  conv_mtx = "{{ mat_et0_path }}",              ! Conversion matrix, from eigenstates to zero order states
+  conv_mtx = "{{ conv_mtx_path }}",             ! Conversion matrix, from eigenstates to zero order states
   init_time = 20661110.d0                       ! PCL temps initial (phase)
 {% else -%}
-  conv_mtx = "{{ mat_et0_path }}"               ! Conversion matrix, from eigenstates to zero order states
+  conv_mtx = "{{ conv_mtx_path }}"              ! Conversion matrix, from eigenstates to zero order states
 {%- endif %}
 /
 
