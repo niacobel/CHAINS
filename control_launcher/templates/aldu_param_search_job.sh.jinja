@@ -83,7 +83,10 @@ mkdir -p "${SCRATCH}" || exit $?
 
 # Copy the input files to the scratch folder
 
-cp "${SLURM_SUBMIT_DIR}/${param_nml}" "${SLURM_SUBMIT_DIR}/{{ rendered_param_PCP }}" "${SLURM_SUBMIT_DIR}/{{ guess_pulse }}" "${SCRATCH}/" || exit $?
+cp "${SLURM_SUBMIT_DIR}/${param_nml}" "${SLURM_SUBMIT_DIR}/{{ guess_pulse }}" "${SCRATCH}/" || exit $?
+{% for momdip_key in momdip_keys -%}
+cp "${SLURM_SUBMIT_DIR}/{{ momdip_key }}_{{ rendered_param_PCP }}" "${SCRATCH}/" || exit $?
+{% endfor %}
 
 cd "${SCRATCH}"
 mkdir -p "Verif" # Strangely needed by QOCT-RA
@@ -97,36 +100,43 @@ mkdir -p "Verif" # Strangely needed by QOCT-RA
 # Compile the code (cluster dependent)
 
 echo -e ">>> Start of QOCT-RA compilation"
-gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 "${QOCT_RA_DIR}/fft_sub.f" "${QOCT_RA_DIR}/mymod.f" "${QOCT_RA_DIR}/Controle.f90" -o "Controle.out"
+gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 "${QOCT_RA_DIR}/fft_sub.f" "${QOCT_RA_DIR}/mymod.f" "${QOCT_RA_DIR}/Controle.f90" -o "Controle.out" || { cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the QOCT-RA compilation" && exit $?; }
 rm "mymod.mod"  
 echo -e ">>> End of QOCT-RA compilation"
 
 # First execution to get the optimal pulse
 
 echo -e "\n================= First QOCT-RA execution begins now =================="
-./Controle.out "${param_nml}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occcured during the first execution of QOCT-RA" && exit $?; }
+./Controle.out "${param_nml}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the first execution of QOCT-RA" && exit $?; }
 echo -e "\n================= First QOCT-RA execution ends now =================="
 
-# Second execution to test the optimal pulse (PCP mode)
+# Secondary executions to test the optimal pulse (PCP mode)
 
-mkdir "${SCRATCH}/PCP"
-mv "Controle.out" "${SCRATCH}/PCP/"
-cd "${SCRATCH}/PCP/"
+{% for momdip_key in momdip_keys -%}
 
-echo -e "\n================= PCP QOCT-RA execution begins now =================="
-./Controle.out "${SCRATCH}/{{ rendered_param_PCP }}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occcured during the PCP execution of QOCT-RA" && exit $?; }
+echo -e "\nPreparing PCP_{{ momdip_key }} execution"
+pcp_dir="${SCRATCH}/PCP_{{ momdip_key }}/"
+mkdir "${pcp_dir}"
+cp "${SCRATCH}/Controle.out" "${pcp_dir}"
+cd "${pcp_dir}"
+
+echo -e "\n================= PCP_{{ momdip_key }} QOCT-RA execution begins now =================="
+./Controle.out "${SCRATCH}/{{ momdip_key }}_{{ rendered_param_PCP }}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the PCP_{{ momdip_key }} execution of QOCT-RA" && exit $?; }
 rm "Controle.out"
-echo -e "\n================= PCP QOCT-RA execution ends now =================="
+echo -e "\n================= PCP_{{ momdip_key }} QOCT-RA execution ends now =================="
 
-pulse_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}/${subdirname}/"
+{% endfor %}
+
+pulse_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}_{{ config_name }}/${subdirname}/"
 echo -e "\nCopying scratch files to ${pulse_dir}."
 mkdir -p "${pulse_dir}"
+rm "${SCRATCH}/Controle.out"
 rm -r ${SCRATCH}/Pulse/Pulse_iter*
 cp -r ${SCRATCH}/* "${pulse_dir}" || { echo "ERROR: Unable to copy files to ${pulse_dir}" && exit $?; }
 
 echo -e "\nCopying non-Pulse and non-PCP output files to the submit directory."
 rm -r "${SCRATCH}/Pulse"
-rm -r "${SCRATCH}/PCP"
+rm -r ${SCRATCH}/PCP_*
 cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}"  || { echo "ERROR: Unable to copy SCRATCH directory in ${SLURM_SUBMIT_DIR}/${subdirname}" && exit $?; }
 
 echo -e "\nRemoving ${SCRATCH} directory."

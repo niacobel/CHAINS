@@ -22,7 +22,7 @@ GLOBALSCRATCH="/home/ulb/cqp/niacobel/GLOBALSCRATCH"
 {%- endif %}
 
 # Define the scratch directory where all the results can be found
-scratch_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}"
+scratch_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}_{{ config_name }}"
 
 # Treat the data
 echo -e "\nTreating the data from ${scratch_dir} ...\n\n"
@@ -40,22 +40,17 @@ cp -rf  "{{ data_dir }}" "${res_dir}"
 trans_dir="${res_dir}/{{ transition }}"
 mkdir -p "${trans_dir}"
 echo -e "\nCopying job files from {{ transition }} to ${trans_dir}."
-cp "{{ rendered_param_PCP }}" "{{ guess_pulse }}" "{{ job_script }}" "{{ config_name }}.yml" "aldu_comp_results.csv" "{{ treatment_script }}" "${trans_dir}"
-if [[ -d "best_pulse" ]]
-then
-    cp -r "best_pulse" "${trans_dir}"
-fi
+cp "{{ guess_pulse }}" "{{ job_script }}" "{{ config_name }}.yml" "aldu_comp_results.csv" "{{ treatment_script }}" "${trans_dir}"
+{% for momdip_key in momdip_keys -%}
+cp "{{ momdip_key }}_{{ rendered_param_PCP }}" "${trans_dir}"
+{% endfor %}
+cp -r "best_pulse" "${trans_dir}"
 
-# Notify the end of this array calculation and copy the source file to the output dir if all arrays have finished
-touch "{{ pro_dir }}/{{ momdip_key }}.end"
-end_files="{{ pro_dir }}/*.end"
-if [ $(ls ${end_files} 2>/dev/null | wc -l) -eq 3 ]
-then
-  echo -e "\n\nCopying {{ data_dir }}/{{ source_name }}.out to {{ output_dir }}."
-  mkdir -p "{{ output_dir }}"
-  cp "{{ data_dir }}/{{ source_name }}.out" "{{ output_dir }}/"
-  rm ${end_files}
-fi
+# Copy the source file to the output dir to notify the end of this array calculation
+echo -e "\n\nCopying {{ data_dir }}/{{ source_name }}.out to {{ output_dir }}."
+mkdir -p "{{ output_dir }}"
+cp "{{ data_dir }}/{{ source_name }}.out" "{{ output_dir }}/"
+
 {%- endif %}
 
 echo -e "\n******************************************************************************"

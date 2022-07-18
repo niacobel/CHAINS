@@ -7,15 +7,16 @@
   energies = "{{ energies_file_path }}",        ! Path towards the energies file in Hartree
   dip_mtx = "{{ momdip_path }}",                ! Path towards the transition dipole moments matrix file in atomic units
   initial = "{{ init_file_path }}",             ! Path towards the initial state file
-  target = "{{ target_file_path }}"             ! Path towards the target state file
+  target = "{{ target_file_path }}",            ! Path towards the target state file
   projector = "{{ projector_path }}"            ! Path towards the projector file
 /
 
 &CONTROL
   max_iter = {{ max_iter }},                    ! Maximum number of iterations
-  thresh = {{ threshold }},                     ! Convergence threshold for the fidelity
+  thresh = {{ threshold }},                     ! Quality threshold for the fidelity
+  conv_thresh = {{ conv_thresh }},              ! Convergence threshold for the fidelity / projector
   time_step = {{ time_step }},                  ! Duration of a time step (a.u. of time)
-  start_pulse = "{{ start_pulse }}"             ! Reuse previous pulse (OPC, PCP) or initial states reading (PCL)
+  start_pulse = "{{ start_pulse }}",            ! Reuse previous pulse (OPC, PCP) or initial states reading (PCL)
   guess_pulse = "{{ guess_pulse }}"             ! Path towards the guess pulse file
 /
 
@@ -32,10 +33,10 @@
 {% if spectral_filter is defined %}
 {% if spectral_filter == "SGW" or spectral_filter == "SPGW" %}
   spectral_filter_center = {{  spectral_filter_center  }}, ! Central frequency of the pulse, in cm-1
-  spectral_filter_fwhm = {{  spectral_filter_fwhm  }}      ! Spectral bandwidth (FWHM) of the pulse, in cm-1
+  spectral_filter_fwhm = {{  spectral_filter_fwhm  }},     ! Spectral bandwidth (FWHM) of the pulse, in cm-1
   filter_form = "{{  spectral_filter  }}"                  ! Form of the filter function: [SGW] = single Gaussian-type (default) ; [MGW] = multiple Gaussian-type ; [SPGW] = Super Gaussian-type
 {% elif spectral_filter.upper() == "MGW" %}
-  spectral_filter_fwhm = {{  spectral_filter_fwhm  }}      ! Spectral bandwidth (FWHM) of the pulse, in cm-1
+  spectral_filter_fwhm = {{  spectral_filter_fwhm  }},     ! Spectral bandwidth (FWHM) of the pulse, in cm-1
   filter_form = "{{  spectral_filter  }}"                  ! Form of the filter function: [SGW] = single Gaussian-type (default) ; [MGW] = multiple Gaussian-type ; [SPGW] = Super Gaussian-type
 {%- endif -%}
 {%- endif -%}

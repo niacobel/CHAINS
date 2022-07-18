@@ -14,6 +14,8 @@ import csv
 import os
 import re
 import shutil
+from statistics import mean
+from math import log10
 
 # =================================================================== #
 # =================================================================== #
@@ -209,13 +211,9 @@ def main():
       if matching_dir is not None:
 
         dir_list.append(dirname)
-        pcp_file_path = os.path.join(results_dir, dirname, "PCP", "obj.res")
 
         alpha = float(matching_dir.group("alpha"))
         duration = float(matching_dir.group("duration"))
-
-        with open(pcp_file_path, 'r') as pcp_f:
-          file_content = pcp_f.read()
 
         # Prepare to store information specific to this calculation
 
@@ -225,27 +223,43 @@ def main():
             "Duration (ps)" : duration
         }
 
-        # Define the expression patterns for the lines of the iterations file
-        # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
-        rx_pcp_line = re.compile(r"^\s+\d+\s+\d+\s+\d+(?:sec|min)\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+(?P<fluence>\d\.\d+D[+-]\d+)\s\|Recou\(i\)\s+(?P<overlap>\d\.\d+D[+-]\d+)\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+(?P<projector>\d\.\d+D[+-]\d+)")
+        # Iterate over all the PCP directories
 
-        # Get the values
+        pcp_dirs = [dir.name for dir in os.scandir(os.path.join(results_dir, dirname)) if dir.is_dir() and (dir.name).startswith("PCP_")]
+        orientations = [] # List of all possible orientations
 
-        line_data = rx_pcp_line.match(file_content)
-        if line_data is not None:
-          for key in ['projector','overlap','fidelity','fluence']:
+        for pcp_dir in pcp_dirs:
 
-            raw_value = line_data.group(key)
-            value = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', raw_value)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-            if key != 'fluence':
-              value = min (value, 1)
+          pcp_file_path = os.path.join(results_dir, dirname, pcp_dir, "obj.res")
+          orientation = pcp_dir.partition("PCP_")[2]
+
+          with open(pcp_file_path, 'r') as pcp_f:
+            file_content = pcp_f.read()
+
+          # Define the expression patterns for the lines of the iterations file
+          # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
+          rx_pcp_line = re.compile(r"^\s+\d+\s+\d+\s+\d+(?:sec|min)\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+(?P<fluence>\d\.\d+D[+-]\d+)\s\|Recou\(i\)\s+(?P<overlap>\d\.\d+D[+-]\d+)\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+(?P<projector>\d\.\d+D[+-]\d+)")
+
+          # Get the values
+
+          line_data = rx_pcp_line.match(file_content)
+          if line_data is not None:
+            for key in ['projector','overlap','fidelity','fluence']:
+
+              raw_value = line_data.group(key)
+              value = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', raw_value)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
+              if key != 'fluence':
+                value = min (value, 1)
+              
+              data_key = orientation + "_" + key.capitalize() if key != 'fluence' else key.capitalize()
+              data.update({
+                data_key : value
+              })
             
-            data.update({
-              key.capitalize() : value
-            })
+            orientations.append(orientation) # Will be reused later
 
-        else:
-          raise AD_Error ("ERROR: Unable to get the values from the file %s" % pcp_file_path) 
+          else:
+            raise AD_Error ("ERROR: Unable to get the values from the file %s" % pcp_file_path) 
 
         # Store information specific to this calculation
 
@@ -273,30 +287,47 @@ def main():
 
   print ("{:<40}".format('\nIdentifying best parameters combo ...'), end="")
 
-  # Get all possible values for alpha and sort them by increasing order
-  alpha_list = [data['Alpha'] for data in comp_results]
-  alpha_list = list(dict.fromkeys(alpha_list)) # Remove duplicates
-  alpha_list = sorted(alpha_list)
+  # Identify the best orientation
 
-  # Get all possible values for the duration and sort them by decreasing order
-  duration_list = sorted(list(dict.fromkeys([data['Duration (ps)'] for data in comp_results])),reverse=True)
+  highest_mean = -float('inf')
+  for orientation in orientations:
+    proj_mean = mean([data[orientation + "_Projector"] for data in comp_results])
+    if proj_mean > highest_mean:
+      highest_mean = proj_mean
+      best_ori = orientation
 
-  # Compute the efficiency score for each good result and locate the best one
-  threshold = 0.99
-  best_result = {'Fluence': float('inf')}
-  max_eff = 0
+  # Get min/max for each value
+
+  alpha_min = min([data['Alpha'] for data in comp_results])
+  alpha_max = max([data['Alpha'] for data in comp_results])
+
+  dur_min = min([data['Duration (ps)'] for data in comp_results])
+  dur_max = max([data['Duration (ps)'] for data in comp_results])
+
+  proj_min = min([data[best_ori + "_Projector"] for data in comp_results])
+  proj_max = max([data[best_ori + "_Projector"] for data in comp_results])
+
+  flu_min = min([data["Fluence"] for data in comp_results])
+  flu_max = max([data["Fluence"] for data in comp_results])
+
+  # Compare the results by computing an efficiency score
+
+  max_eff = -float('inf')
+
   for result in comp_results:
-    if result['Projector'] >= threshold:
-      alpha_score = alpha_list.index(result['Alpha'])
-      duration_score = duration_list.index(result['Duration (ps)'])
-      eff_score = alpha_score + duration_score
-      if eff_score > max_eff:
-        best_result = result
-        max_eff = eff_score
-      elif eff_score == max_eff and result['Fluence'] < best_result['Fluence']:
-        best_result = result
+
+    proj_norm = (result[best_ori + "_Projector"] - proj_min) / (proj_max - proj_min)
+    flu_norm = (result["Fluence"] - flu_min) / (flu_max - flu_min)
+
+    eff_score = proj_norm - flu_norm
+    result['Efficiency'] = eff_score
+
+    if eff_score > max_eff:
+      best_result = result
+      max_eff = eff_score
 
   # Add a key specifying who is the best pulse
+
   for result in comp_results:
     if result == best_result:
       result['Best'] = True
@@ -313,12 +344,12 @@ def main():
 
   # Copy the result files of the best parameters combination to the output directory
 
-  if best_result != {'Fluence': float('inf')}:
-    print ("{:<40}".format('\nCopying result files ...'), end="")
-    shutil.copytree(os.path.join(results_dir,best_result['Directory']),os.path.join(out_dir,"best_pulse"))
-    print("[ DONE ]")
-  else:
-    print("None of the pulses have reached a projector value of %s or higher in %s" % (threshold,results_dir))
+  print ("{:<40}".format('\nCopying result files ...'), end="")
+  best_dir = os.path.join(out_dir,"best_pulse")
+  if os.path.exists(best_dir):
+    shutil.rmtree(best_dir)
+  shutil.copytree(os.path.join(results_dir,best_result['Directory']),best_dir)
+  print("[ DONE ]")
 
   # Write the compiled results into a CSV file
 

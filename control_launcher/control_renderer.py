@@ -198,13 +198,18 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
       threshold = float(config['qoctra']['control']['threshold'])
       threshold_for = "{:.5e}".format(threshold).replace('e','d')
 
+      conv_thresh = float(config['qoctra']['control']['conv_thresh'])
+      conv_thresh_for = "{:.5e}".format(conv_thresh).replace('e','d')
+
       param_render_vars.update({
         # CONTROL
         "max_iter" : config['qoctra']['control']['max_iter'],
         "threshold" : threshold_for,
+        "conv_thresh" : conv_thresh_for,
         "time_step" : time_step_for,
         "start_pulse" : " ",
-        "guess_pulse" : rendered_pulse
+        "guess_pulse" : rendered_pulse,
+        "write_freq" : config['qoctra']['control']['write_freq']
       })
 
     except KeyError as error:
@@ -304,10 +309,17 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     except KeyError as error:
       raise control_common.ControlError ('ERROR: The "%s" key is missing in the "post_control" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
 
-    # Rendering the file
-    # ==================
-     
-    rendered_content[rendered_param_pcp] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+    # Rendering the files (one for each orientation)
+    # ==============================================
+
+    for momdip_key in system['momdip_mtx']:
+
+      param_render_vars.update({
+        # GENERAL
+        "momdip_path" : os.path.join(data['main_path'],'momdip_mtx_' + momdip_key)
+      })
+
+      rendered_content[momdip_key + "_" + rendered_param_pcp] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
 
     print('%12s' % "[ DONE ]")
 
@@ -424,6 +436,7 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
       "treatment_script" : rendered_treatment,
       "input_names": input_names,
       "prefix_param" : prefix_param,
+      "momdip_keys" : list(system['momdip_mtx'].keys()),
       "rendered_param_PCP" : rendered_param_pcp,
       "guess_pulse" : rendered_pulse,
       "profile" : job_specs['profile']
@@ -500,6 +513,7 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
 
       treatment_render_vars.update({
         "data_dir" : data['main_path'],
+        "momdip_keys" : list(system['momdip_mtx'].keys()),
         "rendered_param_PCP" : rendered_param_pcp,
         "guess_pulse" : rendered_pulse,
         "job_script" : rendered_script,
