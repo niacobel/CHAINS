@@ -17,7 +17,7 @@ import control_common
 # =================================================================== #
 
 def brightest_to_darkest(system:dict):
-    """Determines the content of the files needed by QOCT-RA for the transition going from the brightest state to the darkest state. The brightest state is identified by its transition dipole moment with the ground state while the darkest state is identified by its radiative lifetime. This function ensures a stimulated emmission controle scheme so the chosen dark state will have a lower energy compared to the chosen bright state (other cases will be skipped).
+    """Determines the content of the files needed by QOCT-RA for the transition going from the brightest state to the darkest state using the transition dipole moments matrix presenting the highest values on average. The brightest and darkest states are identified by their transition dipole moment with the ground state. This function ensures a stimulated emmission controle scheme so the chosen dark state will have a lower energy compared to the chosen bright state (other cases will be skipped).
 
     Parameters
     ----------
@@ -27,7 +27,7 @@ def brightest_to_darkest(system:dict):
     Returns
     -------
     transitions_list : list
-        List of dictionaries containing six keys each: 
+        List of a single dictionary containing six keys: 
 
           - ``label`` is the label of the transition, which will be used for the name of the job directories.
           - ``init_file`` is the name of the initial state file, minus the number at the end.
@@ -47,7 +47,7 @@ def brightest_to_darkest(system:dict):
 
     # Initialize some variables
 
-    deg_threshold = 1e-5 # Degeneracy threshold (in Ha)
+    deg_threshold = control_common.energy_unit_conversion(5,'cm-1','ha') # Degeneracy threshold (in Ha)
     deg_groups = []
 
     # Iterate over the states and identify groups of degenerated states
@@ -96,163 +96,173 @@ def brightest_to_darkest(system:dict):
     print(''.center(70, '-'))
 
     # ========================================================= #
-    #                   Defining transitions                    #
+    #                   Defining orientation                    #
     # ========================================================= #
 
-    # We need to consider each transition dipole moments matrix separately
+    # Determining the best transition dipole moments matrix
+
+    highest_mean = -float('inf')
     for momdip_key in system['momdip_mtx']:
+      mtx = np.absolute(system['momdip_mtx'][momdip_key])
+      if mtx.mean() > highest_mean:
+        highest_mean = mtx.mean()
+        best_mtx = momdip_key
 
-      # ========================================================= #
-      #                Defining the pair of states                #
-      # ========================================================= #
+    # ========================================================= #
+    #                Defining the pair of states                #
+    # ========================================================= #
 
-      # Sorting the bright states
-      # =========================
+    # Sorting the bright states
+    # =========================
 
-      # Consider the dipole moments for transitions involving the ground state (and make sure it's a list and not a NumPy array)
-      gs_line = system['momdip_mtx'][momdip_key][0]
-      if isinstance(gs_line, np.ndarray):
-        gs_line = gs_line.tolist()
+    # Consider the dipole moments for transitions involving the ground state (and make sure it's a list and not a NumPy array)
+    gs_line = system['momdip_mtx'][best_mtx][0]
+    if isinstance(gs_line, np.ndarray):
+      gs_line = gs_line.tolist()
 
-      # Sort the indices of the states by decreasing order of the absolute value of their transition dipole moments
-      abs_gs_line = [abs(mom) for mom in gs_line]
-      bright_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line, reverse=True) if abs_gs_line.index(mom) != 0]
+    # Sort the indices of the states by decreasing order of the absolute value of their transition dipole moments
+    abs_gs_line = [abs(mom) for mom in gs_line]
+    bright_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line, reverse=True) if abs_gs_line.index(mom) != 0]
 
-      # Sorting the dark states
-      # =======================
+    # Sorting the dark states
+    # =======================
 
-      # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime)
-      # dark_max_indices = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')]
+    # Sort the indices of the states by decreasing order of their radiative lifetime (not taking into account the lowest energy level which has an infinite lifetime)
+    # dark_max_indices = [system['states_list'].index(state) for state in sorted(system['states_list'], key = lambda i: i['lifetime'], reverse=True) if state['lifetime'] != float('inf')]
 
-      # Sort the indices of the states by increasing order of the absolute value of their transition dipole moments 
-      dark_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line) if abs_gs_line.index(mom) != 0]
+    # Sort the indices of the states by increasing order of the absolute value of their transition dipole moments 
+    dark_max_indices = [abs_gs_line.index(mom) for mom in sorted(abs_gs_line) if abs_gs_line.index(mom) != 0]
 
-      # Iterate over the states
-      # =======================
+    # Iterate over the states
+    # =======================
 
-      pair_found = False
+    pair_found = False
+
+    # Start iterating over the brightest states
+    for b_index in bright_max_indices:
+
+      if pair_found:
+        break
 
       # Start iterating over the darkest states
-      for b_index in bright_max_indices:
+      for d_index in dark_max_indices:
+  
+        # Skip if both states are in the same degenerated group
+        if any([b_index in group and d_index in group for group in deg_groups]):
+          continue
 
-        if pair_found:
-          break
+        # Skip if the dark state energy is higher than the one of the brightest state (stimulated emission scheme)
+        if system['states_list'][b_index]["energy"] < system['states_list'][d_index]["energy"]:
+          continue
 
-        # Start iterating over the darkest states
-        for d_index in dark_max_indices:
-    
-          # Skip if both states are in the same degenerated group
-          if any([b_index in group and d_index in group for group in deg_groups]):
-            continue
+        # Skip if the dark state is in fact not a dark state
+        if system['states_list'][d_index]["trip_percent"] < 0.5:
+          continue
 
-          # Skip if the dark state energy is higher than the one of the brightest state (stimulated emission scheme)
-          if system['states_list'][b_index]["energy"] < system['states_list'][d_index]["energy"]:
-            continue
+        # Identify the pair
 
-          # Identify the pair
+        bright_index = b_index
+        bright_label = system['states_list'][bright_index]["label"]
 
-          bright_index = b_index
-          bright_label = system['states_list'][bright_index]["label"]
+        dark_index = d_index
+        dark_label = system['states_list'][dark_index]["label"]
 
-          dark_index = d_index
-          dark_label = system['states_list'][dark_index]["label"]
+        pair_found = True
 
-          pair_found = True
+        break
 
-          break
+    # ========================================================= #
+    #               Defining the density matrices               #
+    # ========================================================= #
 
-      # ========================================================= #
-      #               Defining the density matrices               #
-      # ========================================================= #
+    # Initial states
+    # ~~~~~~~~~~~~~~
 
-      # Initial states
-      # ~~~~~~~~~~~~~~
+    # Initialize the density matrix
 
-      # Initialize the density matrix
+    init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
 
-      init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
+    # Define the initial density matrix file name (will be modified if the initial state is degenerated)
 
-      # Define the initial density matrix file name (will be modified if the initial state is degenerated)
+    init_file = bright_label
 
-      init_file = bright_label
+    # Find the degenerated group to which the bright state belongs
 
-      # Find the degenerated group to which the bright state belongs
+    bright_group = [group for group in deg_groups if bright_index in group][0]
 
-      bright_group = [group for group in deg_groups if bright_index in group][0]
+    # The starting populations are proportional to the transition dipole moments between each state of the "bright group" and the ground state
+    # If the bright state is not degenerated, its starting population will be 1
 
-      # The starting populations are proportional to the transition dipole moments between each state of the "bright group" and the ground state
-      # If the bright state is not degenerated, its starting population will be 1
+    total_momdip = sum([system['momdip_mtx'][best_mtx][0][state_number] for state_number in bright_group])
+    for state_number in bright_group:
+      if state_number != bright_index:
+        init_file += "-" + str(state_number) # Add the number of this state to the init filename
+      init_content[state_number][state_number] = complex(system['momdip_mtx'][best_mtx][0][state_number] / total_momdip)
 
-      total_momdip = sum([system['momdip_mtx'][momdip_key][0][state_number] for state_number in bright_group])
-      for state_number in bright_group:
-        if state_number != bright_index:
-          init_file += "-" + str(state_number) # Add the number of this state to the init filename
-        init_content[state_number][state_number] = complex(system['momdip_mtx'][momdip_key][0][state_number] / total_momdip)
+    # Target states
+    # ~~~~~~~~~~~~~
 
-      # Target states
-      # ~~~~~~~~~~~~~
+    target_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
+    target_content[dark_index][dark_index] = complex(1)
 
-      target_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
-      target_content[dark_index][dark_index] = complex(1)
+    # ========================================================= #
+    #                  Defining the projector                   #
+    # ========================================================= #
 
-      # ========================================================= #
-      #                  Defining the projector                   #
-      # ========================================================= #
+    # Initialize the projector matrix
 
-      # Initialize the projector matrix
+    projector_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
 
-      projector_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
+    # Define the target density matrix file name (will be modified if the target state is degenerated)
 
-      # Define the target density matrix file name (will be modified if the target state is degenerated)
+    target_file = dark_label
 
-      target_file = dark_label
+    # Find the degenerated group to which the dark state belongs
 
-      # Find the degenerated group to which the dark state belongs
+    dark_group = [group for group in deg_groups if dark_index in group][0]
 
-      dark_group = [group for group in deg_groups if dark_index in group][0]
+    # We need to 'open the channel' (put a 1) for each state belonging to the "dark group"
 
-      # We need to 'open the channel' (put a 1) for each state belonging to the "dark group"
+    for state_number in dark_group:
+      if state_number != dark_index:
+          target_file += "-" + str(state_number) # Add the number of this state to the target filename
+      projector_content[state_number][state_number] = complex(1)
 
-      for state_number in dark_group:
-        if state_number != dark_index:
-            target_file += "-" + str(state_number) # Add the number of this state to the target filename
-        projector_content[state_number][state_number] = complex(1)
+    # ========================================================= #
+    #           Building the transition dictionary              #
+    # ========================================================= #
 
-      # ========================================================= #
-      #           Building the transition dictionary              #
-      # ========================================================= #
+    # Building the transition dictionary
 
-      # Building the transition dictionary
+    transition_label = best_mtx + "_" + init_file + "_" + target_file
 
-      transition_label = momdip_key + "_" + init_file + "_" + target_file
+    transition = {
+      "label" : transition_label,
+      "init_file" : init_file + "_",
+      "init_content" : init_content,
+      "target_file" : target_file + "_",
+      "target_content" : target_content,
+      "momdip_key" : best_mtx,
+      "projector" : projector_content
+      }
 
-      transition = {
-        "label" : transition_label,
-        "init_file" : init_file + "_",
-        "init_content" : init_content,
-        "target_file" : target_file + "_",
-        "target_content" : target_content,
-        "momdip_key" : momdip_key,
-        "projector" : projector_content
-        }
+    # Pretty recap for the log file
 
-      # Pretty recap for the log file
+    print("")
+    print(''.center(70, '-'))
+    print("{:<30} {:<40}".format("Label: ", transition["label"]))
+    print(''.center(70, '-'))
+    print(''.center(70, '-'))
+    print("{:<30} {:<40}".format("Transition dipole matrix: ", best_mtx))
+    print(''.center(70, '-'))
+    print("{:<30} {:<40}".format("Initial state: ", "%s" % init_file))
+    print(''.center(70, '-'))
+    print("{:<30} {:<40}".format("Target state: ", "%s" % target_file))
+    print(''.center(70, '-'))
 
-      print("")
-      print(''.center(70, '-'))
-      print("{:<30} {:<40}".format("Label: ", transition["label"]))
-      print(''.center(70, '-'))
-      print(''.center(70, '-'))
-      print("{:<30} {:<40}".format("Transition dipole matrix: ", momdip_key))
-      print(''.center(70, '-'))
-      print("{:<30} {:<40}".format("Initial state: ", "%s" % init_file))
-      print(''.center(70, '-'))
-      print("{:<30} {:<40}".format("Target state: ", "%s" % target_file))
-      print(''.center(70, '-'))
+    # Add the transition to the transitions list
 
-      # Add the transition to the transitions list
-
-      transitions_list.append(transition)
+    transitions_list.append(transition)
 
     return transitions_list
 
