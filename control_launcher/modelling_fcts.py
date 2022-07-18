@@ -1328,6 +1328,9 @@ def qchem_tddft(source_content:list):
       # Pattern for finding lines looking like '    1    2   0.001414  -0.001456   0.004860   1.240659E-10'
       'moment': re.compile(r'^\s*(?P<state_1>\d+)\s+(?P<state_2>\d+)\s+(?P<mom_x>-?\d+\.\d+)\s+(?P<mom_y>-?\d+\.\d+)\s+(?P<mom_z>-?\d+\.\d+)\s+(?P<strength>\d|\d\.\d+|\d\.\d+E[-+]\d+)$'),
 
+      # Pattern for finding lines looking like '       8     0.072914   -0.448517    0.787269'
+      'elec_moment': re.compile(r'^\s*(?P<state>\d+)\s+(?P<mom_x>-?\d+\.\d+)\s+(?P<mom_y>-?\d+\.\d+)\s+(?P<mom_z>-?\d+\.\d+)$'),
+
       # Pattern for finding the "END OF TRANSITION MOMENT CALCULATION" line (which marks the end of the section)
       'end': re.compile(r'^END OF TRANSITION MOMENT CALCULATION$')
 
@@ -1362,6 +1365,19 @@ def qchem_tddft(source_content:list):
         # Add the new line to the momdip_list
         momdip_list.append(momdip)
 
+      elif moment_rx['elec_moment'].match(line):
+  
+        matching_line = moment_rx['elec_moment'].match(line)
+
+        state = int(matching_line.group('state'))
+        value_x = float(matching_line.group('mom_x'))
+        value_y = float(matching_line.group('mom_y'))
+        value_z = float(matching_line.group('mom_z'))
+        momdip = (state, state, value_x, value_y, value_z)
+      
+        # Add the new line to the momdip_list
+        momdip_list.append(momdip)
+
     # Raise an exception if the section has not been found
 
     if not section_found:
@@ -1369,7 +1385,14 @@ def qchem_tddft(source_content:list):
 
     # Raise an exception if not all the values have been found
 
-    nb_momdip = nb_roots * (nb_roots+1) # Ground to Singlet (nb_roots) + Ground to Triplet (nb_roots) + Singlet to Singlet (nb_roots*(nb_roots-1)/2) + Triplet to Triplet (nb_roots*(nb_roots-1)/2)
+    nb_momdip = (
+                  nb_roots                  # Ground to Singlet
+                + nb_roots                  # Ground to Triplet 
+                + (nb_roots*(nb_roots-1)/2) # Singlet to Singlet 
+                + (nb_roots*(nb_roots-1)/2) # Triplet to Triplet
+                + (2*nb_roots)+1            # Electron Dipole Moments
+                )
+
     if len(momdip_list) != nb_momdip:
       raise control_common.ControlError ("ERROR: The modelling function could not find the right number of state-to-state transition moments in the source file (%s of the %s expected values have been found)" % (len(momdip_list),nb_momdip))
 
