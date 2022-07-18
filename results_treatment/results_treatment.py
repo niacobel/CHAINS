@@ -284,6 +284,9 @@ def main():
       pattern = re.compile(r'^(?P<tag>[a-zA-Z]+\d+)-.*$')
       tag_finder = pattern.match(mol_name)
 
+      if tag_finder is None:
+        raise results_common.ResultsError ("ERROR: This directory does not seem to be a molecule directory.")
+
       tag = tag_finder.group('tag').upper()
 
       # ========================================================= #
@@ -336,13 +339,13 @@ def main():
       # Si on the front
 
       pretty_name_fr = "Si" + str(chemical_formula["Si"])
-      latex_name_fr = "Si_{" + str(chemical_formula["Si"]) + "}"
+      latex_name_fr = "Si$_{" + str(chemical_formula["Si"]) + "}$"
 
       # H on the end (if present)
 
       if "H" in chemical_formula:
         pretty_name_end = "H" + str(chemical_formula["H"])
-        latex_name_end = "H_{" + str(chemical_formula["H"]) + "}"
+        latex_name_end = "H$_{" + str(chemical_formula["H"]) + "}$"
       else:
         pretty_name_end = ""
         latex_name_end = ""
@@ -352,7 +355,7 @@ def main():
       filtered_formula = {atom:number for atom, number in chemical_formula.items() if (atom != "Si" and atom != "H")}
 
       pretty_name_mid = ''.join([str(atom) + str(number) for atom, number in sorted(filtered_formula.items())])
-      latex_name_mid = ''.join([str(atom) + "_{" + str(number) + "}" for atom, number in sorted(filtered_formula.items())])
+      latex_name_mid = ''.join([str(atom) + "$_{" + str(number) + "}$" for atom, number in sorted(filtered_formula.items())])
 
       # Get the final name, correctly formatted
 
@@ -473,7 +476,8 @@ def main():
             "Size (nm)" : float(size),
             "Volume (nm^3)" : float(volume),
             "Original size (nm)" : float(ori_size),
-            "Original volume (nm^3)" : float(ori_volume)
+            "Original volume (nm^3)" : float(ori_volume),
+            "Coordinates" : file_data['atomic_coordinates']
           }
         }
 
@@ -848,21 +852,71 @@ def main():
       print('%12s' % "[ DONE ]")      
 
       # ========================================================= #
-      # Fetch singlet percentages                                 #
+      # Fetch zero states list                                    #
       # ========================================================= #
 
-      print ("{:<133}".format('\n\tFetching singlet percentages ...'), end="")
+      print ("{:<133}".format('\n\tFetching zero states list ...'), end="")
 
       # Initialize the dictionary that will contain the values
 
-      comp_results[mol_name]["Singlet percentages"] = {}
+      comp_results[mol_name]["Zero states list"] = {}
 
-      # Iterate over the states and store the value
+      # Filter the states (only one substate of each triplet)
+
+      min_zero_states_list = []
+
+      for state in zero_states_list:
+        # Only add one substate of each triplet (no need to add ms=0 and ms=1 and ms=-1 as they all have the same transition dipole moments)
+        if state['label'].startswith('T') and state['qchem_number'] not in [state['qchem_number'] for state in min_zero_states_list]:
+          min_zero_states_list.append(state)
+        elif state['label'].startswith('S'):
+          min_zero_states_list.append(state)
+
+      # Iterate over the states
+
+      for state in min_zero_states_list:
+      
+        # Store the value
+
+        comp_results[mol_name]["Zero states list"].update({
+          state['label'].partition("(")[0] : {
+            "Energy (Ha)": state['energy'],
+            "GS transition dipole moment (au)" : {
+              "X" : float(system['momdip_o_mtx']["X"][0][state['number']]) if state['number'] != 0 else None,
+              "Y" : float(system['momdip_o_mtx']["Y"][0][state['number']]) if state['number'] != 0 else None,
+              "Z" : float(system['momdip_o_mtx']["Z"][0][state['number']]) if state['number'] != 0 else None
+              }
+            }
+          })
+
+      print('%12s' % "[ DONE ]") 
+
+      # ========================================================= #
+      # Fetch relativistic states list                            #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching relativistic states list ...'), end="")
+
+      # Initialize the dictionary that will contain the values
+
+      comp_results[mol_name]["Relativistic states list"] = {}
+
+      # Iterate over the states
 
       for state in system['states_list']:
+      
+        # Store the value
 
-        comp_results[mol_name]['Singlet percentages'].update({
-          state['label'] : float(state['sing_percent'])
+        comp_results[mol_name]["Relativistic states list"].update({
+          state['label'] : {
+            "Energy (Ha)": state['energy'],
+            "Singlet percentage": float(state['sing_percent']),
+            "GS transition dipole moment (au)" : {
+              "X" : float(system['momdip_mtx']["X"][0][state['number']]) if state['number'] != 0 else None,
+              "Y" : float(system['momdip_mtx']["Y"][0][state['number']]) if state['number'] != 0 else None,
+              "Z" : float(system['momdip_mtx']["Z"][0][state['number']]) if state['number'] != 0 else None
+              }
+            }
           })
 
       print('%12s' % "[ DONE ]") 
