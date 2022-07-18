@@ -44,6 +44,157 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 # =================================================================== #
 # =================================================================== #
 
+def basic_rendering(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
+    """Renders the job script and the input file associated with simple jobs. The templates filenames are specified in the YAML configuration file and the jinja variables are taken as is from it (outside of the variables related to the clusters YAML configuration file).
+
+    Parameters
+    ----------
+    mendeleev : dict
+        Content of AlexGustafsson's Mendeleev Table YAML file (found at https://github.com/AlexGustafsson/molecular-data).
+        Unused in this function.
+    clusters_cfg : dict
+        Content of the YAML clusters configuration file.
+    config : dict
+        Content of the YAML configuration file.
+    file_data : dict
+        Information extracted by the scanning function from the geometry file.
+    job_specs : dict
+        Contains all information related to the job.
+    misc : dict
+        Contains all the additional variables that did not pertain to the other arguments.
+
+    Returns
+    -------
+    rendered_content : dict
+        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
+    rendered_script : str
+        Name of the rendered job script, necessary to launch the job.
+    
+    Notes
+    -----
+    Pay a particular attention to the render_vars dictionaries, they contain all the definitions of the variables appearing in your Jinja templates.
+    """
+
+    # ========================================================= #
+    #                      Preparation step                     #
+    # ========================================================= #
+
+    # Check config file
+    # =================
+
+    # Check if a "templates" block has been defined in the config file
+
+    if not config.get('templates'):
+      raise abin_errors.AbinError ('ERROR: There is no "templates" key defined in the "%s" configuration file.' % misc['config_name'])     
+
+    # Check if a "jinja_variables" block has been defined in the config file
+
+    if not config.get('jinja_variables'):
+      raise abin_errors.AbinError ('ERROR: There is no "jinja_variables" key defined in the "%s" configuration file.' % misc['config_name'])      
+
+    # Define the templates
+    # ====================
+
+    # Define the names of the templates.
+
+    try:
+      template_input = config['templates']['input']
+      template_script = config['templates']['job_script']
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "templates" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Check if the specified templates exist in the "templates" directory of ABIN LAUNCHER.
+    
+    abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_input),"Jinja template for the input file","file")
+    abin_errors.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the job script","file")
+
+    # Define rendered files
+    # =====================
+
+    # Define the names of the rendered files.
+
+    rendered_input = misc['mol_name'] + os.path.splitext(template_input.rstrip(".jinja"))[1]
+    rendered_script = template_script.rstrip(".jinja")
+
+    # Initialize the dictionary that will be returned by the function
+
+    rendered_content = {}
+
+    # ========================================================= #
+    #                  Rendering the input file                 #
+    # ========================================================= #
+  
+    print("{:<80}".format("\nRendering the jinja template for the input file ...  "), end="")
+
+    # Preparing the Jinja variables
+    # =============================
+
+    # Variables given by the config file
+
+    input_render_vars = config['jinja_variables']
+
+    # Other useful variables
+
+    input_render_vars.update({
+      "mol_name" : misc['mol_name'],
+      "config_file" : misc['config_name'],
+      "coordinates" : file_data['atomic_coordinates'],
+      "job_cores" : job_specs['cores'],
+      "job_mem_per_cpu" : job_specs['mem_per_cpu'] # in MB
+    })
+
+    # Rendering the file
+    # ==================
+     
+    rendered_content[rendered_input] = jinja_render(misc['templates_dir'], template_input, input_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #                  Rendering the job script                 #
+    # ========================================================= #
+
+    # Preparing the Jinja variables
+    # =============================
+
+    # Variables given by the config file
+
+    script_render_vars = config['jinja_variables']
+
+    # Variables not associated with the config file
+
+    script_render_vars.update({
+      "mol_name" : misc['mol_name'],
+      "config_file" : misc['config_name'],
+      "job_script" : rendered_script,
+      "job_walltime" : job_specs['walltime'],
+      "job_cores" : job_specs['cores'],
+      "job_mem_per_cpu" : job_specs['mem_per_cpu'], # in MB
+      "cluster_name" : job_specs['cluster_name'],
+      "partition" : job_specs['partition']
+    })
+
+    # Variables associated with the clusters configuration file
+
+    try:
+      script_render_vars.update({
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env'],       
+        "command" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['command']
+      })
+
+    except KeyError as error:
+      raise abin_errors.AbinError ('ERROR: The "%s" key is missing in the "%s" profile of the clusters configuration file.' % (error,job_specs['profile']))
+    
+    # Rendering the file
+    # ==================
+
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    return rendered_content, rendered_script
+
 def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
     """Renders the job script and the input file associated with the GAUSSIAN program in CHAINS.
 

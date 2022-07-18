@@ -1,0 +1,168 @@
+#!/bin/bash
+
+#SBATCH --output=slurm_output.log
+#SBATCH --job-name={{ mol_name }}_{{ config_file }}
+#SBATCH --mail-user={{ user_email }}
+#SBATCH --mail-type={{ mail_type }}
+#SBATCH --time={{ job_walltime }}
+#SBATCH --ntasks={{ job_cores }}
+#SBATCH --mem-per-cpu={{ job_mem_per_cpu }}
+{% if cluster_name == "dragon1" or cluster_name == "dragon2" -%}
+#SBATCH --ntasks-per-node={{ job_cores }}
+{%- endif %}
+{% if partition != None -%}
+#SBATCH --partition={{ partition }}
+{%- endif %}
+#SBATCH --open-mode=append
+#SBATCH --signal=B:SIGUSR1@60
+
+function restart_handler() {
+
+  echo -e "\nApproaching walltime, calculation will now restart."
+
+  # Recover the important files and erase the temporary directory
+  cp "${SCRATCH}/{{ mol_name }}.chk" "${SLURM_SUBMIT_DIR}/"
+  (( nb_run = ${SLURM_RESTART_COUNT-0} + 1 ))
+  cp "${SCRATCH}/{{ mol_name }}.log" "${SLURM_SUBMIT_DIR}/{{ mol_name }}_run${nb_run}.log"
+  rm -rf "${SCRATCH}"
+
+  # Requeue the job
+{%- if cluster_name == "dragon2" %}
+  # On dragon2, this needs to be executed through the login nodes
+  # (To match indentation, make sure that each line of this heredoc starts with a tab and not spaces!)
+  ssh dragon2-ctrl0 /bin/bash <<-EOF
+	cd "${SLURM_SUBMIT_DIR}"
+	scontrol requeue "${SLURM_JOB_ID}"
+	EOF
+{%- else %}
+  cd "${SLURM_SUBMIT_DIR}"
+  scontrol requeue "${SLURM_JOB_ID}"
+{%- endif %}
+  exit
+}
+
+echo -e "\n******************************************************************************"
+echo -e "**************************   Beginning of the job   **************************"
+echo -e "******************************************************************************\n"
+
+date
+cd "${SLURM_SUBMIT_DIR}"
+
+if [ ${SLURM_RESTART_COUNT-0} -gt 0 ]
+then
+  echo -e "\nThis job has been restarted ${SLURM_RESTART_COUNT-0} time(s)."
+  if [ ${SLURM_RESTART_COUNT-0} -eq 1 ] # First restart only
+  then
+    echo -e "\nEditing input file to tell GAUSSIAN that it is a restarting calculation."
+    # Replace "Opt" on the first line that begins with a # by "Opt=Restart" (case insensitive)
+    sed -i.bak '0,/^#/ s|\bOpt\b|Opt=Restart|i' {{ mol_name }}.com
+  fi
+fi
+
+# A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
+# See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
+
+SCRATCH=${LOCALSCRATCH}/${SLURM_JOB_ID}
+
+echo -e "\nCreating temporary directory ${SCRATCH} on node(s) ${SLURM_JOB_NODELIST} from ${CLUSTER_NAME} cluster for handling temporary files."
+mkdir -p "${SCRATCH}" || exit $?
+cp -rf "${SLURM_SUBMIT_DIR}/{{ mol_name }}.com" "${SCRATCH}/" || exit $?
+
+if [ ${SLURM_RESTART_COUNT-0} -gt 0 ]
+then
+  cp -rf "${SLURM_SUBMIT_DIR}/{{ mol_name }}.chk" "${SCRATCH}/" || exit $?
+fi
+
+echo -e "\n========================================================================"
+echo -e "=========================   Running GAUSSIAN   ========================="
+echo -e "========================================================================"
+
+cd "${SCRATCH}"
+
+echo -e "\n================= GAUSSIAN execution begins now =================="
+
+{% for set_env_line in set_env -%}
+{{ set_env_line }}
+{% endfor %}
+
+trap restart_handler SIGUSR1
+{{ command }} "{{ mol_name }}.com" & 
+echo -e "\nRestarting trap command has been set up. Now waiting ..."
+wait || (cp "{{ mol_name }}.log" "${SLURM_SUBMIT_DIR}/" && rm -rf "${SCRATCH}" ; exit $?)
+
+echo -e "\n=================  GAUSSIAN execution ends now  =================="
+
+echo -e "\nCopying GAUSSIAN output files to the submit directory."
+cp -r  ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/"  || exit $?
+
+echo -e "\nRemoving ${SCRATCH} directory."
+rm -rf "${SCRATCH}" || echo "A problem might have occurred when trying to remove temporary files."
+
+echo -e "\n===================================================================="
+echo -e "==============   Post-calculation files manipulation   ============="
+echo -e "===================================================================="
+
+cd "${SLURM_SUBMIT_DIR}"
+
+# Merge the log files
+if [ ${SLURM_RESTART_COUNT-0} -gt 0 ]
+then
+  (( nb_run = ${SLURM_RESTART_COUNT-0} + 1 ))
+  mv "{{ mol_name }}.log" "{{ mol_name }}_run${nb_run}.log"
+  ls -v "{{ mol_name }}_run*.log" | xargs cat > "{{ mol_name }}.log"
+fi
+
+# Quality control (was there any problem with GAUSSIAN?)
+source "/CECI/home/ulb/cqp/niacobel/CHAINS/load_modules.sh"
+python "/CECI/home/ulb/cqp/niacobel/CHAINS/check_scripts/gaussian_check.py" "{{ mol_name }}.log"
+status=$?
+if [ "${status}" -eq 1 ]
+then
+  # Exit code 1 means an unknown error has occurred, the job is considered as FAILED and must be terminated.
+  exit 1
+elif [ "${status}" -eq 2 ]
+then
+  # Exit code 2 means a known error has been handled and a new job needs to be relaunched while this job will be normally stopped.
+  cdate=$(date +"%Y_%m_%d")
+  mv "{{ mol_name }}.log" "{{ mol_name }}_${cdate}.log"
+  mv "slurm_output.log" "slurm_output_${cdate}.log"
+{%- if cluster_name == "dragon2" %}
+  # On dragon2, this needs to be executed through the login nodes
+  # (To match indentation, make sure that each line of this heredoc starts with a tab and not spaces!)
+  ssh dragon2-ctrl0 /bin/bash <<-EOF
+	cd "${SLURM_SUBMIT_DIR}"
+	sbatch "{{ job_script }}"
+	EOF
+{%- else %}
+  cd "${SLURM_SUBMIT_DIR}"
+  sbatch "{{ job_script }}"
+{%- endif %}
+  exit 0
+fi
+
+# Reload Gaussian in order to use some of its useful scripts
+{% for set_env_line in set_env -%}
+{{ set_env_line }}
+{% endfor %}
+
+# Extracting optimized geometry from checkpoint file
+echo -e "\nRenaming the original .xyz file to avoid overwriting it with the new one."
+mv "{{ mol_name }}.xyz" "{{ mol_name }}_ori.xyz"
+echo -e "\nExtracting optimized geometry from checkpoint file."
+newzmat -ichk -oxyz -step 9999 "{{ mol_name }}.chk" "{{ mol_name }}.xyz"
+echo -e "\nAdding missing header to XYZ file."
+NUMBER_ATOMS=$(wc -l < {{ mol_name }}.xyz)
+sed -i "1s;^;${NUMBER_ATOMS}\nOptimized geometry from job ${SLURM_JOB_ID} on cluster {{ cluster_name }} \n;" {{ mol_name }}.xyz
+
+# Archive checkpoint files
+echo -e "\nArchiving checkpoint files."
+formchk "{{ mol_name }}.chk" "{{ mol_name }}.fchk" # Convert the checkpoint file from binary to text file
+gzip "{{ mol_name }}.fchk"
+rm "{{ mol_name }}.chk"
+formchk "{{ mol_name }}_tddft.chk" "{{ mol_name }}_tddft.fchk" # Convert the checkpoint file from binary to text file
+gzip "{{ mol_name }}_tddft.fchk"
+rm "{{ mol_name }}_tddft.chk"
+
+echo -e "\n******************************************************************************"
+echo -e "*****************************   End of the job   *****************************"
+echo -e "******************************************************************************"

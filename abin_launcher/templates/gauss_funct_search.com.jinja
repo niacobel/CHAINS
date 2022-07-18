@@ -1,0 +1,23 @@
+%chk={{ mol_name }}.chk
+%NProcShared={{ job_cores }}
+%mem={{ job_cores * job_mem_per_cpu }}MB
+# {{ method }}/{{ basis_set }} {{ other }} Opt
+
+DFT geometry optimization of {{ mol_name }}
+
+{{ charge }} {{ multiplicity }}
+{% for coordinate_line in coordinates -%}
+{{ coordinate_line }}
+{% endfor -%}
+{{ " " }} {# Make sure the first input ends by a blank line #}
+--Link1--
+%oldchk={{ mol_name }}.chk
+%chk={{ mol_name }}_tddft.chk
+%NProcShared={{ job_cores }}
+%mem={{ mem_total }}MB
+# {{ method }}/{{ basis_set }} Geom=Checkpoint TD(50-50,Nstates=5)
+
+TDDFT calculation of {{ mol_name }}
+
+{{ charge }} {{ multiplicity }}
+{{ " " }} {# Make sure the input ends by a blank line #}
