@@ -12,6 +12,69 @@ import control_common
 
 # =================================================================== #
 # =================================================================== #
+#                          Support functions                          #
+# =================================================================== #
+# =================================================================== #
+
+def is_indistinguishable(energy1, energy2):
+    """Check if two states can be considered indistinguishable by comparing their energy differences to the spectral resolution of the pulse shapers associated with their energy domain. The spectral resolutions are fetched from:
+    - the specifications of the DAZZLER ultrafast pulse shapers provided by the FASTLITE company (https://fastlite.com/produits/dazzler-ultrafast-pulse-shaper/)
+    - the Quickshaper IR provided by the PhaseTech company (http://phasetechspectroscopy.com/)
+    - the compact optical parametric amplifier platform from Jakob et al. (https://doi.org/10.1364/oe.27.026979)
+
+    Parameters
+    ----------
+    energy1 : float
+        Energy of the first state in cm-1.
+    energy2 : float
+        Energy of the second state in cm-1.
+
+    Returns
+    -------
+    bool
+        "True" if the two states are indistinguishable, "False" otherwise.
+    """  
+
+    # Define the different energy domains and their associated spectral resolution
+
+    resolutions = {
+      40000: 15.99, # Dazzler Qz-250-400
+      25000: 12.49, # Dazzler Qz-250-400
+      20000:	8.00, # Dazzler WR-460-740
+      14286:	6.12, # Dazzler WR-460-740
+      11111:	6.17, # Dazzler WR-510-950
+      9709:  	4.71, # Dazzler UHR-900-1700
+      6452:	  4.16, # Dazzler UHR-900-1700
+      4762:	  4.53, # Dazzler WB45-1450-3000
+      3846:	  4.43, # Dazzler WB45-1450-3000
+      2857:	  5.70, # Dazzler WB45-2000-3700
+      1818:	  5.00, # Phasetech Quickshape IR
+      926:    1.97  # Jakob et al.
+    }
+
+    # Define the domain of our values (see https://www.geeksforgeeks.org/python-find-closest-number-to-k-in-given-list/)
+
+    domains = np.asarray(list(resolutions.keys()))
+
+    domain1 = domains[(np.abs(domains - energy1)).argmin()]
+    domain2 = domains[(np.abs(domains - energy2)).argmin()]
+
+    # If the domains of the values differ, take the average resolution
+
+    if domain1 != domain2:
+      res = (resolutions[domain1] + resolutions[domain2]) / 2
+    else:
+      res = resolutions[domain1]
+
+    # Check the energy difference of the states and compare it to the spectral resolution
+
+    if math.isclose(energy1, energy2, abs_tol=res):
+      return True
+    else:
+      return False
+
+# =================================================================== #
+# =================================================================== #
 #                        Transition functions                         #
 # =================================================================== #
 # =================================================================== #
@@ -41,6 +104,7 @@ def brightest_to_darkest(system:dict):
 
     transitions_list = []
 
+    """
     # ========================================================= #
     #              Identifying degenerated states               #
     # ========================================================= #
@@ -94,6 +158,7 @@ def brightest_to_darkest(system:dict):
     for idx, group in enumerate(deg_groups):
       print("{:<30} {:<40}".format("Group %s: " % str(idx), " - ".join(map(str,group)) if len(group) > 1 else str(group[0])))
     print(''.center(70, '-'))
+    """
 
     # ========================================================= #
     #                   Defining orientation                    #
@@ -144,11 +209,17 @@ def brightest_to_darkest(system:dict):
       if pair_found:
         break
 
+      # Skip if the bright state is in fact not a bright state
+      if system['states_list'][b_index]["sing_percent"] < 0.5:
+        continue
+
       # Start iterating over the darkest states
       for d_index in dark_max_indices:
   
-        # Skip if both states are in the same degenerated group
-        if any([b_index in group and d_index in group for group in deg_groups]):
+        # Skip if both states are indistinguishable
+        b_energy = control_common.energy_unit_conversion(system['states_list'][b_index]["energy"], "ha", "cm-1")
+        d_energy = control_common.energy_unit_conversion(system['states_list'][d_index]["energy"], "ha", "cm-1")
+        if is_indistinguishable(b_energy, d_energy):
           continue
 
         # Skip if the dark state energy is higher than the one of the brightest state (stimulated emission scheme)
@@ -182,16 +253,22 @@ def brightest_to_darkest(system:dict):
 
     init_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
 
-    # Define the initial density matrix file name (will be modified if the initial state is degenerated)
+    # Define the initial density matrix file name (will be modified if there are multiple states)
 
     init_file = bright_label
 
-    # Find the degenerated group to which the bright state belongs
+    # Check if there are multiple states in the initial state
 
-    bright_group = [group for group in deg_groups if bright_index in group][0]
+    bright_group = []
+    bright_energy = control_common.energy_unit_conversion(system['states_list'][bright_index]["energy"], "ha", "cm-1")
+
+    for state in system['states_list']:
+      state_energy = control_common.energy_unit_conversion(state["energy"], "ha", "cm-1")
+      if is_indistinguishable(state_energy, bright_energy):
+        bright_group.append(state['number'])
 
     # The starting populations are proportional to the transition dipole moments between each state of the "bright group" and the ground state
-    # If the bright state is not degenerated, its starting population will be 1
+    # If there is only one state, its starting population will be 1
 
     total_momdip = sum([system['momdip_mtx'][best_mtx][0][state_number] for state_number in bright_group])
     for state_number in bright_group:
@@ -213,13 +290,21 @@ def brightest_to_darkest(system:dict):
 
     projector_content = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
 
-    # Define the target density matrix file name (will be modified if the target state is degenerated)
+    # Define the target density matrix file name (will be modified if there are multiple states)
 
     target_file = dark_label
 
-    # Find the degenerated group to which the dark state belongs
+    # Check if there are multiple states in the target state
 
-    dark_group = [group for group in deg_groups if dark_index in group][0]
+    dark_group = []
+    dark_energy = control_common.energy_unit_conversion(system['states_list'][dark_index]["energy"], "ha", "cm-1")
+
+    for state in system['states_list']:
+      state_energy = control_common.energy_unit_conversion(state["energy"], "ha", "cm-1")
+      if state_energy >= bright_energy:
+        continue
+      if is_indistinguishable(bright_energy - dark_energy, bright_energy - state_energy):
+        dark_group.append(state['number'])
 
     # We need to 'open the channel' (put a 1) for each state belonging to the "dark group"
 
