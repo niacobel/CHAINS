@@ -139,6 +139,10 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
 
     prefix_param = "param_"
 
+    # Define the prefix for the alternate PCP initial states (only if the initial state is degenerated)
+
+    prefix_init_pcp = "pcp_init"
+
     # Define the name of the text file containing all the parameters filenames
 
     input_names = "input_filenames.txt"
@@ -274,6 +278,49 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     print('%12s' % "[ DONE ]")
 
     # ========================================================= #
+    #          Rendering the PCP initial states files           #
+    # ========================================================= #
+
+    # Check if the initial state is degenerated (see https://stackoverflow.com/questions/36233918/find-indices-of-columns-having-some-nonzero-element-in-a-2d-array)
+
+    init_group = list(np.nonzero(np.any(misc['transition']['init_content'], axis=0))[0])
+
+    if len(init_group) > 1:
+      init_degen = True
+    else:
+      init_degen = False
+
+    # If the initial state is degenerated, redefine for each orientation the initial states in relation to their transition dipole moments
+
+    if init_degen:
+
+      for momdip_key in system['momdip_mtx']:
+
+        # Define the density matrix
+
+        init_mtx = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
+
+        total_momdip = sum([system['momdip_mtx'][momdip_key][0][state_number] for state_number in init_group])
+
+        for state_number in init_group:
+          init_mtx[state_number][state_number] = complex(system['momdip_mtx'][momdip_key][0][state_number] / total_momdip)
+
+        # Render the files
+
+        init_content = []
+
+        for line in init_mtx:
+
+          line_content = []
+
+          for val in line:
+            line_content.append('( {0.real:.10e} , {0.imag:.10e} )'.format(val))
+          
+          init_content.append(" ".join(line_content))
+        
+        rendered_content[prefix_init_pcp + "_" + momdip_key + "_1"] = "\n".join(init_content)
+
+    # ========================================================= #
     #             Rendering the PCP parameters file             #
     # ========================================================= #
 
@@ -318,6 +365,12 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
         # GENERAL
         "momdip_path" : os.path.join(data['main_path'],'momdip_mtx_' + momdip_key)
       })
+
+      if init_degen:
+        param_render_vars.update({
+          # GENERAL
+          "init_file_path" : "../" + prefix_init_pcp + "_" + momdip_key + "_"
+        })   
 
       rendered_content[momdip_key + "_" + rendered_param_pcp] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
 
@@ -438,6 +491,8 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
       "prefix_param" : prefix_param,
       "momdip_keys" : list(system['momdip_mtx'].keys()),
       "rendered_param_PCP" : rendered_param_pcp,
+      "init_degen" : init_degen,
+      "prefix_init_pcp" : prefix_init_pcp,
       "guess_pulse" : rendered_pulse,
       "profile" : job_specs['profile']
     }

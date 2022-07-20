@@ -86,6 +86,9 @@ mkdir -p "${SCRATCH}" || exit $?
 cp "${SLURM_SUBMIT_DIR}/${param_nml}" "${SLURM_SUBMIT_DIR}/{{ guess_pulse }}" "${SCRATCH}/" || exit $?
 {% for momdip_key in momdip_keys -%}
 cp "${SLURM_SUBMIT_DIR}/{{ momdip_key }}_{{ rendered_param_PCP }}" "${SCRATCH}/" || exit $?
+{% if init_degen is sameas true -%}
+cp "${SLURM_SUBMIT_DIR}/{{ prefix_init_pcp }}_{{ momdip_key }}_1" "${SCRATCH}/" || exit $?
+{%- endif %}
 {% endfor %}
 
 cd "${SCRATCH}"
