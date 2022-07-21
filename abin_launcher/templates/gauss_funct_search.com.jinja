@@ -14,7 +14,7 @@ DFT geometry optimization of {{ mol_name }}
 %oldchk={{ mol_name }}.chk
 %chk={{ mol_name }}_tddft.chk
 %NProcShared={{ job_cores }}
-%mem={{ mem_total }}MB
+%mem={{ job_cores * job_mem_per_cpu }}MB
 # {{ method }}/{{ basis_set }} Geom=Checkpoint TD(50-50,Nstates=5)
 
 TDDFT calculation of {{ mol_name }}
