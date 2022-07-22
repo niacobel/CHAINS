@@ -22,9 +22,9 @@ import numpy as np
 import yaml
 from matplotlib.cm import ScalarMappable
 from matplotlib.ticker import AutoMinorLocator
-from tabulate import tabulate
 from scipy import constants
-
+from tabulate import tabulate
+from cycler import cycler
 import results_common
 
 # =================================================================== #
@@ -127,6 +127,21 @@ def main():
 
     section_count = 0
 
+    # ========================================================= #
+    # Define markers and colours cycle for Matplotlib's Pyplot  #
+    # ========================================================= #
+
+    # See https://stackoverflow.com/questions/13091649/unique-plot-marker-for-each-plot-in-matplotlib
+
+    dots_cycler = (
+      cycler(marker=['o', 'd', '^', 'p']) +
+      cycler(color=['black', 'orange', 'purple','darkturquoise']))
+
+    line_cycler = (
+      cycler(marker=['.', '+', 'x', '*']) +
+      cycler(color=['blue', 'red', 'green', 'magenta']) +
+      cycler(linestyle=['-','--',':','-.']))
+
   # ========================================================= #
   # Exception handling for the preparation step               #
   # ========================================================= #
@@ -165,7 +180,7 @@ def main():
 
   # Puzder et al's function (https://aip.scitation.org/doi/pdf/10.1063/1.1504707)
   
-  puzder_x = np.linspace(0, 200, 100)
+  puzder_x = np.linspace(0, 150, 100)
   puzder_y = 0.54310*(( (3*puzder_x) / (4*np.pi) )**(1/3)) # D = a * [(3/4pi)N]^1/3
 
   # Litterature values
@@ -188,14 +203,19 @@ def main():
 
   # Plot the values
 
-  ax.scatter([float(mol["Nombre d'atomes de Si"]) for mol in sizes_list],[float(mol['Diamètre (nm)']) for mol in sizes_list],marker='x',label='Values of this work (optimized)')
-  ax.scatter([float(mol["Nombre d'atomes de Si"]) for mol in sizes_list],[float(mol['Diamètre original (nm)']) for mol in sizes_list],marker='^',label='Values of this work (not optimized)')
-  ax.plot(puzder_x,puzder_y,linestyle='-',color='r',label="Puzder et al.'s function")
+  ax.plot(puzder_x,puzder_y,linestyle='-',color='green',label="Puzder et al.'s function")
+
+  ax.set_prop_cycle(line_cycler)
+
+  ax.plot([float(mol["Nombre d'atomes de Si"]) for mol in sizes_list],[float(mol['Diamètre (nm)']) for mol in sizes_list],marker='x',label='Values of this work (optimized)')
+  ax.plot([float(mol["Nombre d'atomes de Si"]) for mol in sizes_list],[float(mol['Diamètre original (nm)']) for mol in sizes_list],marker='^',label='Values of this work (not optimized)')
+
+  ax.set_prop_cycle(dots_cycler)
 
   for article in sizes_litt:
     values_x = list(sizes_litt[article]['Values'].keys())
     valuess_y = list(sizes_litt[article]['Values'].values())
-    ax.scatter(values_x,valuess_y,label=sizes_litt[article]['Label'])
+    ax.plot(values_x,valuess_y,label=sizes_litt[article]['Label'],linestyle=' ')
 
   # Add the legend and titles
 
@@ -215,6 +235,124 @@ def main():
   # Save the file and close the figure
 
   plt.savefig(os.path.join(out_dir,'sizes.png'),dpi=300)
+  plt.close()
+
+  print('%12s' % "[ DONE ]")
+
+  # =================================================================== #
+  # =================================================================== #
+  #                             ENERGY GAPS                             #
+  # =================================================================== #
+  # =================================================================== #
+
+  section_count += 1
+  section_title = str(section_count) + ". Energy gaps"
+
+  print("")
+  print(''.center(len(section_title)+10, '*'))
+  print(section_title.center(len(section_title)+10))
+  print(''.center(len(section_title)+10, '*'))
+
+  # Get the values
+  # ==============
+
+  # Our values
+
+  funct_data = {}
+  functs = ["B3LYP","B3PW91","PBE0"]
+
+  for funct in functs:
+
+    # Load each functional file
+
+    funct_file = results_common.check_abspath(os.path.join(inp_dir,"gaps_%s.csv" % funct.lower()),"%s gaps CSV file" % funct,"file")
+
+    print ("{:<140}".format("\nLoading %s gaps CSV file ..." % funct), end="")
+    with open(funct_file, 'r', newline='', encoding='utf-8') as csv_file:
+      funct_content = csv.DictReader(csv_file, delimiter=';')
+      funct_list = list(funct_content)
+    print('%12s' % "[ DONE ]")
+
+    # Replace commas by point (French decimal to US decimal)
+
+    for line in funct_list:
+      for key, value in line.items():
+        line[key] = value.replace(",",".")
+
+    # Exclude empty lines
+
+    funct_data[funct] = [line for line in funct_list if line['Diametre (nm)'] != '']
+
+  # Niatz and Zdetsis's function (https://pubs.acs.org/doi/10.1021/acs.jpcc.6b02955)
+  
+  zdetsis_x = np.linspace(0.6, 2.5, 100)
+  zdetsis_y = 1.33 + (41.8 / (zdetsis_x*10))
+
+  # Litterature values
+
+  gaps_litt_file = results_common.check_abspath(os.path.join(inp_dir,"gaps_litt.yml"),"Gaps litterature values YAML file","file")
+
+  print ("{:<50} {:<89}".format('\nLoading the gaps litterature values YAML file',gaps_litt_file + " ..."), end="")
+  with open(gaps_litt_file, 'r') as f_yml:
+    gaps_litt = yaml.load(f_yml, Loader=yaml.FullLoader)
+  print('%12s' % "[ DONE ]")
+
+  # Plot the graph
+  # ==============
+
+  print ("{:<140}".format('\nPlotting the graph ...'), end="")
+
+  plt.style.use('seaborn-colorblind')
+
+  fig, ax = plt.subplots()
+
+  # Plot the values
+
+  #ax.plot(zdetsis_x,zdetsis_y,linestyle='-',color='r',label="Niatz and Zdetsis's function")
+
+  ax.set_prop_cycle(line_cycler)
+
+  for funct in functs:
+    ax.plot([float(mol['Diametre (nm)']) for mol in funct_data[funct]],[float(mol['Gap optique (eV)']) for mol in funct_data[funct]],linestyle='-',label=funct)
+
+  ax.set_prop_cycle(dots_cycler)
+
+  for article in gaps_litt:
+    values_x = list(gaps_litt[article]['Values'].keys())
+    valuess_y = list(gaps_litt[article]['Values'].values())
+    ax.plot(values_x,valuess_y,label=gaps_litt[article]['Label'],linestyle=' ')
+
+  # Annotate a set of points to indicate which point corresponds to which molecule
+  # See https://queirozf.com/entries/add-labels-and-text-to-matplotlib-plots-annotation-examples
+
+  for diam, gap in zip([float(mol['Diametre (nm)']) for mol in funct_data['B3LYP']],[float(mol['Gap optique (eV)']) for mol in funct_data['B3LYP']]):
+
+    molecule = [mol['Molecule'] for mol in funct_data['B3LYP'] if float(mol['Diametre (nm)']) == diam][0]
+
+    plt.annotate(molecule,                    # this is the text
+                 (diam, gap),                 # these are the coordinates to position the label
+                 textcoords="offset points",  # how to position the text
+                 xytext=(0,5),                # distance from text to points (x,y)
+                 ha='left')                  # horizontal alignment can be left, right or center
+
+  # Add the legend and titles
+
+  ax.set_xlabel('Diameter of the cluster (nm)')
+  ax.set_ylabel("Optical gap (eV)")
+  ax.legend()
+
+  # Set other parameters
+
+  ax.tick_params(top=False, right=False)
+  ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+  ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+  plt.tight_layout()
+  plt.grid(True,which='both',linestyle='--')
+
+  # Save the file and close the figure
+
+  plt.savefig(os.path.join(out_dir,'gaps.png'),dpi=300)
   plt.close()
 
   print('%12s' % "[ DONE ]")
