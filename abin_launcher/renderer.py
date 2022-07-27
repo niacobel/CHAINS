@@ -195,6 +195,10 @@ def basic_rendering(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:di
 
     return rendered_content, rendered_script
 
+
+######################################################################################################################################
+
+
 def chains_gaussian_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_data:dict, job_specs:dict, misc:dict):
     """Renders the job script and the input file associated with the GAUSSIAN program in CHAINS.
 
