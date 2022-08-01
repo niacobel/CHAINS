@@ -319,7 +319,13 @@ def main():
     proj_norm = (result[best_ori + "_Projector"] - proj_min) / (proj_max - proj_min)
     flu_norm = (result["Fluence"] - flu_min) / (flu_max - flu_min)
 
-    eff_score = proj_norm - flu_norm
+    if (proj_max - proj_min) / proj_min < 0.1:
+      eff_score = - flu_norm
+    elif (flu_max - flu_min) / flu_min < 0.1:
+      eff_score = proj_norm
+    else:
+      eff_score = proj_norm - flu_norm
+
     result['Efficiency'] = eff_score
 
     if eff_score > max_eff:
