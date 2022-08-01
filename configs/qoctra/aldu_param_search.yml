@@ -18,7 +18,7 @@ qoctra:
     time_step: 5.0                                # Duration of a time step (a.u. of time)
     max_iter: 250                                 # Maximum number of iterations
     threshold: 0.999                              # Quality threshold for the fidelity
-    conv_thresh: 1.0e-02                          # Convergence threshold for the fidelity / projector
+    conv_thresh: 0.0                              # Convergence threshold for the fidelity / projector
     write_freq: 20                                # Number of iterations between each writing of the field
   guess_pulse:
     amplitude: 1.0e7                              # Amplitude of the subpulses (in V/m)
@@ -32,25 +32,24 @@ qoctra:
 # Parameters to be considered for the OPC (only integers or float types values)
 parameters:
   alpha:
-    - 25
-    - 50
-    - 100
-    - 250
-    - 500
-    - 1000
-    - 2500
-    - 5000
-    - 10000
-    - 25000
-    - 50000
-  duration: # in ps
     - 10
-    - 20
+    - 27
+    - 77
+    - 215
+    - 599
+    - 1668
+    - 4641
+    - 12915
+    - 35938
+    - 100000
+  duration: # in ps
+    - 3
+    - 6
+    - 9
+    - 12
+    - 15
+    - 18
+    - 21
+    - 24
+    - 27
     - 30
-    - 40
-    - 50
-    - 60
-    - 70
-    - 80
-    - 90
-    - 100
