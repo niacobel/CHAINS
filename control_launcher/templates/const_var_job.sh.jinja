@@ -1,0 +1,164 @@
+#!/bin/bash
+
+{# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
+#SBATCH --output=slurm_output_%a.log
+#SBATCH --job-name={{ source_name }}_{{ transition }}_{{ config_name }}
+#SBATCH --mail-user={{ user_email }}
+#SBATCH --mail-type={{ mail_type }}
+#SBATCH --time={{ job_walltime }}
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu={{ job_memory }}
+{% if partition != None -%}
+#SBATCH --partition={{ partition }}
+{%- endif %}
+#SBATCH --array=0-{{ array_size }}
+
+echo -e "******************************************************************************"
+echo -e "**************************   Beginning of the job   **************************"
+echo -e "******************************************************************************\n"
+
+date
+cd "${SLURM_SUBMIT_DIR}"
+
+# Define the QOCT-RA directory here
+QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
+
+{% if cluster_name == "lyra" -%}
+# Temporary: for Lyra, define the GLOBALSCRATCH as a directory in HOME (empty it regularly)
+GLOBALSCRATCH="/home/ulb/cqp/niacobel/GLOBALSCRATCH"
+{%- endif %}
+
+# Setup the treatment job
+if [ ${SLURM_ARRAY_TASK_ID} -eq 0 ]
+then
+  sbatch "--dependency=afterok:${SLURM_ARRAY_JOB_ID}" "{{ treatment_script }}"
+fi
+
+echo -e "\n============================================================================="
+echo -e "=====================   Defining the parameters files   ====================="
+echo -e "=============================================================================\n"
+
+# Load the file containing the input filenames
+
+param_files=($(<{{ input_names }}))
+
+# Define the name of the input file for this specific job
+
+param_nml="${param_files[${SLURM_ARRAY_TASK_ID}]}"
+
+echo -e "The parameters file for this job is ${param_nml}"
+
+# Cut beginning and end of the input file name to define the base of the subdirectory name and the name of the guess pulse file (see https://stackoverflow.com/questions/19482123/extract-part-of-a-string-using-bash-cut-split)
+
+no_prefix="${param_nml#{{ prefix_param }}}"
+base_subdirname="${no_prefix%.nml}"
+
+# Define the name of the guess pulse file for this specific job
+
+guess_pulse="{{ prefix_pulse }}_${base_subdirname}"
+
+echo -e "The guess pulse file for this job is ${guess_pulse}"
+
+# Create the subdirectory where the files of this job will be stored afterwards
+
+if [ "${SLURM_ARRAY_TASK_ID}" -lt 10 ]
+then
+  subdirname="00${SLURM_ARRAY_TASK_ID}_${base_subdirname}"
+elif [ "${SLURM_ARRAY_TASK_ID}" -ge 10 ] && [ "${SLURM_ARRAY_TASK_ID}" -lt 100 ]
+then
+  subdirname="0${SLURM_ARRAY_TASK_ID}_${base_subdirname}"
+else
+  subdirname="${SLURM_ARRAY_TASK_ID}_${base_subdirname}"
+fi
+
+echo -e "Creating subdirectory ${subdirname} in the ${SLURM_SUBMIT_DIR} to host all the files specific to this job"
+mkdir -p "${SLURM_SUBMIT_DIR}/${subdirname}"
+
+echo -e "\n======================================================================="
+echo -e "=========================   Running QOCT-RA   ========================="
+echo -e "=======================================================================\n"
+
+# A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
+# See https://support.ceci-hpc.be/doc/_contents/SubmittingJobs/SlurmFAQ.html#q11-how-do-i-use-the-local-scratch-space for more details.
+
+SCRATCH="${LOCALSCRATCH}/${SLURM_JOB_ID}"
+
+echo -e "Creating temporary directory ${SCRATCH} on node(s) ${SLURM_JOB_NODELIST} from ${CLUSTER_NAME} cluster for handling temporary files."
+
+mkdir -p "${SCRATCH}" || exit $?
+
+# Copy the input files to the scratch folder
+
+cp "${SLURM_SUBMIT_DIR}/${param_nml}" "${SLURM_SUBMIT_DIR}/${guess_pulse}" "${SCRATCH}/" || exit $?
+{% for momdip_key in momdip_keys -%}
+cp "${SLURM_SUBMIT_DIR}/{{ momdip_key }}_{{ rendered_param_PCP }}" "${SCRATCH}/" || exit $?
+{% if init_degen is sameas true -%}
+cp "${SLURM_SUBMIT_DIR}/{{ prefix_init_pcp }}_{{ momdip_key }}_1" "${SCRATCH}/" || exit $?
+{%- endif %}
+{% endfor %}
+
+cd "${SCRATCH}"
+mkdir -p "Verif" # Strangely needed by QOCT-RA
+
+# Load the necessary modules
+
+{% for set_env_line in set_env -%}
+{{ set_env_line }}
+{% endfor %}
+
+# Compile the code (cluster dependent)
+
+echo -e ">>> Start of QOCT-RA compilation"
+gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 "${QOCT_RA_DIR}/fft_sub.f" "${QOCT_RA_DIR}/mymod.f" "${QOCT_RA_DIR}/Controle.f90" -o "Controle.out" || { cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the QOCT-RA compilation" && exit $?; }
+rm "mymod.mod"  
+echo -e ">>> End of QOCT-RA compilation"
+
+# First execution to get the optimal pulse
+
+echo -e "\n================= First QOCT-RA execution begins now =================="
+./Controle.out "${param_nml}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the first execution of QOCT-RA" && exit $?; }
+echo -e "\n================= First QOCT-RA execution ends now =================="
+
+# Secondary executions to test the optimal pulse (PCP mode)
+
+{% for momdip_key in momdip_keys -%}
+
+echo -e "\nPreparing PCP_{{ momdip_key }} execution"
+pcp_dir="${SCRATCH}/PCP_{{ momdip_key }}/"
+mkdir "${pcp_dir}"
+cp "${SCRATCH}/Controle.out" "${pcp_dir}"
+cd "${pcp_dir}"
+
+echo -e "\n================= PCP_{{ momdip_key }} QOCT-RA execution begins now =================="
+./Controle.out "${SCRATCH}/{{ momdip_key }}_{{ rendered_param_PCP }}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the PCP_{{ momdip_key }} execution of QOCT-RA" && exit $?; }
+rm "Controle.out"
+echo -e "\n================= PCP_{{ momdip_key }} QOCT-RA execution ends now =================="
+
+{% endfor %}
+
+pulse_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}_{{ config_name }}/${subdirname}/"
+echo -e "\nCopying scratch files to ${pulse_dir}."
+mkdir -p "${pulse_dir}"
+rm "${SCRATCH}/Controle.out"
+rm -r ${SCRATCH}/Pulse/Pulse_iter*
+cp -r ${SCRATCH}/* "${pulse_dir}" || { echo "ERROR: Unable to copy files to ${pulse_dir}" && exit $?; }
+
+echo -e "\nCopying non-Pulse and non-PCP output files to the submit directory."
+rm -r "${SCRATCH}/Pulse"
+rm -r ${SCRATCH}/PCP_*
+cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}"  || { echo "ERROR: Unable to copy SCRATCH directory in ${SLURM_SUBMIT_DIR}/${subdirname}" && exit $?; }
+
+echo -e "\nRemoving ${SCRATCH} directory."
+cd "${SLURM_SUBMIT_DIR}"
+rm -rf "${SCRATCH}" || echo "ERROR: A problem might have occurred when trying to remove temporary files."
+
+echo -e "\nMoving input file and guess pulse file to their corresponding subdirectory."
+mv "${param_nml}" "${guess_pulse}" "${subdirname}/"
+
+echo -e "\n******************************************************************************"
+echo -e "*****************************   End of the job   *****************************"
+echo -e "******************************************************************************"
+
+# Copy slurm output file to the GLOBALSCRATCH and then move the original file to its corresponding subdirectory
+cp "slurm_output_${SLURM_ARRAY_TASK_ID}.log" "${pulse_dir}"
+mv "slurm_output_${SLURM_ARRAY_TASK_ID}.log" "${subdirname}/"

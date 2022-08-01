@@ -51,7 +51,7 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 # =================================================================== #
 
 def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the parameters files for each combination of two parameters values: the penalty factor (alpha) and the duration of the pulse (given by the number of steps for a specified time step). The job script will launch a job array where each job is a unique combination of an alpha value and a duration value. A PCP parameter file and a guess pulse file are also rendered but are independant of the chosen alpha and duration values.
+    """Renders the job script and the parameters files for each combination of two parameters values: the penalty factor (alpha) and the duration of the pulse (given by the number of steps for a specified time step). The job script will launch a job array where each job is a unique combination of an alpha value and a duration value. Three PCP parameters files (X, Y and Z) and a guess pulse file are also rendered but are independent of the chosen alpha and duration values.
 
     Parameters
     ----------
@@ -600,6 +600,759 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
 
 ######################################################################################################################################
 
+def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
+    """Renders the job script and the parameters files for each combination of two additional constraints values: the fluence limit and the spectral window. The job script will launch a job array where each job is a unique combination of a fluence value and a window value, with a specific guess pulse file. Three PCP parameters files (X, Y and Z) and a guess pulse file are also rendered but are independent of the chosen values.
+
+    Parameters
+    ----------
+    clusters_cfg : dict
+        Content of the YAML clusters configuration file.
+    config : dict
+        Content of the YAML configuration file.
+    system : dict
+        Information extracted by the parsing function and derived from it.
+    data : dict
+        Data directory path and the name of its files.
+    job_specs : dict
+        Contains all information related to the job.
+    misc : dict
+        Contains all the additional variables that did not pertain to the other arguments.
+
+    Returns
+    -------
+    rendered_content : dict
+        Dictionary containing the text of all the rendered files in the form of <filename>: <rendered_content>.
+    rendered_script : str
+        Name of the rendered job script, necessary to launch the job.
+    
+    Notes
+    -----
+    Pay a particular attention to the render_vars dictionaries, they contain all the definitions of the variables appearing in your Jinja templates.
+    """
+    # ========================================================= #
+    #                      Preparation step                     #
+    # ========================================================= #
+
+    # Check config file
+    # =================
+
+    # Check if a "general" block has been defined in the config file
+
+    if not config.get('general'):
+      raise control_common.ControlError ('ERROR: There is no "general" key defined in the "%s" configuration file.' % misc['config_name'])     
+
+    # Check if a "qoctra" block has been defined in the config file
+
+    if not config.get('qoctra'):
+      raise control_common.ControlError ('ERROR: There is no "qoctra" key defined in the "%s" configuration file.' % misc['config_name'])      
+
+    # Check if a "parameters" block has been defined in the config file
+
+    if not config.get('parameters'):
+      raise control_common.ControlError ('ERROR: There is no "parameters" key defined in the "%s" configuration file.' % misc['config_name'])  
+
+    # Check the options defined in the config file
+
+    copy_files = config['qoctra'].get('copy_files',True)
+
+    if not isinstance(copy_files, bool):
+      raise control_common.ControlError ('ERROR: The "copy_files" value given in the "qoctra" block of the "%s" configuration file is not a boolean (neither "True" nor "False").' % misc['config_name'])
+
+    # Define the templates
+    # ====================
+
+    # Define the names of the default templates.
+
+    template_param = "param.nml.jinja"
+    template_script = "const_var_job.sh.jinja"
+    template_pulse = "guess_pulse_OPC.jinja"
+    template_treatment = "const_var_treatment_job.sh.jinja"
+
+    # Check if the specified templates exist in the "templates" directory of CONTROL LAUNCHER.
+    
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_param),"Jinja template for the qoctra parameters files","file")
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_script),"Jinja template for the qoctra job script","file")
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_pulse),"Jinja template for the OPC guess pulse","file")
+    control_common.check_abspath(os.path.join(misc['templates_dir'],template_treatment),"Jinja template for the treatment job script","file")
+
+    # Define rendered files
+    # =====================
+
+    # Define the names of the rendered files.
+
+    rendered_script = "const_var_job.sh"
+    rendered_treatment = "const_var_treatment_job.sh"
+    rendered_param_pcp = "PCP_param.nml"
+
+    # Define the prefix for the parameters files and the guess pulse files.
+
+    prefix_param = "param_"
+    prefix_pulse = "guess_pulse"
+
+    # Define the prefix for the alternate PCP initial states (only if the initial state is degenerated)
+
+    prefix_init_pcp = "pcp_init"
+
+    # Define the name of the text file containing all the parameters filenames
+
+    input_names = "input_filenames.txt"
+
+    # Initialize the dictionary that will be returned by the function
+
+    rendered_content = {}
+
+    # Load CHAINS configuration file
+    # ==============================
+
+    chains_path = os.path.dirname(misc['code_dir']) 
+    chains_config_file = control_common.check_abspath(os.path.join(chains_path,"configs","chains_config.yml"),"CHAINS configuration YAML file","file")
+
+    print ("{:<80}".format("\nLoading CHAINS configuration YAML file ..."), end="")
+    with open(chains_config_file, 'r') as chains:
+      chains_config = yaml.load(chains, Loader=yaml.FullLoader)
+    print('%12s' % "[ DONE ]")
+
+    # Load ionization potentials CSV file
+    # ===================================
+
+    ip_file = control_common.check_abspath(chains_config['ip_file'],"Ionization potentials CSV file","file")
+
+    print ("{:<80}".format("\nLoading ionization potentials CSV file ..."), end="")
+    with open(ip_file, 'r', newline='') as csv_file:
+      ip_content = csv.DictReader(csv_file, delimiter=';')
+      ip_list = list(ip_content)
+    print('%12s' % "[ DONE ]")
+
+    # Load recap CSV file from aldu_param calculation
+    # ===============================================
+
+    aldu_file = control_common.check_abspath(
+      os.path.join(chains_config['results_dir'],misc['source_name'],"CONTROL","aldu_param",misc['transition']['label'],"aldu_comp_results.csv"),
+      "Aldu_param recap CSV file","file")
+
+    print ("{:<80}".format("\nLoading aldu_param recap CSV file ..."), end="")
+    with open(aldu_file, 'r', newline='') as csv_file:
+      aldu_content = csv.DictReader(csv_file, delimiter=';')
+      aldu_list = list(aldu_content)
+    print('%12s' % "[ DONE ]")
+
+    # Get the reference values for fluence and duration 
+    # =================================================
+
+    best_aldu = [line for line in aldu_list if line['Best'] == 'True'][0]
+    ref_flu = float(best_aldu['Fluence'])
+    duration = float(best_aldu['Duration (ps)'])
+
+    # ========================================================= #
+    #            Defining the spectral window values            #
+    # ========================================================= #
+
+    # Compute the transition energy that will act as the central frequency
+
+    init_number = np.argmax(np.diagonal(misc['transition']['init_content']))
+    target_number = np.argmax(np.diagonal(misc['transition']['target_content']))
+    omegazero = abs(system['states_list'][init_number]['energy'] - system['states_list'][target_number]['energy'])
+    omegazero_cm = control_common.energy_unit_conversion(omegazero,'ha','cm-1')
+
+    # The largest window is the one including all the excited states
+
+    energies = [control_common.energy_unit_conversion(state['energy'],"ha","cm-1") for state in system['states_list']]
+    highest_diff = max(energies) - min(energies)
+    lowest_diff = min([abs(state1 - state2) for state1 in energies for state2 in energies if state1 != state2])
+    window_max = 2 * max(highest_diff - omegazero_cm, omegazero_cm - lowest_diff)
+
+    # The smallest window is roughly given by the fitting equation
+    # y = -1E-05x2 + 0,4205x - 330,3
+
+    window_min = -1E-05*(omegazero_cm**2) + 0.4205*omegazero_cm - 330.3
+
+    # Define the values
+
+    window_values = np.linspace(window_min,window_max,num=10)
+
+    """
+    # Define the step size (in terms of multiplying coefficient)
+
+    window_step = math.ceil((window_max / window_min) / 10)
+
+    # Define the values
+
+    nb_values = 10
+
+    for i in range(nb_values):
+
+      # The first value is always the minimum
+      if i == 0:
+        window_values.append(window_min)
+        continue
+
+      window_value = i * window_step * window_min
+      window_values.append(window_value)
+
+      # Once the maximum has been reached or exceeded, stop
+      if window_value >= window_max:
+        break
+    """"
+
+    # ========================================================= #
+    #             Defining the fluence limit values             #
+    # ========================================================= #
+
+    # The maximum fluence limit is the one from the aldu_param calculation
+
+    fluence_max = control_common.energy_unit_conversion(ref_flu,'ha','j')/(constants.value('atomic unit of length')**2)
+
+    # Minimum value
+    # =============
+
+    # Ionization potential
+    # ~~~~~~~~~~~~~~~~~~~~
+
+    ip = -1
+
+    for line in ip_list:
+      if line['Molecule'] == misc['source_name']:
+        if line['IP (adiabatic)'] != "N/A":
+          ip = float(line['IP (adiabatic)'])
+        elif line['IP (vertical)'] != "N/A":
+          ip = float(line['IP (vertical)'])
+        else:
+          ip = float(line['IP (Koopmans)'])
+        break
+
+    if ip == -1:
+      raise control_common.ControlError ("ERROR: Unable to find the ionization potential of this molecule in the %s file." % ip_file)
+
+    # Convert the IP from Ha to Joules and divide by 100 to get the maximum pulse energy (must remain a perturbation to the electrons in the system)
+
+    pulse_energy = control_common.energy_unit_conversion(ip,'ha','j') / 100
+
+    # Affected area of the molecule
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    # Initialize some variables
+
+    coord_list = []
+    section_found = False
+
+    # Define the expression patterns for the lines containing the atomic coordinates of the molecule in the QCHEM output file
+  
+    coord_rx = {
+
+      # Pattern for finding the "Standard Nuclear Orientation (Angstroms)" line (which marks the start of the section)
+      'start': re.compile(r'^\s*Standard Nuclear Orientation \(Angstroms\)\s*$'),
+
+      # Pattern for finding lines looking like '   16      Si     -2.7647071137    -0.0043786180     2.7647071137'
+      'coordinates': re.compile(r'^\s*\d+\s+[a-zA-Z]{1,3}\s+(?P<coord_x>-?\d+\.\d+)\s+(?P<coord_y>-?\d+\.\d+)\s+(?P<coord_z>-?\d+\.\d+)\s*$'),
+
+      # Pattern for finding the "Total QAlloc Memory Limit" line (which marks the end of the section, no need to get further)
+      'end': re.compile(r'^\s*Total QAlloc Memory Limit')
+
+    }
+
+    # Parse the qchem output file to get the information
+
+    for line in misc['source_content']:
+
+      # Define when the section begins and ends (ignore beta orbitals)
+
+      if not section_found:
+        if coord_rx['start'].match(line):
+          section_found = True
+    
+      elif section_found and coord_rx['end'].match(line):
+        break
+
+      # If the line matches our coordinates pattern, extract the values and store them (after converting them from Angstroms to meters)
+
+      elif coord_rx['coordinates'].match(line):
+
+        x1 = float(coord_rx['coordinates'].match(line).group('coord_x'))*1e-10
+        y1 = float(coord_rx['coordinates'].match(line).group('coord_y'))*1e-10
+        z1 = float(coord_rx['coordinates'].match(line).group('coord_z'))*1e-10
+
+        coord_list.append([x1,y1,z1])
+
+    # Raise an exception if the section has not been found
+
+    if not section_found:
+      raise control_common.ControlError ("ERROR: Unable to find the 'Standard Nuclear Orientation (Angstroms)' section in the QCHEM output file")
+
+    # Raise an exception if the atomic coordinates have not been found
+
+    if coord_list == []:
+      raise control_common.ControlError ("ERROR: Unable to find the atomic coordinates of the molecule in the QCHEM output file")
+
+    # Compute the convex hull of the molecule and get the list of points constituting it
+
+    points = np.array(coord_list)
+    hull = ConvexHull(points)
+    pts_hull = points[hull.vertices,:]
+
+    # Compute the average distance between the points of the hull and their centroid ("radius")
+
+    centroid = np.array(np.mean(pts_hull,axis=0),ndmin=2)
+    dist = distance.cdist(pts_hull,centroid)
+    radius = np.mean(dist)
+
+    # Compute the area of the molecule affected by the laser (consider the shape of a sphere, and compute the surface of the hemisphere)
+
+    area = 2 * np.pi *(radius**2)
+
+    # Compute the minimum value
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    fluence_min = pulse_energy / area
+
+    # Define the values
+    # =================
+
+    fluence_values = np.linspace(fluence_min,fluence_max,num=10)
+
+    # ========================================================= #
+    #           Rendering the control parameters files          #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the control parameters files ...  "), end="")
+
+    # Defining the main Jinja variables
+    # =================================
+
+    # Variables not associated with the config file
+
+    param_render_vars = {
+      # GENERAL
+      "source_name" : misc['source_name'],
+      "process" : "OPC",
+      "energies_file_path" : data['energies_path'],
+      "momdip_path" : data['momdip_mtx_path'],
+      "init_file_path" : data['init_path'],
+      "target_file_path" : data['target_path'],
+      "projector_path" : data.get('projector_path',"no")
+    }
+
+    # Check if a "control" block has been defined in the "qoctra" block of the config file
+
+    if not config['qoctra'].get('control'):
+      raise control_common.ControlError ('ERROR: There is no "control" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "control" block of the "qoctra" block in the config file
+
+    try:
+      
+      time_step = float(config['qoctra']['control']['time_step'])
+      time_step_for = "{:.5e}".format(time_step).replace('e','d') # Replace the 'e' from Python with the 'd' from Fortran double precision
+
+      nb_steps = round((duration * 1e-12/constants.value('atomic unit of time'))/time_step)
+
+      threshold = float(config['qoctra']['control']['threshold'])
+      threshold_for = "{:.5e}".format(threshold).replace('e','d')
+
+      conv_thresh = float(config['qoctra']['control']['conv_thresh'])
+      conv_thresh_for = "{:.5e}".format(conv_thresh).replace('e','d')
+
+      param_render_vars.update({
+        # CONTROL
+        "max_iter" : config['qoctra']['control']['max_iter'],
+        "threshold" : threshold_for,
+        "conv_thresh" : conv_thresh_for,
+        "time_step" : time_step_for,
+        "start_pulse" : " ",
+        "write_freq" : config['qoctra']['control']['write_freq'],
+        # OPC
+        "nb_steps" : nb_steps
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "control" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    #! Temporary
+
+    param_render_vars.update({
+      # POST CONTROL
+      "conv_mtx_path" : data['conv_mtx_path']
+    })
+
+    # Handle the constraints values
+    # =============================
+
+    # Iterate over the constraints value unique combinations
+
+    filenames = []
+
+    for window in window_values:
+      for fluence in fluence_values:
+
+        fluence_for = "{:.5e}".format(fluence).replace('e','d')
+        window_for = "{:.5e}".format(window).replace('e','d')
+        omegazero_for = "{:.5e}".format(omegazero_cm).replace('e','d')
+
+        param_render_vars.update({
+
+          # CONTROL
+          "guess_pulse" : prefix_pulse + "_flu" + str(fluence_values.index(fluence)) + "_wind" + str(window_values.index(window)),
+
+          # OPC
+          "max_fluence" : True,
+          "fluence" : fluence_for,
+          "spectral_filter" : 'SPGW',
+          "spectral_filter_center" : omegazero_for,
+          "spectral_filter_fwhm" : window_for
+
+        })
+
+        # Rendering the file for those parameters
+        # =======================================
+
+        rendered_param = prefix_param + "flu" + str(fluence_values.index(fluence)) + "_wind" + str(window_values.index(window)) + ".nml"
+        rendered_content[rendered_param] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+
+        # Add the name of this file to the list
+
+        filenames.append(rendered_param)
+
+    # Add to the dictionary the content of the text file containing all the parameters filenames
+
+    rendered_content[input_names] = "\n".join(filenames)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #          Rendering the PCP initial states files           #
+    # ========================================================= #
+
+    # Check if the initial state is degenerated (see https://stackoverflow.com/questions/36233918/find-indices-of-columns-having-some-nonzero-element-in-a-2d-array)
+
+    init_group = list(np.nonzero(np.any(misc['transition']['init_content'], axis=0))[0])
+
+    if len(init_group) > 1:
+      init_degen = True
+    else:
+      init_degen = False
+
+    # If the initial state is degenerated, redefine for each orientation the initial states in relation to their transition dipole moments
+
+    if init_degen:
+
+      for momdip_key in system['momdip_mtx']:
+
+        # Define the density matrix
+
+        init_mtx = np.zeros((len(system['states_list']), len(system['states_list'])),dtype=complex)
+
+        total_momdip = sum([system['momdip_mtx'][momdip_key][0][state_number] for state_number in init_group])
+
+        for state_number in init_group:
+          init_mtx[state_number][state_number] = complex(system['momdip_mtx'][momdip_key][0][state_number] / total_momdip)
+
+        # Render the files
+
+        init_content = []
+
+        for line in init_mtx:
+
+          line_content = []
+
+          for val in line:
+            line_content.append('( {0.real:.10e} , {0.imag:.10e} )'.format(val))
+          
+          init_content.append(" ".join(line_content))
+        
+        rendered_content[prefix_init_pcp + "_" + momdip_key + "_1"] = "\n".join(init_content)
+
+    # ========================================================= #
+    #             Rendering the PCP parameters file             #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the PCP parameters file ...  "), end="")
+
+    # Defining the Jinja variables (via updating the dictionary from the control parameters file)
+    # ============================
+
+    # Variables not associated with the config file
+
+    param_render_vars.update({
+      # GENERAL
+      "process" : "PCP",
+      # CONTROL
+      "start_pulse" : "../Pulse/Pulse_best",
+      # POST CONTROL
+      "conv_mtx_path" : data['conv_mtx_path']
+    })
+
+    # Check if a "post_control" block has been defined in the "qoctra" block of the config file
+
+    if not config['qoctra'].get('post_control'):
+      raise control_common.ControlError ('ERROR: There is no "post_control" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "post_control" block of the "qoctra" block in the config file
+
+    try:
+      param_render_vars.update({
+        # POST CONTROL
+        "analy_freq" : config['qoctra']['post_control']['analy_freq']
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "post_control" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Rendering the files (one for each orientation)
+    # ==============================================
+
+    for momdip_key in system['momdip_mtx']:
+
+      param_render_vars.update({
+        # GENERAL
+        "momdip_path" : os.path.join(data['main_path'],'momdip_mtx_' + momdip_key)
+      })
+
+      if init_degen:
+        param_render_vars.update({
+          # GENERAL
+          "init_file_path" : "../" + prefix_init_pcp + "_" + momdip_key + "_"
+        })   
+
+      rendered_content[momdip_key + "_" + rendered_param_pcp] = jinja_render(misc['templates_dir'], template_param, param_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #              Rendering the guess pulse files              #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the guess pulse files ...  "), end="")
+
+    # Defining the Jinja variables
+    # ============================
+
+    # Check if a "guess_pulse" block has been defined in the "qoctra" block of the config file
+
+    if not config['qoctra'].get('guess_pulse'):
+      raise control_common.ControlError ('ERROR: There is no "guess_pulse" key in the "qoctra" block of the "%s" configuration file.' % misc['config_name'])    
+
+    # Variables associated with the "guess_pulse" block of the "qoctra" block in the config file
+
+    try:
+
+      amplitude = float(config['qoctra']['guess_pulse']['amplitude']) / constants.value('atomic unit of electric field')
+      amplitude_for = "{:.5e}".format(amplitude).replace('e','d') # Replace the 'e' from Python with the 'd' from Fortran double precision
+
+      phase_change = float(config['qoctra']['guess_pulse']['phase_change'])
+      phase_change_for = "{:.5e}".format(phase_change).replace('e','d')
+
+      pulse_render_vars = {
+        "amplitude" : amplitude_for,
+        "pulse_type" : config['qoctra']['guess_pulse']['pulse_type'],
+        "subpulse_type" : config['qoctra']['guess_pulse']['subpulse_type'],
+        "phase_change" : phase_change_for,
+        "sign" : config['qoctra']['guess_pulse']['sign']
+      }
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "guess_pulse" block of the "qoctra" block in the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Handle the constraints values
+    # =============================
+
+    # Iterate over the constraints value unique combinations
+
+    for window in window_values:
+      for fluence in fluence_values:
+
+        # Determine the subpulses constituting the guess pulse
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        # Convert the spectral window from cm-1 to atomic units
+
+        window = control_common.energy_unit_conversion(window,'cm-1','ha')
+
+        # Determine the frequency range of subpulses (delimited by the spectral bandwidth, centered around the transition energy)
+
+        upper_limit = omegazero + window/2
+        lower_limit = omegazero - window/2
+
+        # Initialize the subpulses list 
+
+        subpulses = []
+
+        # Consider each pair of excited states
+
+        for state_1 in range(len(system['states_list'])):
+          for state_2 in range(state_1 + 1, len(system['states_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
+
+            # Compute the energy difference and compare it to our frequency range
+
+            energy_diff = abs(system['states_list'][state_1]['energy'] - system['states_list'][state_2]['energy'])
+
+            if lower_limit <= energy_diff <= upper_limit:
+
+              # Add it to the subpulses list
+
+              subpulses.append(str(state_1 + 1) + " \t " + str(state_2 + 1)) # +1 because Fortran starts numbering at 1 while Python starts at 0.
+
+        # Define the amplitude of the subpulses
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        
+        # Compute the amplitude using the fluence limit as reference
+
+        intensity = fluence / (duration * 1e-12)
+        amplitude = math.sqrt( intensity / (0.5 * constants.value('speed of light in vacuum') * constants.value('vacuum electric permittivity')) ) / 10
+        amplitude_au = amplitude / constants.value('atomic unit of electric field')
+        amplitude_for = "{:.5e}".format(amplitude_au).replace('e','d') 
+
+        # Set the variables not associated with the config file
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        pulse_render_vars.update({
+          "basis" : data['energies_path'],
+          "nb_subpulses" : len(subpulses),
+          "subpulses" : subpulses,
+          "amplitude" : amplitude_for
+        })
+
+        # Rendering the file for those parameters
+        # =======================================
+
+        rendered_pulse = prefix_pulse + "_flu" + str(fluence_values.index(fluence)) + "_wind" + str(window_values.index(window))
+        rendered_content[rendered_pulse] = jinja_render(misc['templates_dir'], template_pulse, pulse_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #               Rendering the main job script               #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the qoctra job script ..."), end="")
+
+    # Defining the mandatory Jinja variables
+    # ======================================
+
+    # Variables not associated with the config file
+
+    array_size = (len(fluence_values) * len(window_values)) - 1 # array begins at 0 in the template
+
+    script_render_vars = {
+      "source_name" : misc['source_name'],
+      "transition" : misc['transition']['label'],
+      "config_name" : misc['config_name'],
+      "job_walltime" : job_specs['walltime'],
+      "job_memory" : job_specs['memory'], # in MB
+      "partition" : job_specs['partition'],
+      "array_size" : array_size,
+      "cluster_name": job_specs['cluster_name'],
+      "treatment_script" : rendered_treatment,
+      "input_names": input_names,
+      "prefix_param" : prefix_param,
+      "momdip_keys" : list(system['momdip_mtx'].keys()),
+      "rendered_param_PCP" : rendered_param_pcp,
+      "init_degen" : init_degen,
+      "prefix_init_pcp" : prefix_init_pcp,
+      "prefix_pulse" : prefix_pulse,
+      "profile" : job_specs['profile']
+    }
+
+    # Variables associated with the "general" block of the config file
+
+    try:
+      script_render_vars.update({
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type']
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Variables associated with the clusters configuration file
+
+    try:
+      script_render_vars.update({
+        "set_env" : clusters_cfg[job_specs['cluster_name']]['profiles'][job_specs['profile']]['set_env']     
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "%s" profile of the clusters configuration file.' % (error,job_specs['profile']))
+
+    # Rendering the file
+    # ==================
+
+    rendered_content[rendered_script] = jinja_render(misc['templates_dir'], template_script, script_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #             Rendering the treatment job script            #
+    # ========================================================= #
+
+    print("{:<80}".format("\nRendering the jinja template for the treatment job script ..."), end="")
+
+    # Defining the mandatory Jinja variables
+    # ======================================
+
+    # Variables not associated with the config file
+
+    treatment_render_vars = {
+      "source_name" : misc['source_name'],
+      "transition" : misc['transition']['label'],
+      "config_name" : misc['config_name'],
+      "cluster_name": job_specs['cluster_name'],
+      "profile" : job_specs['profile'],
+      "chains_dir" : chains_path,
+      "copy_files" : copy_files # Associated with the config file, but it has already been verified
+    }
+
+    # Variables associated with the "general" block of the config file
+
+    try:
+      treatment_render_vars.update({
+        "user_email" : config['general']['user_email'],
+        "mail_type" : config['general']['mail_type']
+      })
+
+    except KeyError as error:
+      raise control_common.ControlError ('ERROR: The "%s" key is missing in the "general" block of the "%s" configuration file.' % (error,misc['config_name']))
+
+    # Defining the specific Jinja variables
+    # =====================================
+
+    # Variables specific to the copy_files portion of the template
+
+    if copy_files:
+
+      # Variables not associated with the config file
+
+      treatment_render_vars.update({
+        "data_dir" : data['main_path'],
+        "momdip_keys" : list(system['momdip_mtx'].keys()),
+        "rendered_param_PCP" : rendered_param_pcp,
+        "guess_pulse" : rendered_pulse,
+        "job_script" : rendered_script,
+        "treatment_script" : rendered_treatment,
+        "momdip_key" : misc['transition']['momdip_key'],
+        "pro_dir" : misc['pro_dir']
+      })
+
+      # Variables associated with the CHAINS configuration file
+
+      try:
+        treatment_render_vars.update({
+          "output_dir" : chains_config['output_convar'],
+          "results_dir" : chains_config['results_dir']
+        })
+
+      except KeyError as error:
+        raise control_common.ControlError ('ERROR: The "%s" key is missing in the CHAINS configuration file (chains_config.yml).' % error)
+
+    # Rendering the file
+    # ==================
+
+    rendered_content[rendered_treatment] = jinja_render(misc['templates_dir'], template_treatment, treatment_render_vars)
+
+    print('%12s' % "[ DONE ]")
+
+    return rendered_content, rendered_script
+
+
+######################################################################################################################################
 
 def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
     """Renders the job script and the two parameters files (OPM & PCP) associated with the QOCT-RA program in CHAINS.

@@ -24,6 +24,21 @@ shared:
           scale_limit: 50
           time: 2-00:00:00
           memory: 2500 # in MB
+    const_var: &const_var
+      modelling_function: qchem_tddft
+      transition_function: brightest_to_darkest
+      rendering_function: constraints_variation                
+      job_scales:
+        - 
+          label: small
+          scale_limit: 25
+          time: 2-00:00:00
+          memory: 2000 # in MB
+        - 
+          label: medium
+          scale_limit: 50
+          time: 2-00:00:00
+          memory: 2500 # in MB
     qoctra: &qoctra
       modelling_function: qchem_tddft
       transition_function: gs_or_brightests_to_darkests_and_reverse
@@ -69,6 +84,20 @@ lyra:
         - module --force purge
         - module load releases/2020b
         - module load OpenBLAS/0.3.12-GCC-10.2.0
+      job_scales:
+        - 
+          label: small
+          scale_limit: 25
+          time: 3-00:00:00
+          memory: 2000 # in MB
+        - 
+          label: medium
+          scale_limit: 50
+          time: 3-00:00:00
+          memory: 2500 # in MB
+    const_var:
+      <<: *const_var
+      set_env: *lyra_qoctra
       job_scales:
         - 
           label: small

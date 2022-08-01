@@ -1,0 +1,30 @@
+# ========================================================= #
+#                    General Information                    #
+# ========================================================= #
+
+general: 
+  user_email: nicolas.iacobellis@ulb.be
+  mail_type: END,FAIL
+
+# ========================================================= #
+#                    QOCT-RA Information                    #
+# ========================================================= #
+
+# QOCT-RA PARAMETERS
+
+qoctra:
+  copy_files: True
+  control:
+    time_step: 5.0                                # Duration of a time step (a.u. of time)
+    max_iter: 250                                 # Maximum number of iterations
+    threshold: 0.999                              # Quality threshold for the fidelity
+    conv_thresh: 0.0                              # Convergence threshold for the fidelity / projector
+    write_freq: 20                                # Number of iterations between each writing of the field
+  guess_pulse:
+    pulse_type: SIM                               # Type of starting guess pulse
+    subpulse_type: sin                            # Type of subpulses ([sin], [pip] ou [gau])
+    phase_change: 0.0                             # Dephasing
+    sign: 1                                       # Sign
+  post_control:
+    analy_freq: 100                               # Number of steps between each analysis of the populations, phases, positions and energies
+

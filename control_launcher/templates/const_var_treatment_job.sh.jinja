@@ -1,0 +1,59 @@
+#!/bin/bash
+
+{# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
+#SBATCH --output=slurm_output_treatment.log
+#SBATCH --job-name={{ source_name }}_{{ transition }}_const_var_treatment
+#SBATCH --mail-user={{ user_email }}
+#SBATCH --mail-type=FAIL
+#SBATCH --time=0-00:05:00
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=500
+
+echo -e "******************************************************************************"
+echo -e "**************************   Beginning of the job   **************************"
+echo -e "******************************************************************************\n"
+
+date
+cd "${SLURM_SUBMIT_DIR}"
+
+{% if cluster_name == "lyra" -%}
+# Temporary: for Lyra, define the GLOBALSCRATCH as a directory in HOME (empty it regularly)
+GLOBALSCRATCH="/home/ulb/cqp/niacobel/GLOBALSCRATCH"
+{%- endif %}
+
+# Define the scratch directory where all the results can be found
+scratch_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}_{{ config_name }}"
+
+# Treat the data
+echo -e "\nTreating the data from ${scratch_dir} ...\n\n"
+source "{{ chains_dir }}/load_modules.sh"
+python "{{ chains_dir }}/const_var_treatment.py" -r "${scratch_dir}" -o "${SLURM_SUBMIT_DIR}"
+
+{% if copy_files is sameas true -%}
+# Copy data directory
+res_dir="{{ results_dir }}/{{ source_name }}/CONTROL/{{ profile }}"
+echo -e "\nCopying data files to ${res_dir}."
+mkdir -p "${res_dir}"
+cp -rf  "{{ data_dir }}" "${res_dir}"
+
+# Copy job files
+trans_dir="${res_dir}/{{ transition }}"
+mkdir -p "${trans_dir}"
+echo -e "\nCopying job files from {{ transition }} to ${trans_dir}."
+cp "{{ job_script }}" "{{ config_name }}.yml" "convar_comp_results.csv" "{{ treatment_script }}" "${trans_dir}"
+{% for momdip_key in momdip_keys -%}
+cp "{{ momdip_key }}_{{ rendered_param_PCP }}" "${trans_dir}"
+{% endfor %}
+#cp -r "best_pulse" "${trans_dir}"
+
+# Copy the source file to the output dir to notify the end of this array calculation
+echo -e "\n\nCopying {{ data_dir }}/{{ source_name }}.out to {{ output_dir }}."
+mkdir -p "{{ output_dir }}"
+cp "{{ data_dir }}/{{ source_name }}.out" "{{ output_dir }}/"
+
+{%- endif %}
+
+echo -e "\n******************************************************************************"
+echo -e "*****************************   End of the job   *****************************"
+echo -e "******************************************************************************"
+
