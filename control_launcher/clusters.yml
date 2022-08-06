@@ -126,22 +126,30 @@ lemaitre3:
   profiles:
     aldu_param:
       <<: *aldu_param
-      set_env:
+      set_env: &lemaitre_qoctra
         - module --force purge
         - module load releases/2019b
         - module load OpenBLAS/0.3.7-GCC-8.3.0
+    const_var:
+      <<: *const_var
+      set_env: *lemaitre_qoctra
+      job_scales:
+        - 
+          label: small
+          scale_limit: 25
+          time: 2-00:00:00
+          memory: 2000 # in MB
+        - 
+          label: medium
+          scale_limit: 50
+          time: 2-00:00:00
+          memory: 2500 # in MB
     qoctra:
       <<: *qoctra
-      set_env:
-        - module --force purge
-        - module load releases/2019b
-        - module load OpenBLAS/0.3.7-GCC-8.3.0
+      set_env: *lemaitre_qoctra
     basic:
       <<: *basic
-      set_env:
-        - module --force purge
-        - module load releases/2019b
-        - module load OpenBLAS/0.3.7-GCC-8.3.0
+      set_env: *lemaitre_qoctra
 
 # ========================================================= #
 #                      ULiège Clusters                      #

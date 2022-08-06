@@ -202,7 +202,7 @@ def main():
  
       # Define the 'xxx_fluX_windX' regex and apply it to the dirname
 
-      pattern = re.compile(r"^\d+_flu\d+_wind\d+$")
+      pattern = re.compile(r"^\d+_(?P<suffix>flu\d+_wind\d+)$")
       matching_dir = pattern.match(dirname)
 
       # If it matches the regex, collect the data
@@ -210,15 +210,29 @@ def main():
       if matching_dir is not None:
 
         dir_list.append(dirname)
+        suffix = matching_dir.group("suffix")
 
-        fluence_lim = float(matching_dir.group("alpha"))
-        window = float(matching_dir.group("duration"))
+        param_file_path = os.path.join(results_dir, dirname, "param_%s.nml" % suffix)
+
+        with open(param_file_path, 'r') as param_file:
+          param_content = param_file.read().splitlines()
+
+        fluence_pattern = re.compile(r'^\s+fluence\s+=\s+(?P<fluence>\d+\.\d+d[+-]\d+)')
+        window_pattern = re.compile(r'^\s+spectral_filter_fwhm\s+=\s+(?P<window>\d+\.\d+d[+-]\d+)')
+
+        for line in param_content:
+
+          if fluence_pattern.match(line): 
+            fluence = float((fluence_pattern.match(line).group('fluence')).replace('d','e'))
+         
+          elif window_pattern.match(line): 
+            window = float((window_pattern.match(line).group('window')).replace('d','e'))
 
         # Prepare to store information specific to this calculation
 
         data = {
             "Directory" : dirname,
-            "Fluence limit" : fluence_lim,
+            "Fluence" : fluence,
             "Window (cm-1)" : window
         }
 
@@ -237,20 +251,19 @@ def main():
 
           # Define the expression patterns for the lines of the iterations file
           # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
-          rx_pcp_line = re.compile(r"^\s+\d+\s+\d+\s+\d+(?:sec|min)\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+(?P<fluence>\d\.\d+D[+-]\d+)\s\|Recou\(i\)\s+(?P<overlap>\d\.\d+D[+-]\d+)\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+(?P<projector>\d\.\d+D[+-]\d+)")
+          rx_pcp_line = re.compile(r"^\s+\d+\s+\d+\s+\d+(?:sec|min)\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+\d\.\d+D[+-]\d+\s\|Recou\(i\)\s+(?P<overlap>\d\.\d+D[+-]\d+)\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+(?P<projector>\d\.\d+D[+-]\d+)")
 
           # Get the values
 
           line_data = rx_pcp_line.match(file_content)
           if line_data is not None:
-            for key in ['projector','overlap','fidelity','fluence']:
+            for key in ['projector','overlap','fidelity']:
 
               raw_value = line_data.group(key)
               value = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', raw_value)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-              if key != 'fluence':
-                value = min (value, 1)
+              value = min (value, 1)
               
-              data_key = orientation + "_" + key.capitalize() if key != 'fluence' else key.capitalize()
+              data_key = orientation + "_" + key.capitalize()
               data.update({
                 data_key : value
               })

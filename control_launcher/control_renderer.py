@@ -601,7 +601,7 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
 ######################################################################################################################################
 
 def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the parameters files for each combination of two additional constraints values: the fluence limit and the spectral window. The job script will launch a job array where each job is a unique combination of a fluence value and a window value, with a specific guess pulse file. Three PCP parameters files (X, Y and Z) and a guess pulse file are also rendered but are independent of the chosen values.
+    """Renders the job script and the parameters files for each combination of two additional constraints values: the fixed fluence and the spectral filter (or window). The job script will launch a job array where each job is a unique combination of a fluence value and a window value, with a specific guess pulse file. Three PCP parameters files (X, Y and Z) and a guess pulse file are also rendered but are independent of the chosen values.
 
     Parameters
     ----------
@@ -645,11 +645,6 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
 
     if not config.get('qoctra'):
       raise control_common.ControlError ('ERROR: There is no "qoctra" key defined in the "%s" configuration file.' % misc['config_name'])      
-
-    # Check if a "parameters" block has been defined in the config file
-
-    if not config.get('parameters'):
-      raise control_common.ControlError ('ERROR: There is no "parameters" key defined in the "%s" configuration file.' % misc['config_name'])  
 
     # Check the options defined in the config file
 
@@ -756,19 +751,19 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
 
     # The largest window is the one including all the excited states
 
-    energies = [control_common.energy_unit_conversion(state['energy'],"ha","cm-1") for state in system['states_list']]
+    energies = [control_common.energy_unit_conversion(state['energy'],"ha","cm-1") for state in system['states_list'] if state['label'] != 'E0']
     highest_diff = max(energies) - min(energies)
     lowest_diff = min([abs(state1 - state2) for state1 in energies for state2 in energies if state1 != state2])
     window_max = 2 * max(highest_diff - omegazero_cm, omegazero_cm - lowest_diff)
 
     # The smallest window is roughly given by the fitting equation
-    # y = -1E-05x2 + 0,4205x - 330,3
+    # y = -8E-10x3 + 8E-06x2 + 0,2317x
 
-    window_min = -1E-05*(omegazero_cm**2) + 0.4205*omegazero_cm - 330.3
+    window_min = -8E-10*(omegazero_cm**3) + 8E-06*(omegazero_cm**2) + 0.2317*omegazero_cm
 
     # Define the values
 
-    window_values = np.linspace(window_min,window_max,num=10)
+    window_values = list(np.linspace(window_min,window_max,num=10))
 
     """
     # Define the step size (in terms of multiplying coefficient)
@@ -792,13 +787,13 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
       # Once the maximum has been reached or exceeded, stop
       if window_value >= window_max:
         break
-    """"
+    """
 
     # ========================================================= #
-    #             Defining the fluence limit values             #
+    #                Defining the fluence values                #
     # ========================================================= #
 
-    # The maximum fluence limit is the one from the aldu_param calculation
+    # The maximum fluence is the one from the aldu_param calculation
 
     fluence_max = control_common.energy_unit_conversion(ref_flu,'ha','j')/(constants.value('atomic unit of length')**2)
 
@@ -907,7 +902,7 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
     # Define the values
     # =================
 
-    fluence_values = np.linspace(fluence_min,fluence_max,num=10)
+    fluence_values = list(np.logspace(np.log10(fluence_min),np.log10(fluence_max),num=10))
 
     # ========================================================= #
     #           Rendering the control parameters files          #
@@ -993,7 +988,7 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
           "guess_pulse" : prefix_pulse + "_flu" + str(fluence_values.index(fluence)) + "_wind" + str(window_values.index(window)),
 
           # OPC
-          "max_fluence" : True,
+          "fix_fluence" : True,
           "fluence" : fluence_for,
           "spectral_filter" : 'SPGW',
           "spectral_filter_center" : omegazero_for,
@@ -1134,14 +1129,10 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
 
     try:
 
-      amplitude = float(config['qoctra']['guess_pulse']['amplitude']) / constants.value('atomic unit of electric field')
-      amplitude_for = "{:.5e}".format(amplitude).replace('e','d') # Replace the 'e' from Python with the 'd' from Fortran double precision
-
       phase_change = float(config['qoctra']['guess_pulse']['phase_change'])
       phase_change_for = "{:.5e}".format(phase_change).replace('e','d')
 
       pulse_render_vars = {
-        "amplitude" : amplitude_for,
         "pulse_type" : config['qoctra']['guess_pulse']['pulse_type'],
         "subpulse_type" : config['qoctra']['guess_pulse']['subpulse_type'],
         "phase_change" : phase_change_for,
@@ -1164,12 +1155,12 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
 
         # Convert the spectral window from cm-1 to atomic units
 
-        window = control_common.energy_unit_conversion(window,'cm-1','ha')
+        window_au = control_common.energy_unit_conversion(window,'cm-1','ha')
 
         # Determine the frequency range of subpulses (delimited by the spectral bandwidth, centered around the transition energy)
 
-        upper_limit = omegazero + window/2
-        lower_limit = omegazero - window/2
+        upper_limit = omegazero + window_au/2
+        lower_limit = omegazero - window_au/2
 
         # Initialize the subpulses list 
 
@@ -1177,7 +1168,7 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
 
         # Consider each pair of excited states
 
-        for state_1 in range(len(system['states_list'])):
+        for state_1 in range(1,len(system['states_list'])): # Start at 1 to exclude GS
           for state_2 in range(state_1 + 1, len(system['states_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
 
             # Compute the energy difference and compare it to our frequency range
@@ -1193,10 +1184,10 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
         # Define the amplitude of the subpulses
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
-        # Compute the amplitude using the fluence limit as reference
+        # Compute the amplitude using the fluence as reference
 
         intensity = fluence / (duration * 1e-12)
-        amplitude = math.sqrt( intensity / (0.5 * constants.value('speed of light in vacuum') * constants.value('vacuum electric permittivity')) ) / 10
+        amplitude = math.sqrt(intensity / (0.5 * constants.value('speed of light in vacuum') * constants.value('vacuum electric permittivity')))
         amplitude_au = amplitude / constants.value('atomic unit of electric field')
         amplitude_for = "{:.5e}".format(amplitude_au).replace('e','d') 
 
@@ -1348,6 +1339,55 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
     rendered_content[rendered_treatment] = jinja_render(misc['templates_dir'], template_treatment, treatment_render_vars)
 
     print('%12s' % "[ DONE ]")
+
+    # ========================================================= #
+    #                  Show the computed values                 #
+    # ========================================================= #
+
+    table_width = 70
+    print("")
+    print(''.center(table_width, '-'))
+    print('Molecule characteristics'.center(table_width, ' '))
+    print(''.center(table_width, '-'))
+    print("{:<40} {:<30}".format("Ionization potential (eV): ", "{:.2f}".format(control_common.energy_unit_conversion(ip,'ha','ev'))))    
+    print("{:<40} {:<30}".format("Affected area (m^2): ", "{:.4e}".format(area)))
+    print(''.center(table_width, '-'))
+
+    table_width = 70
+    print("")
+    print(''.center(table_width, '-'))
+    print('General pulse characteristics'.center(table_width, ' '))
+    print(''.center(table_width, '-'))
+    print("{:<40} {:<30}".format("Duration (ps): ", "{:.1f}".format(duration)))    
+    print("{:<40} {:<30}".format("Central frequency (cm^-1): ", "{:.2f}".format(omegazero_cm)))
+    print("{:<40} {:<30}".format("Minimum fluence (J/m^2): ", "{:.3g}".format(fluence_min)))
+    print("{:<40} {:<30}".format("Maximum fluence (J/m^2): ", "{:.3g}".format(fluence_max)))
+    print("{:<40} {:<30}".format("Minimum spectral window (cm^-1): ", "{:.2f}".format(window_min)))
+    print("{:<40} {:<30}".format("Maximum spectral window (cm^-1): ", "{:.2f}".format(window_max)))
+    print(''.center(table_width, '-'))
+    print("")
+
+    table_width = 70
+    print("")
+    print(''.center(table_width, '-'))
+    print('Fluence values'.center(table_width, ' '))
+    print(''.center(table_width, '-'))
+    print("{:<20} {:<24} {:<24}".format('','Value (J/m^2)','Value (a.u)'))
+    print(''.center(table_width, '-'))
+    for fluence in fluence_values:
+      print("{:^20} {:<24.3g} {:<24.3g}".format(fluence_values.index(fluence), fluence, control_common.energy_unit_conversion(fluence,'j','ha')*(constants.value('atomic unit of length')**2)))
+    print(''.center(table_width, '-'))
+
+    table_width = 70
+    print("")
+    print(''.center(table_width, '-'))
+    print('Window values'.center(table_width, ' '))
+    print(''.center(table_width, '-'))
+    print("{:<20} {:<24} {:<24}".format('','Value (cm^-1)','Value (a.u)'))
+    print(''.center(table_width, '-'))
+    for window in window_values:
+      print("{:^20} {:<24.2f} {:<24.2g}".format(window_values.index(window), window, control_common.energy_unit_conversion(window,'cm-1','ha')))
+    print(''.center(table_width, '-'))
 
     return rendered_content, rendered_script
 

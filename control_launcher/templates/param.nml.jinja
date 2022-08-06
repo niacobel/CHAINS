@@ -23,11 +23,11 @@
 &OPC
 {% if process == "OPC" %}
   nb_steps = {{ nb_steps }},                               ! Number of time steps
-{% if max_fluence is not defined or max_fluence is sameas false %}
+{% if fix_fluence is not defined or fix_fluence is sameas false %}
   alpha = {{ alpha }},                                     ! Constraint on the field amplitude
 {%- endif %}
   write_freq = {{ write_freq }},                           ! Number of iterations between each writing of the field
-{% if max_fluence is sameas true %}
+{% if fix_fluence is sameas true %}
   fluence = {{ fluence }},                                 ! Maximum fluence of the pulse, in J/m^2
 {%- endif %}
 {% if spectral_filter is defined %}
