@@ -21,5 +21,5 @@ qchem:
     basis_set: def2-tzvp
     scf_algorithm: diis                            # DIIS by default (GDM for restricted open-shell). If DIIS struggles in the initial iterations, use RCA_DIIS. If DIIS struggles to finally converge, use DIIS_GDM. If small HOMO-LUMO gaps and DIIS struggles, use LS_DIIS.
     max_scf_cycles: 100
-    cis_n_roots: 5
+    cis_n_roots: 6
     iqmol_fchk: true
