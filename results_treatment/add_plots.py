@@ -325,15 +325,32 @@ def main():
   # Annotate a set of points to indicate which point corresponds to which molecule
   # See https://queirozf.com/entries/add-labels-and-text-to-matplotlib-plots-annotation-examples
 
-  for diam, gap in zip([float(mol['Diametre (nm)']) for mol in funct_data['B3LYP']],[float(mol['Gap optique (eV)']) for mol in funct_data['B3LYP']]):
+  for molecule in [mol['Molecule'] for mol in funct_data['B3LYP']]:
 
-    molecule = [mol['Molecule'] for mol in funct_data['B3LYP'] if float(mol['Diametre (nm)']) == diam][0]
+    max_gap = -float('inf')
 
-    plt.annotate(molecule,                    # this is the text
-                 (diam, gap),                 # these are the coordinates to position the label
-                 textcoords="offset points",  # how to position the text
-                 xytext=(0,5),                # distance from text to points (x,y)
-                 ha='left')                  # horizontal alignment can be left, right or center
+    for funct in functs:
+      gap = [float(mol['Gap optique (eV)']) for mol in funct_data[funct] if mol['Molecule'] == molecule][0]
+      if gap > max_gap:
+        max_gap = gap
+        chosen_funct = funct
+
+    diam = [float(mol['Diametre (nm)']) for mol in funct_data[chosen_funct] if mol['Molecule'] == molecule][0]
+
+    if molecule == "Si$_{5}$H$_{12}$":
+      txt_offset = (50,10)
+    elif molecule == "Si$_{71}$H$_{84}$":
+      txt_offset = (25,50)
+    elif molecule == "Si$_{99}$H$_{100}$":
+      txt_offset = (60,10)
+    else:
+      txt_offset = (25,40)
+
+    ax.annotate(molecule,
+                xy=(diam, gap), xycoords='data',
+                xytext=txt_offset, textcoords='offset points',
+                arrowprops=dict(facecolor='black', arrowstyle="->"),
+                horizontalalignment='right', verticalalignment='top')
 
   # Add the legend and titles
 
