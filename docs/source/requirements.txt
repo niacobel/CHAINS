@@ -4,4 +4,5 @@ sphinx-code-include
 # sphinxcontrib.yt
 pyyaml
 jinja2
-numpy==1.22.0
+# numpy==1.22.0
+scipy
