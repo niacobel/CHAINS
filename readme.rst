@@ -50,9 +50,7 @@ Languages and Dependencies
     :align: center
     :alt: Languages used in CHAINS
     :figclass: align-center
-
-    The different languages used by CHAINS
-
+    
 The main language of CHAINS is **Python 3.5+** but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. If you want to customize CHAINS however, there is no need for an in-depth knowledge of anything but Python, as we only use the basic features of the other languages (consult the "What you need to know" section of the documentation for details).
 
 If your Python distribution does not include them, you can install the needed Python libraries by entering the following command in your terminal:
