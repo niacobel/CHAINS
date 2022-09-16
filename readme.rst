@@ -1,6 +1,6 @@
 .. badges
 
-|GitHub Page| |Documentation Status| |GitHub License| |DOI| |GitHub issues|
+|GitHub Page| |Documentation Status| |GitHub License| |GitHub issues|
 
 .. |GitHub Page| image:: https://img.shields.io/website-up-down-green-red/https/github.com/niacobel/CHAINS.svg
    :alt: GitHub Page
@@ -24,9 +24,9 @@ CHAINS is a group of scripts developed at the Spectroscopy, Quantum Chemistry an
 
 This methodology includes three big phases:
 
-- The **characterization** phase makes use of ab initio calculations performed by programs such as GAUSSIAN_ and Q-CHEM_, in order to build a matrix Hamiltonian describing our molecule. 
-- The **control** phase consists in using this Hamiltonian to apply the quantum optimal control theory through the QOCT-RA_ scripts, also developed at SQUARES.
-- The **results** phase involves treating the results of all calculations and compiling them into graphs and tables.
+#. The **characterization** phase makes use of ab initio calculations performed by programs such as GAUSSIAN_ and Q-CHEM_, in order to build a matrix Hamiltonian describing our molecule. 
+#. The **control** phase consists in using this Hamiltonian to apply the quantum optimal control theory through the QOCT-RA_ scripts, also developed at SQUARES.
+#. The **results** phase involves treating the results of all calculations and compiling them into graphs and tables.
 
 CHAINS can assist this whole methodology by automatically preparing the input files and launching the GAUSSIAN_, Q-CHEM_ and QOCT-RA_ calculations for each molecule, allowing the user to treat a big number of molecules much faster, thus making the scanning more efficient. It can also work with multiple clusters, in order to split the workload. In our case, all those calculations (jobs) are performed on the different clusters provided by the *Consortium des Équipements de Calcul Intensif* (CECI_). 
 
@@ -38,8 +38,8 @@ Design Philosophy
 
 The development of CHAINS followed two main ideas:
 
-- **Simple**: Since CHAINS might be used by scientists with minimal knowledge of software development, we want to keep it simple and easy to understand, so we tried to stick with the basics as much as possible. Also, since the jobs that will be launched might last for hours, days and maybe even weeks, there is no need to put too much emphasis on efficiency, as gaining a few seconds during the execution of CHAINS' scripts wouldn't really impact the overall performance of the total procedure. 
-- **Adaptable**: Since there are as many scientific problems as there are scientists, we want to make CHAINS easily adaptable. Therefore, we also tried to keep in mind other programs and methodologies that may want to use some or all of CHAINS' scripts. 
+* **Simple**: Since CHAINS might be used by scientists with minimal knowledge of software development, we want to keep it simple and easy to understand, so we tried to stick with the basics as much as possible. Also, since the jobs that will be launched might last for hours, days and maybe even weeks, there is no need to put too much emphasis on efficiency, as gaining a few seconds during the execution of CHAINS' scripts wouldn't really impact the overall performance of the total procedure. 
+* **Adaptable**: Since there are as many scientific problems as there are scientists, we want to make CHAINS easily adaptable. Therefore, we also tried to keep in mind other programs and methodologies that may want to use some or all of CHAINS' scripts. 
 
 As a final note, CHAINS is not a single program but really just a group of scripts. Those scripts will be executed on the clusters before and after each calculation, in order to prepare input files and treat output files. As such, if one calculation happens to fail, it is easy to restart juste before that step.
 
@@ -61,11 +61,11 @@ If your Python distribution does not include them, you can install the needed Py
 
    $ python -m pip install --upgrade --user pyyaml jinja2 scipy
 
-The third main script of CHAINS, ``RESULTS TREATMENT``, makes use of the SciPy_ and Matplotlib_ packages. If your Python distribution does not include them, you can install them using
+The third main script of CHAINS, ``RESULTS TREATMENT``, makes use of the Pandas_ and Matplotlib_ packages. If your Python distribution does not include them, you can install them using
 
 .. code-block:: console
 
-   $ python -m pip install --user scipy matplotlib
+   $ python -m pip install --user pandas matplotlib
 
 .. Important::
    Since CHAINS' scripts will be running on the clusters themselves and not on your personal computer, you need to make sure to meet those packages requirements for each cluster on which you intend to use CHAINS.
@@ -92,6 +92,7 @@ License
 .. _Jinja2: https://jinja.palletsprojects.com/en/2.11.x/ 
 .. _LaTeX: https://www.latex-project.org/
 .. _Matplotlib: https://matplotlib.org/
+.. _Pandas: https://pandas.pydata.org/
 .. _Q-CHEM: https://www.q-chem.com/
 .. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA
 .. _SciPy: https://scipy.org/
