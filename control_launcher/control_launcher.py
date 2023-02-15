@@ -504,15 +504,10 @@ def main():
 
     data_dir = os.path.join(pro_dir,"data")
 
-    if os.path.exists(data_dir):
-      if not overwrite:
-        raise control_common.ControlError ("ERROR: A data directory for the %s source file already exists in %s !" % (source_name, pro_dir))
-      else:
-        print("\n/!\ Deleting the old %s data directory ..." % data_dir, end="")
-        shutil.rmtree(data_dir)
-        print('%12s' % "[ DONE ]")
+    if os.path.exists(data_dir) and not overwrite:
+      raise control_common.ControlError ("ERROR: A data directory for the %s source file already exists in %s !" % (source_name, pro_dir))
     
-    os.makedirs(data_dir)
+    os.makedirs(data_dir,exist_ok=True)
 
     print ("{:<20} {:<100}".format('\nData directory:',data_dir))
 
@@ -688,6 +683,8 @@ def main():
     sys.stdout = original_stdout                                  # Reset the standard output to its original value
     print('%12s' % "[ DONE ]")
     data_log.close()
+    if os.path.exists(os.path.join(data_dir,data_log_name)):
+      os.remove(os.path.join(data_dir,data_log_name))
     shutil.move(os.path.join(out_dir,data_log_name), data_dir)    # Archive the log file in the data directory
 
     console_message = "End of the source file treatment"

@@ -420,9 +420,19 @@ def alpha_duration_param_search(clusters_cfg:dict, config:dict, system:dict, dat
     # Consider each pair of excited states
 
     for state_1 in range(len(system['states_list'])):
+
       if state_1 == 0:
         continue # Skip the ground state
+
       for state_2 in range(state_1 + 1, len(system['states_list'])): # Starting at "state_1 + 1" to exclude the cases where both states are the same
+
+        # Skip transitions between indistinguishable states
+
+        energy_1 = control_common.energy_unit_conversion(system['states_list'][state_1]['energy'], "ha", "cm-1")
+        energy_2 = control_common.energy_unit_conversion(system['states_list'][state_2]['energy'], "ha", "cm-1")
+
+        if control_common.is_indistinguishable(energy_1, energy_2):
+          continue
 
         # Add it to the subpulses list
 
@@ -659,9 +669,9 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
     # Define the names of the default templates.
 
     template_param = "param.nml.jinja"
-    template_script = "const_var_job.sh.jinja"
+    template_script = "array_job.sh.jinja"
     template_pulse = "guess_pulse_OPC.jinja"
-    template_treatment = "const_var_treatment_job.sh.jinja"
+    template_treatment = "array_treatment_job.sh.jinja"
 
     # Check if the specified templates exist in the "templates" directory of CONTROL LAUNCHER.
     
@@ -751,7 +761,7 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
 
     # The largest window is the one including all the excited states
 
-    energies = [control_common.energy_unit_conversion(state['energy'],"ha","cm-1") for state in system['states_list'] if state['label'] != 'E0']
+    energies = [control_common.energy_unit_conversion(state['energy'],"ha","cm-1") for state in system['states_list'] if state['number'] != 0]
     highest_diff = max(energies) - min(energies)
     lowest_diff = min([abs(state1 - state2) for state1 in energies for state2 in energies if state1 != state2])
     window_max = 2 * max(highest_diff - omegazero_cm, omegazero_cm - lowest_diff)
@@ -1177,6 +1187,14 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
 
             if lower_limit <= energy_diff <= upper_limit:
 
+              # Skip transitions between indistinguishable states
+
+              energy_1 = control_common.energy_unit_conversion(system['states_list'][state_1]['energy'], "ha", "cm-1")
+              energy_2 = control_common.energy_unit_conversion(system['states_list'][state_2]['energy'], "ha", "cm-1")
+
+              if control_common.is_indistinguishable(energy_1, energy_2):
+                continue
+
               # Add it to the subpulses list
 
               subpulses.append(str(state_1 + 1) + " \t " + str(state_2 + 1)) # +1 because Fortran starts numbering at 1 while Python starts at 0.
@@ -1187,7 +1205,7 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
         # Compute the amplitude using the fluence as reference
 
         intensity = fluence / (duration * 1e-12)
-        amplitude = math.sqrt(intensity / (0.5 * constants.value('speed of light in vacuum') * constants.value('vacuum electric permittivity')))
+        amplitude = 10 * (math.sqrt(intensity / (0.5 * constants.value('speed of light in vacuum') * constants.value('vacuum electric permittivity'))))
         amplitude_au = amplitude / constants.value('atomic unit of electric field')
         amplitude_for = "{:.5e}".format(amplitude_au).replace('e','d') 
 
@@ -1288,6 +1306,7 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
       "cluster_name": job_specs['cluster_name'],
       "profile" : job_specs['profile'],
       "chains_dir" : chains_path,
+      "treatment_pyscript" : "const_var_treatment",
       "copy_files" : copy_files # Associated with the config file, but it has already been verified
     }
 
@@ -1318,6 +1337,7 @@ def constraints_variation(clusters_cfg:dict, config:dict, system:dict, data:dict
         "guess_pulse" : rendered_pulse,
         "job_script" : rendered_script,
         "treatment_script" : rendered_treatment,
+        "treatment_csv" : "convar_comp_results",
         "momdip_key" : misc['transition']['momdip_key'],
         "pro_dir" : misc['pro_dir']
       })

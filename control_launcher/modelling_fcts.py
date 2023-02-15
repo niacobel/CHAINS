@@ -1357,9 +1357,20 @@ def qchem_tddft(source_content:list):
 
         state_1 = int(matching_line.group('state_1'))
         state_2 = int(matching_line.group('state_2'))
-        value_x = float(matching_line.group('mom_x'))
-        value_y = float(matching_line.group('mom_y'))
-        value_z = float(matching_line.group('mom_z'))
+
+        energy_1 = [state['energy'] for state in system['zero_states_list'] if state['qchem_number'] == state_1][0]
+        energy_2 = [state['energy'] for state in system['zero_states_list'] if state['qchem_number'] == state_2][0]
+
+        if energy_1 == energy_2:
+          # Transition dipole moment between degenerated states must be zero as it has no physical sense
+          value_x = 0.0
+          value_y = 0.0
+          value_z = 0.0
+        else:
+          value_x = float(matching_line.group('mom_x'))
+          value_y = float(matching_line.group('mom_y'))
+          value_z = float(matching_line.group('mom_z'))
+      
         momdip = (state_1, state_2, value_x, value_y, value_z)
       
         # Add the new line to the momdip_list
@@ -1423,7 +1434,10 @@ def qchem_tddft(source_content:list):
 
       for k1 in states_1:
         for k2 in states_2:
-          
+
+          if momdip[0] == momdip[1] and not k1 == k2:
+            continue # If the two qchem_numbers are the same but the state numbers are not (for example T1(ms=0) and T1(ms=1)), skip this value as the transition has no physical sense
+
           system['momdip_o_mtx']['X'][k1][k2] = momdip[2]
           system['momdip_o_mtx']['X'][k2][k1] = momdip[2]    # For symetry purposes
     
@@ -1550,10 +1564,12 @@ def qchem_tddft(source_content:list):
     print("{:<15} {:<15} {:<20} {:<20}".format('State 1','State 2','Real value (Ha)','Imag value (Ha)'))
     print(''.center(table_width, '-'))
     for soc in soc_list:
-      column_1 = soc[1]
-      column_2 = soc[3]
       column_3 = control_common.energy_unit_conversion(soc[4].real,"cm-1","ha")
       column_4 = control_common.energy_unit_conversion(soc[4].imag,"cm-1","ha")
+      if column_3 == 0 and column_4 == 0:
+        continue # Skip spin-orbit couplings equal to zero due to spin-orbit selection rules
+      column_1 = soc[1]
+      column_2 = soc[3]
       print("{:<15} {:<15} {:<20.5g} {:<20.5g}".format(column_1,column_2,column_3,column_4))
     print(''.center(table_width, '-'))  
 
@@ -1568,10 +1584,12 @@ def qchem_tddft(source_content:list):
     print("{:<10} {:<10} {:<12} {:<12} {:<12} {:<12}".format('State 1','State 2','X (a.u.)','Y (a.u.)','Z (a.u.)','Tot (a.u.)'))
     print(''.center(table_width, '-'))
     for momdip in momdip_list:
+      tot_momdip = math.sqrt(momdip[2]**2 + momdip[3]**2 + momdip[4]**2)
+      if tot_momdip == 0:
+        continue # Skip transition dipole moments equal to zero either due to selection rules or no physical sense (degenerated states)
       column_1 = [state['label'] for state in system['zero_states_list'] if state['qchem_number'] == momdip[0]][0].partition("(")[0]
       column_2 = [state['label'] for state in system['zero_states_list'] if state['qchem_number'] == momdip[1]][0].partition("(")[0]
-      column_6 = math.sqrt(momdip[2]**2 + momdip[3]**2 + momdip[4]**2)
-      print("{:<10} {:<10} {:<12.4g} {:<12.4g} {:<12.4g} {:<12.4g}".format(column_1,column_2,momdip[2],momdip[3],momdip[4],column_6))
+      print("{:<10} {:<10} {:<12.4g} {:<12.4g} {:<12.4g} {:<12.4g}".format(column_1,column_2,momdip[2],momdip[3],momdip[4],tot_momdip))
     print(''.center(table_width, '-'))
 
     # =================================================================== #
@@ -1861,15 +1879,48 @@ def qchem_tddft(source_content:list):
 
     print("{:<50}".format("\nComputing mixing percentages ..."), end="")
 
+    # Initialize the pseudo-singlet (ps) and pseudo-triplet (pt) counters
+
+    cnt_ps = 0
+    cnt_pt = 0
+
+    # Compute the percentages
+
     for state in system['states_list']:
       state['sing_percent'] = 0.0
       state['trip_percent'] = 0.0
       weights_list = [val**2 for val in np.absolute(system['eigenvectors_inv'][state['number']])]
       for idx, weight in enumerate(weights_list):
-        if system['zero_states_list'][idx]['label'].startswith('S'):
+        if system['zero_states_list'][idx]['label'] == 'S0':
+          state['gs_percent'] = weight
+        elif system['zero_states_list'][idx]['label'].startswith('S'):
           state['sing_percent'] += weight
         elif system['zero_states_list'][idx]['label'].startswith('T'):
-          state['trip_percent'] += weight        
+          state['trip_percent'] += weight  
+
+      # Change the label accordingly
+
+      if state['gs_percent'] >= 0.5:
+        state['label'] = "GS"
+      elif state['trip_percent'] >= 0.5:
+        cnt_pt += 1
+        state['label'] = "pT" + str(cnt_pt)
+      else:
+        cnt_ps += 1
+        state['label'] = "pS" + str(cnt_ps)
+
+    print("[ DONE ]")
+
+    # ========================================================= #
+    #            Dominant non relativistic component            #
+    # ========================================================= #
+
+    print("{:<50}".format("\nComputing dominant non relativistic component ..."), end="")
+
+    for state in system['states_list']:
+      eigenvector = list(np.absolute(system['eigenvectors_inv'][state['number']]))
+      max_index = eigenvector.index(max(eigenvector))
+      state['dom_state'] = system['zero_states_list'][max_index]['label']
 
     print("[ DONE ]")
 
@@ -1940,15 +1991,15 @@ def qchem_tddft(source_content:list):
     # Print the relativistic states list
     # ==================================
 
-    table_width = 73
+    table_width = 97
     print("")
     print(''.center(table_width, '-'))
     print('Relativistic states list'.center(table_width, ' '))
     print(''.center(table_width, '-'))
-    print("{:<9} {:<9} {:<15} {:<15} {:<10} {:<10}".format('Number','Label','Energy (Ha)','Energy (cm-1)','% Singlet','% Triplet'))
+    print("{:<9} {:<9} {:<15} {:<15} {:<10} {:<10} {:<10} {:<10}".format('Number','Label','Energy (Ha)','Energy (cm-1)',r'% GS','% Singlet','% Triplet','Dom. State'))
     print(''.center(table_width, '-'))
     for state in system['states_list']:
-      print("{:<9} {:<9} {:<15.5e} {:<15.4f} {:<10.2f} {:<10.2f}".format(state['number'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"ha","cm-1"),state['sing_percent']*100,state['trip_percent']*100))
+      print("{:<9} {:<9} {:<15.5e} {:<15.4f} {:<10.2f} {:<10.2f} {:<10.2f} {:<10}".format(state['number'],state['label'],state['energy'],control_common.energy_unit_conversion(state['energy'],"ha","cm-1"),state['gs_percent']*100,state['sing_percent']*100,state['trip_percent']*100,state['dom_state']))
     print(''.center(table_width, '-'))
 
     # Print the relativistic transition dipole moments list
