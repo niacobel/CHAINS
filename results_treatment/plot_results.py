@@ -15,7 +15,6 @@ import csv
 import os
 import re
 import shutil
-from functools import partial
 from inspect import getsourcefile
 
 import matplotlib.mathtext
@@ -26,7 +25,6 @@ import yaml
 from matplotlib.cm import ScalarMappable
 from matplotlib.ticker import AutoMinorLocator
 from scipy import constants
-from tabulate import tabulate
 
 import results_common
 
@@ -54,22 +52,26 @@ optional.add_argument('-cf', '--config', type=str, help="Path to the YAML config
 # =================================================================== #
 # =================================================================== #
 
-def format_num(precision, num_format):
-    """This function returns a function which formats numbers according to the specified string operations. Seen on https://stackoverflow.com/questions/67074648/pandas-dataframe-to-latex-formatter-functions.
+def diff_percent(value_1:float, value_2:float):
+    """ 
+    Computes the difference percentage of value_2 compared to value_1
 
     Parameters
     ----------
-    precision : int
-        Accuracy to be shown (e.g. number of decimal places if format type is "f" or "e" or number of significant digits if format type is "g")
-    num_format : str
-        Format type (f, g or e)
+    value_1 : float
+        Value of reference
+    value_2 : float
+        Value for which the difference needs to be computed
 
+    Returns
+    -------
+    diff_percent : float
+        The difference percentage of value_2 compared to value_1
     """
 
-    def create_formatter(num, inner_prec, inner_form):
-        return "{:.{}{}}".format(num, inner_prec, inner_form)
+    diff_per = ((value_2 - value_1) / value_1) * 100
 
-    return partial(create_formatter, inner_prec=precision, inner_form=num_format)
+    return diff_per
 
 # =================================================================== #
 # =================================================================== #
@@ -141,6 +143,8 @@ def main():
       config = yaml.load(f_config, Loader=yaml.FullLoader)
     print('%12s' % "[ DONE ]")
 
+    res_dpi = 400
+
     # ========================================================= #
     # Check and load the YAML input file                        #
     # ========================================================= #
@@ -183,12 +187,19 @@ def main():
   mol_groups = [yml_content[mol]['ID']['Group'] for mol in yml_content]
   mol_groups = list(dict.fromkeys(mol_groups)) # Remove duplicates (https://www.w3schools.com/python/python_howto_remove_duplicates.asp)
 
+  # Put the Si group at the front for easier handling
+
+  mol_groups.insert(0, mol_groups.pop(mol_groups.index('Si')))
+
   # Regroup the data by group (constitutive atoms) (#!only include spheroids for now)
 
   yml_sorted = {}
 
   for mol_group in mol_groups:
-    yml_sorted[mol_group] = {mol:value for (mol,value) in yml_content.items() if yml_content[mol]['ID']['Group'] == mol_group and yml_content[mol]['ID']['TAG'].startswith("S") and not yml_content[mol]['ID']['TAG'] == 'S00'}
+    yml_sorted[mol_group] = {mol:value for (mol,value) in yml_content.items() if yml_content[mol]['ID']['Group'] == mol_group and ((yml_content[mol]['ID']['TAG'].startswith("S") and not yml_content[mol]['ID']['TAG'] == 'S00') or yml_content[mol]['ID']['TAG'].startswith("B"))}
+    # yml_sorted[mol_group] = {mol:value for (mol,value) in yml_content.items() if yml_content[mol]['ID']['Group'] == mol_group and yml_content[mol]['ID']['TAG'].startswith("S") and not yml_content[mol]['ID']['TAG'] == 'S00'}
+
+  # mol_groups.pop(mol_groups.index("Bonus"))
 
   print('%12s' % "[ DONE ]")
 
@@ -266,7 +277,6 @@ def main():
       si_sizes.append({
         "Molécule": yml_sorted['Si'][mol]['ID']['Name'],
         "Nombre d'atomes de Si" : yml_sorted['Si'][mol]['Structure']['Nb Si atoms'],
-        "Diamètre original (nm)": yml_sorted['Si'][mol]['Structure']['Original size (nm)'],
         "Diamètre (nm)": yml_sorted['Si'][mol]['Structure']['Size (nm)']
         })
 
@@ -315,11 +325,13 @@ def main():
   for mol in yml_sorted['Si']:
     if yml_sorted['Si'][mol].get('Energy gaps (Ha)'):
 
+      sym_label = str(yml_sorted['Si'][mol]['Structure'].get('Symmetry')).partition(" (")[0]
+      sym_latex = "$" + sym_label[0] + "_{" + sym_label[1:] + "}$"
+
       si_gaps.append({
         "Molécule": yml_sorted['Si'][mol]['ID']['LateX Name'],
         "Diamètre (nm)": yml_sorted['Si'][mol]['Structure']['Size (nm)'],
-        "Diamètre original (nm)": yml_sorted['Si'][mol]['Structure']['Original size (nm)'],
-        "Symétrie" : yml_sorted['Si'][mol]['Structure'].get('Symmetry'),
+        "Symétrie" : sym_latex,
         "Gap H-L (eV)": results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev"),
         "Gap optique (eV)": results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Optical'],"ha","ev"),
         "Gap S-T (eV)": results_common.energy_unit_conversion(yml_sorted['Si'][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
@@ -346,13 +358,21 @@ def main():
   gap_data = [{key:data[key] for key in data if key != 'Gap S-T (eV)'} for data in si_gaps]
 
   df = pd.DataFrame(gap_data)
-  with open(os.path.join(out_dir,'Si',"gaps.tex"), 'w+', encoding='utf-8') as f:
-    f.write(df.to_latex(
+
+  file_content = df.to_latex(
       index=False,
       float_format="%.2f",
-      column_format="lccccc",
+      column_format=r"*{5}{>{\centering\arraybackslash}m{0.17\textwidth}}",
       escape=False,
-      na_rep="-"))
+      na_rep="-")
+
+  file_content = file_content.splitlines()
+
+  file_content[2] = r"\multirow{2}{*}{Molécule} & \multirow{2}{*}{Diamètre (nm)} & \multirow{2}{*}{Symétrie} & \multicolumn{2}{c}{Gap (eV)}\\"
+  file_content.insert(3, r" &  &  & H-L & optique\\")
+
+  with open(os.path.join(out_dir,'Si',"gaps.tex"), 'w+', encoding='utf-8') as f:
+    f.write("\n".join(file_content))
 
   # Plot the optical and HOMO-LUMO gaps graphs
   # ==========================================
@@ -363,14 +383,14 @@ def main():
 
   # Plot the values
 
-  ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap H-L (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='H-L gaps (DFT/B3LYP/def2-SVP)')
-  ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap optique (eV)'] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Optical gaps (TD-DFT/B3LYP/def2-SVP)')
+  ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap H-L (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='Gap H-L (DFT/B3LYP/def2-SVP)')
+  ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap optique (eV)'] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Gap optique (TD-DFT/B3LYP/def2-SVP)')
 
   # Add the legend and titles
 
   #ax.set_title('Energy gaps for Si QDs')
-  ax.set_xlabel("Diameter of the cluster (nm)")
-  ax.set_ylabel('Energy (eV)')
+  ax.set_xlabel("Diamètre (nm)")
+  ax.set_ylabel("Énergie (eV)")
   ax.legend()
 
   # Set other parameters
@@ -384,7 +404,7 @@ def main():
 
   # Save the file and close the figure
 
-  plt.savefig(os.path.join(out_dir,'Si','gaps.png'),dpi=300)
+  plt.savefig(os.path.join(out_dir,'Si','gaps.png'),dpi=res_dpi)
   plt.close()
 
   # Plot the singlet-triplet gaps graphs
@@ -401,7 +421,7 @@ def main():
   # Add the legend and titles
 
   #ax.set_title('Singlet-Triplet gaps for Si QDs')
-  ax.set_xlabel("Diameter of the cluster (nm)")
+  ax.set_xlabel("Diamètre (nm)")
   ax.set_ylabel(r'$\Delta E_{ST}~(eV)$')
 
   # Set other parameters
@@ -418,7 +438,7 @@ def main():
 
   # Save the file and close the figure
 
-  plt.savefig(os.path.join(out_dir,'Si','st_gaps.png'),dpi=300)
+  plt.savefig(os.path.join(out_dir,'Si','st_gaps.png'),dpi=res_dpi)
   plt.close()
 
   print('%12s' % "[ DONE ]")
@@ -444,15 +464,16 @@ def main():
       for mol in yml_sorted[mol_group]:
         if yml_sorted[mol_group][mol].get('Energy gaps (Ha)'):
 
+          sym_label = str(yml_sorted[mol_group][mol]['Structure'].get('Symmetry')).partition(" (")[0]
+          sym_latex = "$" + sym_label[0] + "_{" + sym_label[1:] + "}$"
+
           gaps.append({
               "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
               "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
-              "Diamètre original (nm)": yml_sorted[mol_group][mol]['Structure']['Original size (nm)'],
-              "Symétrie" : yml_sorted[mol_group][mol]['Structure'].get('Symmetry'),
+              "Symétrie" : sym_latex,
               "Gap H-L (eV)": results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['HOMO-LUMO'],"ha","ev"),
               "Gap optique (eV)": results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Optical'],"ha","ev"),
-              "Gap S-T (eV)": results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev"),
-
+              "Gap S-T (eV)": results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['Energy gaps (Ha)']['Singlet-Triplet'],"ha","ev")
             })
 
       gaps.sort(key=lambda mol: mol['Diamètre (nm)']) # Sort the values by size
@@ -476,13 +497,21 @@ def main():
       gap_data = [{key:data[key] for key in data if key != 'Gap S-T (eV)'} for data in gaps]
 
       df = pd.DataFrame(gap_data)
-      with open(os.path.join(out_dir,mol_group,"gaps.tex"), 'w+', encoding='utf-8') as f:
-        f.write(df.to_latex(
+
+      file_content = df.to_latex(
           index=False,
           float_format="%.2f",
-          column_format="lccccc",
+          column_format=r"*{5}{>{\centering\arraybackslash}m{0.17\textwidth}}",
           escape=False,
-          na_rep="-"))
+          na_rep="-")
+
+      file_content = file_content.splitlines()
+
+      file_content[2] = r"\multirow{2}{*}{Molécule} & \multirow{2}{*}{Diamètre (nm)} & \multirow{2}{*}{Symétrie} & \multicolumn{2}{c}{Gap (eV)}\\"
+      file_content.insert(3, r" &  &  & H-L & optique\\")
+
+      with open(os.path.join(out_dir,mol_group,"gaps.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
 
       # Plot the optical and HOMO-LUMO gaps graphs
       # ==========================================
@@ -493,19 +522,19 @@ def main():
 
       # Plot the Si values
 
-      ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap H-L (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='H-L gaps - Si (DFT)')
-      ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap optique (eV)'] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Optical gaps - Si (TD-DFT)')
+      ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap H-L (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='Gap H-L - Si (DFT)')
+      ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap optique (eV)'] for mol in si_gaps],marker='^',markersize=4,linestyle='--',label='Gap optique - Si (TD-DFT)')
 
       # Plot the specific group value
 
-      ax.plot([mol['Diamètre (nm)'] for mol in gaps],[mol['Gap H-L (eV)'] for mol in gaps],marker='.',linestyle='-',label='H-L gaps - %s (DFT)' % mol_group)
-      ax.plot([mol['Diamètre (nm)'] for mol in gaps],[mol['Gap optique (eV)'] for mol in gaps],marker='^',markersize=4,linestyle='-',label='Optical gaps - %s (TD-DFT)' % mol_group)
+      ax.plot([mol['Diamètre (nm)'] for mol in gaps],[mol['Gap H-L (eV)'] for mol in gaps],marker='.',linestyle='-',label='Gap H-L - %s (DFT)' % mol_group)
+      ax.plot([mol['Diamètre (nm)'] for mol in gaps],[mol['Gap optique (eV)'] for mol in gaps],marker='^',markersize=4,linestyle='-',label='Gap optique - %s (TD-DFT)' % mol_group)
 
       # Add the legend and titles
 
       #ax.set_title('Energy gaps for Si QDs vs %s QDs' % mol_group)
-      ax.set_xlabel("Diameter of the cluster (nm)")
-      ax.set_ylabel('Energy (eV)')
+      ax.set_xlabel("Diamètre (nm)")
+      ax.set_ylabel("Énergie (eV)")
       ax.legend()
 
       # Set other parameters
@@ -519,7 +548,7 @@ def main():
 
       # Save the file and close the figure
 
-      plt.savefig(os.path.join(out_dir,mol_group,'gaps.png'),dpi=300)
+      plt.savefig(os.path.join(out_dir,mol_group,'gaps.png'),dpi=res_dpi)
       plt.close()
 
       # Plot the singlet-triplet gaps graphs
@@ -531,16 +560,16 @@ def main():
 
       # Plot the Si values
 
-      ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap S-T (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='S-T gaps - Si (TD-DFT)')
+      ax.plot([mol['Diamètre (nm)'] for mol in si_gaps],[mol['Gap S-T (eV)'] for mol in si_gaps],marker='.',linestyle='--',label='Gap S-T - Si (TD-DFT)')
 
       # Plot the specific group value
 
-      ax.plot([mol['Diamètre (nm)'] for mol in gaps],[mol['Gap S-T (eV)'] for mol in gaps],marker='.',linestyle='-',label='S-T gaps - %s (TD-DFT)' % mol_group)
+      ax.plot([mol['Diamètre (nm)'] for mol in gaps],[mol['Gap S-T (eV)'] for mol in gaps],marker='.',linestyle='-',label='Gap S-T - %s (TD-DFT)' % mol_group)
 
       # Add the legend and titles
 
       #ax.set_title('Singlet-Triplet gaps for Si QDs vs %s QDs' % mol_group)
-      ax.set_xlabel("Diameter of the cluster (nm)")
+      ax.set_xlabel("Diamètre (nm)")
       ax.set_ylabel(r'$\Delta E_{ST}~(eV)$')
       ax.legend()
 
@@ -558,7 +587,7 @@ def main():
 
       # Save the file and close the figure
 
-      plt.savefig(os.path.join(out_dir,mol_group,'st_gaps.png'),dpi=300)
+      plt.savefig(os.path.join(out_dir,mol_group,'st_gaps.png'),dpi=res_dpi)
       plt.close()
 
       print('%12s' % "[ DONE ]")
@@ -589,45 +618,40 @@ def main():
     occ_orbitals = []
     virt_orbitals = []
 
-    # Smallest molecule (reference)
-    # =============================
+    # Define the orbitals cutoff (based on the smallest molecule of the reference group)
+    # ==========================
 
-    # Identify the smallest molecule of the group that will act as reference
+    if mol_group == "Si":
 
-    min_atoms =  min([yml_sorted[mol_group][mol]['Structure']['Nb atoms'] for mol in yml_sorted[mol_group] if yml_sorted[mol_group][mol].get('QCHEM KS Orbitals')])
-    ref_mol = list(filter(lambda mol: yml_sorted[mol_group][mol]['Structure']['Nb atoms'] == min_atoms, yml_sorted[mol_group]))[0]
+      # Identify the smallest molecule of the reference group
 
-    # Convert the orbital values from string to list and take the top 10 levels
+      min_atoms =  min([yml_sorted[mol_group][mol]['Structure']['Nb atoms'] for mol in yml_sorted[mol_group] if yml_sorted[mol_group][mol].get('QCHEM KS Orbitals')])
+      ref_mol = list(filter(lambda mol: yml_sorted[mol_group][mol]['Structure']['Nb atoms'] == min_atoms, yml_sorted[mol_group]))[0]
 
-    occ_values = sorted(map(float,yml_sorted[mol_group][ref_mol]['QCHEM KS Orbitals']['Occupied'].split(';')),reverse=True)[0:10]
-    virt_values = sorted(map(float,yml_sorted[mol_group][ref_mol]['QCHEM KS Orbitals']['Virtual'].split(';')))[0:10]
+      # Convert the orbital values from string to list and take the top 10 levels
 
-    # Filter the extreme values (values higher than the triple of the mean)
+      occ_values = sorted(map(float,yml_sorted[mol_group][ref_mol]['QCHEM KS Orbitals']['Occupied'].split(';')),reverse=True)[0:10]
+      virt_values = sorted(map(float,yml_sorted[mol_group][ref_mol]['QCHEM KS Orbitals']['Virtual'].split(';')))[0:10]
 
-    occ_values = [val for val in occ_values if abs(val) < (3 * abs(sum(occ_values)/len(occ_values)))]
-    virt_values = [val for val in virt_values if abs(val) < (3 * abs(sum(virt_values)/len(virt_values)))]
+      # Filter the extreme values (values higher than the triple of the mean)
 
-    # Shift the values by centering them around the HOMO-LUMO gap
+      occ_values = [val for val in occ_values if abs(val) < (3 * abs(sum(occ_values)/len(occ_values)))]
+      virt_values = [val for val in virt_values if abs(val) < (3 * abs(sum(virt_values)/len(virt_values)))]
 
-    hl_gap = min(virt_values) - max(occ_values)
-    shift = max(occ_values) + (hl_gap/2)
-    occ_values = [val - shift for val in sorted(occ_values)]
-    virt_values = [val - shift for val in virt_values]
+      # Shift the values by centering them around the HOMO-LUMO gap
 
-    # Store the values in the list as tuples (x = 1 since it is the smallest molecule of the group)
+      hl_gap = min(virt_values) - max(occ_values)
+      shift = max(occ_values) + (hl_gap/2)
+      occ_values = [val - shift for val in sorted(occ_values)]
+      virt_values = [val - shift for val in virt_values]
 
-    for value in occ_values:
-      occ_orbitals.append((1,value))
-    for value in virt_values:
-      virt_orbitals.append((1,value))
+      # Define the upper and lower limits that will be used to filter the orbital energies of the bigger molecules of the group
 
-    # Define the upper and lower limits that will be used to filter the orbital energies of the bigger molecules of the group
+      upper_limit = max(virt_values)
+      lower_limit = min(occ_values)
 
-    upper_limit = max(virt_values)
-    lower_limit = min(occ_values)
-
-    # Rest of the group
-    # =================
+    # Get the values
+    # ==============
 
     # Filter the molecules for which the data is available
 
@@ -640,7 +664,6 @@ def main():
     # Iterate over each molecule
 
     for mol in sorted_mol:
-      if mol != ref_mol:
 
         # Determine the x value
 
@@ -679,18 +702,39 @@ def main():
 
     # Define the X labels and ticks
 
-    xlabels = [yml_sorted[mol_group][mol]['ID']['LateX Name'] for mol in sorted_mol]
-    xticks = list(range(1,len(xlabels)+1))
+    if mol_group == "Si":
+      xlabels = [yml_sorted[mol_group][mol]['ID']['LateX Name'] for mol in sorted_mol]
+      xticks = list(range(1,len(xlabels)+1))
+    else:
+      # Build a list with the Si version and this group version of each molecule side by side, identified by their tag
+      xlabels = []
+      for group_mol in sorted_mol:
+        tag = group_mol.partition("-")[0]
+        for si_mol in si_mols:
+          if si_mol.partition("-")[0] == tag:
+            xlabels.append(yml_sorted['Si'][si_mol]['ID']['LateX Name'])
+            xlabels.append(yml_sorted[mol_group][group_mol]['ID']['LateX Name'])
+            shift = si_mols.index(si_mol) - sorted_mol.index(group_mol)
+      xticks = list(range(1,len(xlabels)+1))
 
     # Plot the values
 
-    ax.scatter([orb[0] for orb in occ_orbitals],[results_common.energy_unit_conversion(orb[1],"ha","ev") for orb in occ_orbitals],label='Occupied',color='red',marker='_',s=900)
-    ax.scatter([orb[0] for orb in virt_orbitals],[results_common.energy_unit_conversion(orb[1],"ha","ev") for orb in virt_orbitals],label='Virtual',color='blue',marker='_',s=900)
+    if mol_group == 'Si':
+
+      ax.scatter([orb[0] for orb in occ_orbitals],[results_common.energy_unit_conversion(orb[1],"ha","ev") for orb in occ_orbitals],label='Occupées',color='red',marker='_',s=900)
+      ax.scatter([orb[0] for orb in virt_orbitals],[results_common.energy_unit_conversion(orb[1],"ha","ev") for orb in virt_orbitals],label='Virtuelles',color='blue',marker='_',s=900)
+
+    else:
+
+      for x in range(0, len(sorted_mol)):
+        ax.scatter([orb[0] - shift + x for orb in si_occ_orbitals if orb[0] == x + 1 + shift],[results_common.energy_unit_conversion(orb[1],"ha","ev") for orb in si_occ_orbitals if orb[0] == x + 1 + shift],color='orange',marker='_',s=450)
+        ax.scatter([orb[0] + x + 1 for orb in occ_orbitals if orb[0] == x + 1],[results_common.energy_unit_conversion(orb[1],"ha","ev") for orb in occ_orbitals if orb[0] == x + 1],color='red',marker='_',s=450)
+        ax.scatter([orb[0] - shift + x for orb in si_virt_orbitals if orb[0] == x + 1 + shift],[results_common.energy_unit_conversion(orb[1],"ha","ev") for orb in si_virt_orbitals if orb[0] == x + 1 + shift],color='green',marker='_',s=450)
+        ax.scatter([orb[0] + x + 1 for orb in virt_orbitals if orb[0] == x + 1],[results_common.energy_unit_conversion(orb[1],"ha","ev") for orb in virt_orbitals if orb[0] == x + 1],color='blue',marker='_',s=450)
 
     # Add the legend and titles
 
-    #ax.set_title('Orbital energies for the %s clusters' % mol_group)
-    ax.set_ylabel('Energy (eV)')
+    ax.set_ylabel("Énergie (eV)")
 
     # Set other parameters
 
@@ -704,8 +748,15 @@ def main():
 
     # Save the file and close the figure
 
-    plt.savefig(os.path.join(out_dir,mol_group,'orb.png'),dpi=300)
+    plt.savefig(os.path.join(out_dir,mol_group,'orb.png'),dpi=res_dpi)
     plt.close()
+
+    # Save the results for the Si group, for comparison with the other groups
+
+    if mol_group == "Si":
+      si_occ_orbitals = occ_orbitals
+      si_virt_orbitals = virt_orbitals
+      si_mols = sorted_mol
 
     print('%12s' % "[ DONE ]")
 
@@ -734,7 +785,6 @@ def main():
       # ==============
 
       ips_all = []
-      ips_koop = []
       ips_vert = []
       ips_adiab = []
 
@@ -747,36 +797,40 @@ def main():
 
           # Get the IPs values and add them to their corresponding lists (separate lists because all sizes are not necessarily represented for each IP)
 
-          ip_koop = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['IPs (Ha)']['Koopmans'],"ha","ev")
-          ips_koop.append((size,ip_koop))
-
-          ip_vert = yml_sorted[mol_group][mol]['IPs (Ha)']['Vertical']
-          if ip_vert != 'N/A':
-            ip_vert = results_common.energy_unit_conversion(ip_vert,"ha","ev")
-            ips_vert.append((size,ip_vert))
-          else:
-            ip_vert = None
+          ip_vert = results_common.energy_unit_conversion(yml_sorted[mol_group][mol]['IPs (Ha)']['Vertical'],"ha","ev")
+          ips_vert.append((size,ip_vert))
 
           ip_adiab = yml_sorted[mol_group][mol]['IPs (Ha)']['Adiabatic']
           if ip_adiab != 'N/A':
             ip_adiab = results_common.energy_unit_conversion(ip_adiab,"ha","ev")
-            ips_adiab.append((size,ip_adiab)) 
+            ips_adiab.append((size,ip_adiab))
           else:
-            ip_adiab = None      
+            ip_adiab = None
+  
+          # Compute the differences between the two IPs
+
+          if ip_adiab:
+            diff_va = ip_vert - ip_adiab
+          else:
+            diff_va = None
 
           # Store the data for this molecule
 
           ips_all.append({
             "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
             "Diamètre (nm)": size,
-            r'$-\text{E}_{\text{HOMO}}$~(eV)': ip_koop,
             "P.I. vertical (eV)": ip_vert,
-            "P.I. adiabatique (eV)": ip_adiab
+            "P.I. adiabatique (eV)": ip_adiab,
+            r"$\Delta_{VA}$ (eV)" : diff_va
             })
+
+      # If they were no values for this group, skip it
+
+      if ips_all == []:
+        continue
 
       # Sort the values by size
 
-      ips_koop.sort(key=lambda tup: tup[0])
       ips_vert.sort(key=lambda tup: tup[0])
       ips_adiab.sort(key=lambda tup: tup[0])
 
@@ -799,13 +853,21 @@ def main():
       # ======================
 
       df = pd.DataFrame(ips_all)
-      with open(os.path.join(out_dir,mol_group,"ips.tex"), 'w+', encoding='utf-8') as f:
-        f.write(df.to_latex(
+
+      file_content = df.to_latex(
           index=False,
           float_format="%.2f",
-          column_format="lcccc",
+          column_format=r"*{" + str(len(ips_all[0])) + r"}{>{\centering\arraybackslash}m{0.17\textwidth}}",
           escape=False,
-          na_rep="-"))
+          na_rep="-")
+
+      file_content = file_content.splitlines()
+
+      file_content[2] = r"\multirow{2}{*}{Molécule} & \multirow{2}{*}{Diamètre (nm)} & \multicolumn{2}{c}{Potentiels d'ionisation (eV)} & \multirow{2}{*}{$\Delta_{VA}$ (eV)} \\"
+      file_content.insert(3, r"  &  & vertical & adiabatique &  \\")
+
+      with open(os.path.join(out_dir,mol_group,"ips.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
 
       # Plot the graphs
       # ===============
@@ -816,15 +878,14 @@ def main():
 
       # Plot the values
 
-      ax.plot([mol[0] for mol in ips_koop],[mol[1] for mol in ips_koop],marker='.',linestyle='-',label=r'$-E_{HOMO}$')
       ax.plot([mol[0] for mol in ips_vert],[mol[1] for mol in ips_vert],marker='.',linestyle='-',label='Vertical')
-      ax.plot([mol[0] for mol in ips_adiab],[mol[1] for mol in ips_adiab],marker='.',linestyle='-',label='Adiabatic')
+      ax.plot([mol[0] for mol in ips_adiab],[mol[1] for mol in ips_adiab],marker='.',linestyle='-',label='Adiabatique')
 
       # Add the legend and titles
 
       #ax.set_title('Ionization potentials for %s clusters' % mol_group)
-      ax.set_xlabel("Diameter of the cluster (nm)")
-      ax.set_ylabel('Energy (eV)')
+      ax.set_xlabel("Diamètre (nm)")
+      ax.set_ylabel("Énergie (eV)")
       ax.legend()
 
       # Set other parameters
@@ -838,7 +899,7 @@ def main():
 
       # Save the file and close the figure
 
-      plt.savefig(os.path.join(out_dir,mol_group,'ips.png'),dpi=300)
+      plt.savefig(os.path.join(out_dir,mol_group,'ips.png'),dpi=res_dpi)
       plt.close()
 
       print('%12s' % "[ DONE ]")
@@ -867,14 +928,22 @@ def main():
       # Get the values
       # ==============
 
-      charac_results = []
-      momdip_results = []
+      gs_momdip_ind = []
+      gs_soc_ind = []
+
+      nr_momdip = []
+      soc_results = []
+      mixing_results = []
+      rel_momdip = []
+      avg_dir_momdip = []
 
       for mol in yml_sorted[mol_group]:
         if yml_sorted[mol_group][mol].get('Transition dipole moments (au)') and yml_sorted[mol_group][mol].get('Relativistic states list'):
 
-          # Individual values
-          # =================
+          # States list
+          # ===========
+
+          # Non relativistic states list
 
           zero_states = []
 
@@ -882,28 +951,37 @@ def main():
             if state != "S0":
               zero_states.append({
                 "Label" : state,
-                "Energie (cm" + r'$^{-1}$' + ")" : results_common.energy_unit_conversion(yml_sorted[mol_group][mol]["Zero states list"][state]['Energy (Ha)'],"ha","cm-1"),
-                r'$\mu_{X}$ GS (u.a.)' : yml_sorted[mol_group][mol]["Zero states list"][state]['GS transition dipole moment (au)']['X'],
-                r'$\mu_{Y}$ GS (u.a.)' : yml_sorted[mol_group][mol]["Zero states list"][state]['GS transition dipole moment (au)']['Y'],
-                r'$\mu_{Z}$ GS (u.a.)' : yml_sorted[mol_group][mol]["Zero states list"][state]['GS transition dipole moment (au)']['Z']
+                "Energie (cm" + r'$^{-1}$' + ")" : results_common.energy_unit_conversion(yml_sorted[mol_group][mol]["Zero states list"][state]['Energy (Ha)'],"ha","cm-1")
               })
+
+          # Relativistic states list
 
           rel_states = []
 
           for state in yml_sorted[mol_group][mol]["Relativistic states list"]:
-            if state != "E0":
+            if state != "GS":
               rel_states.append({
                 "Label" : state,
-                "Energie (cm" + r'$^{-1}$' + ")" : results_common.energy_unit_conversion(yml_sorted[mol_group][mol]["Relativistic states list"][state]['Energy (Ha)'],"ha","cm-1"),
-                r'$\%_{S}$' : yml_sorted[mol_group][mol]["Relativistic states list"][state]['Singlet percentage'] * 100,
-                r'$\%_{T}$' : (1 - yml_sorted[mol_group][mol]["Relativistic states list"][state]['Singlet percentage']) * 100,
-                r'$\mu_{X}$ E0 (u.a.)' : yml_sorted[mol_group][mol]["Relativistic states list"][state]['GS transition dipole moment (au)']['X'],
-                r'$\mu_{Y}$ E0 (u.a.)' : yml_sorted[mol_group][mol]["Relativistic states list"][state]['GS transition dipole moment (au)']['Y'],
-                r'$\mu_{Z}$ E0 (u.a.)' : yml_sorted[mol_group][mol]["Relativistic states list"][state]['GS transition dipole moment (au)']['Z']
+                "Energie (cm" + r'$^{-1}$' + ")" : results_common.energy_unit_conversion(yml_sorted[mol_group][mol]["Relativistic states list"][state]['Energy (Ha)'],"ha","cm-1")
               })
 
-          # Store the individual values in CSV files
-          # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          # Mixing singlet-triplet percentages
+
+          mix_perc = []
+
+          for state in yml_sorted[mol_group][mol]["Relativistic states list"]:
+            if state != "GS":
+              mix_perc.append({
+                "Label" : state,
+                r'$\%_{GS}$' : yml_sorted[mol_group][mol]["Relativistic states list"][state]['GS percentage'] * 100,
+                r'$\%_{S}$' : yml_sorted[mol_group][mol]["Relativistic states list"][state]['Singlet percentage'] * 100,
+                r'$\%_{T}$' : yml_sorted[mol_group][mol]["Relativistic states list"][state]['Triplet percentage'] * 100
+              })
+
+          # Store the states list in CSV files
+          # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+          # Non relativistic states list
 
           csv_header = list(zero_states[0].keys())
 
@@ -915,6 +993,8 @@ def main():
             for state in zero_states:
               csv_writer.writerow(state) 
 
+          # Relativistic states list
+
           csv_header = list(rel_states[0].keys())
 
           with open(os.path.join(out_dir,mol_group,mol,'rel_states.csv'), 'w', newline='', encoding='utf-8') as csvfile:
@@ -925,182 +1005,816 @@ def main():
             for state in rel_states:
               csv_writer.writerow(state) 
 
-          # Create the individual LaTeX tables
-          # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          # Mixing singlet-triplet percentages
 
-          df = pd.DataFrame(zero_states)
-          with open(os.path.join(out_dir,mol_group,mol,"zero_states.tex"), 'w+', encoding='utf-8') as f:
-            f.write(df.to_latex(
-              index=False,
-              formatters=[None, format_num(2, "f"), format_num(2, "e"), format_num(2, "e"), format_num(2, "e")],
-              column_format="ccccc",
-              escape=False,
-              na_rep="-"))
+          csv_header = list(mix_perc[0].keys())
 
-          df = pd.DataFrame(rel_states)
-          with open(os.path.join(out_dir,mol_group,mol,"rel_states.tex"), 'w+', encoding='utf-8') as f:
-            f.write(df.to_latex(
-              index=False,
-              formatters=[None, format_num(2, "f"), format_num(2, "f"), format_num(2, "f"), format_num(2, "e"), format_num(2, "e"), format_num(2, "e")],
-              column_format="ccccccc",
-              escape=False,
-              na_rep="-"))
+          with open(os.path.join(out_dir,mol_group,mol,'mix_perc.csv'), 'w', newline='', encoding='utf-8') as csvfile:
 
-          # Representative values
-          # =====================
+            csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writeheader()
 
-          # Get the size values
+            for state in mix_perc:
+              csv_writer.writerow(state) 
 
-          size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
+          # Create the states LaTeX tables
+          # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-          # Get the mean and median transition dipole moments from the ground state
+          # The zero (non-relativistic) states data will be split into two tables, that will be presented side-by-side in the thesis
 
-          gs_momdip = [yml_sorted[mol_group][mol]['Transition dipole moments (au)'][key] for key in yml_sorted[mol_group][mol]['Transition dipole moments (au)'] if key.startswith('S0')]
-          gs_momdip = [value for value in gs_momdip if value != 0.0]
-          if gs_momdip == []:
-            gs_momdip = [0.0]
+          zero_states_1 = zero_states[:len(zero_states)//2] # First half
+          zero_states_2 = zero_states[len(zero_states)//2:] # Second half 
 
-          mean_gs_momdip = np.mean(gs_momdip)
-          std_gs_momdip = np.std(gs_momdip)
-          median_gs_momdip = np.median(gs_momdip)
+          for idx, frame in enumerate([zero_states_1, zero_states_2]):
+            df = pd.DataFrame(frame)
+            with open(os.path.join(out_dir,mol_group,mol,"zero_states_%s.tex" % (idx+1)), 'w+', encoding='utf-8') as f:
+              f.write(df.to_latex(
+                index=False,
+                formatters=[None, results_common.format_num(2, "f")],
+                column_format="cc",
+                escape=False,
+                na_rep="-"))
 
-          # Get the mean and median transition dipole moments between singlets
+          # The relativistic states data will be split into two tables, that will be presented side-by-side in the thesis
 
-          ss_momdip = [yml_sorted[mol_group][mol]['Transition dipole moments (au)'][key] for key in yml_sorted[mol_group][mol]['Transition dipole moments (au)'] if not 'T' in key and not key.startswith('S0')]
-          ss_momdip = [value for value in ss_momdip if value != 0.0]
-          if ss_momdip == []:
-            ss_momdip = [0.0]
+          rel_states_1 = rel_states[:len(rel_states)//2] # First half
+          rel_states_2 = rel_states[len(rel_states)//2:] # Second half 
 
-          mean_ss_momdip = np.mean(ss_momdip)
-          std_ss_momdip = np.std(ss_momdip)
-          median_ss_momdip = np.median(ss_momdip)
+          for idx, frame in enumerate([rel_states_1, rel_states_2]):
+            df = pd.DataFrame(frame)
+            with open(os.path.join(out_dir,mol_group,mol,"rel_states_%s.tex" % (idx+1)), 'w+', encoding='utf-8') as f:
+              f.write(df.to_latex(
+                index=False,
+                formatters=[None, results_common.format_num(2, "f")],
+                column_format="cc",
+                escape=False,
+                na_rep="-"))
 
-          # Get the mean and median transition dipole moments between triplets
+          # Ground sate values
+          # ==================
 
-          tt_momdip = [yml_sorted[mol_group][mol]['Transition dipole moments (au)'][key] for key in yml_sorted[mol_group][mol]['Transition dipole moments (au)'] if 'T' in key]
-          tt_momdip = [value for value in tt_momdip if value != 0.0]
-          if tt_momdip == []:
-            tt_momdip = [0.0]
+         # Non relativistic transition dipole moments with the ground state
 
-          mean_tt_momdip = np.mean(tt_momdip)
-          std_tt_momdip = np.std(tt_momdip)
-          median_tt_momdip = np.median(tt_momdip)
+          gs_momdip_line = {
+            "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+            "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)']
+          }
 
-          # Get the mean and median singlet percentage in darker relativistic states
+          for state in yml_sorted[mol_group][mol]["Zero states list"]:
+            if state != "S0" and state.startswith("S"):
+              gs_momdip = 0
+              for momdip_key in yml_sorted[mol_group][mol]["Zero states list"][state]['GS transition dipole moment (au)']:
+                gs_momdip += yml_sorted[mol_group][mol]["Zero states list"][state]['GS transition dipole moment (au)'][momdip_key] ** 2
+              gs_momdip = np.sqrt(gs_momdip)
 
-          sing_percents = [yml_sorted[mol_group][mol]["Relativistic states list"][state]["Singlet percentage"] for state in yml_sorted[mol_group][mol]["Relativistic states list"]]
-          sing_percents = [sing_percent for sing_percent in sing_percents if sing_percent <= 0.5 and not np.isclose(sing_percent,0)]
+              gs_momdip_line.update({state : gs_momdip})
 
-          if sing_percents == []:
-            sing_percents = [0.0]
+          gs_momdip_ind.append(gs_momdip_line)
 
-          mean_percent = np.mean(sing_percents)
-          std_percent = np.std(sing_percents)
-          median_percent = np.median(sing_percents)
+          # Total SOC with the ground state
 
-          # Get the biggest energy difference
+          gs_soc_line = {
+            "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+            "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)']
+          }
 
-          energies = [yml_sorted[mol_group][mol]["Relativistic states list"][state]["Energy (Ha)"] for state in yml_sorted[mol_group][mol]["Relativistic states list"] if state != "E0"]
-          deltaE_max = results_common.energy_unit_conversion(max(energies),"ha","cm-1") - results_common.energy_unit_conversion(min(energies),"ha","cm-1")
+          for state in yml_sorted[mol_group][mol]["Zero states list"]:
+            if state.startswith("T"):
+              soc = 0
+              for ms_value in yml_sorted[mol_group][mol]["Zero states list"][state]['GS SOC values (au)']:
+                soc += yml_sorted[mol_group][mol]["Zero states list"][state]['GS SOC values (au)'][ms_value] ** 2
+              soc = results_common.energy_unit_conversion(np.sqrt(soc),"ha","cm-1")
+
+              gs_soc_line.update({state : soc})
+
+          gs_soc_ind.append(gs_soc_line)
+
+          # Average dipole moments
+          # ======================
+
+          # Define the labels for each type of dipole moment
+
+          gs_momdip_label = r'$\bar{\mu}_{S0 \to S}$'
+          ss_momdip_label = r'$\bar{\mu}_{S \to S}$'
+          tt_momdip_label = r'$\bar{\mu}_{T \to T}$'
+          p_momdip_label = r'$\bar{\mu}_p$'
+          all_momdip_label = r'$\bar{\mu}_g$'
 
           # Store the values for this molecule
 
-          charac_results.append({
+          nr_momdip.append({
               "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+              "TAG": yml_sorted[mol_group][mol]['ID']['TAG'],
               "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
-              r'$\Delta$' + "E" + r'$_{\text{max}}$' + " (cm" + r'$^{-1}$' + ")" : deltaE_max,
-              r'$\%_{S}$' + " médian (\%)" : median_percent*100,
+              gs_momdip_label : yml_sorted[mol_group][mol]["Average NR dipole moments (au)"]["GS-S"],
+              ss_momdip_label : yml_sorted[mol_group][mol]["Average NR dipole moments (au)"]["S-S"],
+              tt_momdip_label : yml_sorted[mol_group][mol]["Average NR dipole moments (au)"]["T-T"],
+              p_momdip_label : yml_sorted[mol_group][mol]["Average NR dipole moments (au)"]["Permanent"],
+              all_momdip_label : yml_sorted[mol_group][mol]["Average NR dipole moments (au)"]["Total"]
               })
 
-          momdip_results.append({
+          # Average SOC values
+          # ==================
+
+          # Average soc values with the ground state
+
+          gs_soc_label = r"$\overline{soc}_{S0 \to T'}$"
+          gs_soc = [float(yml_sorted[mol_group][mol]['SOC values (au)'][key]) for key in yml_sorted[mol_group][mol]['SOC values (au)'] if key.startswith('S0')]
+
+          mean_gs_soc = np.mean(gs_soc)
+
+          # Average soc values between singlets and triplet substates
+
+          st_soc_label = r"$\overline{soc}_{S \to T'}$"
+          st_soc = [float(yml_sorted[mol_group][mol]['SOC values (au)'][key]) for key in yml_sorted[mol_group][mol]['SOC values (au)'] if 'S' in key and not key.startswith('S0')]
+
+          mean_st_soc = np.mean(st_soc)
+
+          # Average soc values between triplet substates
+
+          tt_soc_label = r"$\overline{soc}_{T' \to T'}$"
+          tt_soc = [float(yml_sorted[mol_group][mol]['SOC values (au)'][key]) for key in yml_sorted[mol_group][mol]['SOC values (au)'] if not 'S' in key]
+
+          mean_tt_soc = np.mean(tt_soc)
+
+          # Global average of SOC values
+
+          all_soc_label = r'$\overline{soc}_g$'
+          all_soc = gs_soc + st_soc + tt_soc
+
+          mean_all_soc = np.mean(all_soc)
+
+          # Store the values for this molecule
+
+          soc_results.append({
               "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+              "TAG": yml_sorted[mol_group][mol]['ID']['TAG'],
               "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
-              r'$\mu_{GS}$' + " médian (u.a.)": median_gs_momdip,
-              r'$\mu_{SS}$' + " médian (u.a.)": median_ss_momdip,
-              r'$\mu_{TT}$' + " médian (u.a.)": median_tt_momdip,
+              gs_soc_label : results_common.energy_unit_conversion(mean_gs_soc,"ha","cm-1"),
+              st_soc_label : results_common.energy_unit_conversion(mean_st_soc,"ha","cm-1"),
+              tt_soc_label : results_common.energy_unit_conversion(mean_tt_soc,"ha","cm-1"),
+              all_soc_label : results_common.energy_unit_conversion(mean_all_soc,"ha","cm-1")
               })
 
-      charac_results.sort(key=lambda mol: mol['Diamètre (nm)']) # Sort the values by size
-      momdip_results.sort(key=lambda mol: mol['Diamètre (nm)']) # Sort the values by size
+          # Average mixing percentages
+          # ==========================
+
+          # Average singlet percentages in pseudo-triplet relativistic states
+
+          sing_percents_label = r'$\bar{\%}_{S}$ (\%)'
+          sing_percents = [yml_sorted[mol_group][mol]["Relativistic states list"][state]["Singlet percentage"] for state in yml_sorted[mol_group][mol]["Relativistic states list"] if yml_sorted[mol_group][mol]["Relativistic states list"][state]["Triplet percentage"] >= 0.5]
+          mean_percent = np.mean(sing_percents)
+
+          # Average excitation energy of non relativistic states
+
+          energies_label = r'$\bar{E}_{NR}$ (cm$^{-1}$)'
+          energies = [yml_sorted[mol_group][mol]["Zero states list"][state]["Energy (Ha)"] for state in yml_sorted[mol_group][mol]["Zero states list"]]
+
+          mean_energies = np.mean(energies)
+
+          # Compute the average ratio between S-T SOC and triplet energies
+
+          ratio_label = r'$\overline{C/\Delta E}$'
+          ratio_list = []
+
+          for soc_label in yml_sorted[mol_group][mol]['SOC values (au)']:
+            if 'S' in soc_label and not soc_label.startswith('S0'):
+
+              state_1_label = soc_label.partition("_")[0]
+              state_2_label = soc_label.partition("_")[2]
+              soc_value = yml_sorted[mol_group][mol]['SOC values (au)'][soc_label]
+
+              energy_1 = yml_sorted[mol_group][mol]["Zero states list"][state_1_label.partition("(")[0]]['Energy (Ha)']
+              energy_2 = yml_sorted[mol_group][mol]["Zero states list"][state_2_label.partition("(")[0]]['Energy (Ha)']
+              delta_e = abs(energy_1 - energy_2)
+
+              ratio_list.append(soc_value / delta_e)
+
+          mean_ratio = np.mean(ratio_list)
+
+          # Store the values for this molecule
+
+          mixing_results.append({
+              "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+              "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
+              sing_percents_label : mean_percent*100,
+              energies_label : results_common.energy_unit_conversion(mean_energies,"ha","cm-1"),
+              st_soc_label + r' (cm$^{-1}$)' : results_common.energy_unit_conversion(mean_st_soc,"ha","cm-1"),
+              ratio_label : mean_ratio
+              })
+
+          # Average relativistic dipole moments
+          # ===================================
+
+          gs_ps_momdip_label = r'$\bar{\mu}_{GS \to pS}$'
+          gs_pt_momdip_label = r'$\bar{\mu}_{GS \to pT}$'
+          ps_ps_momdip_label = r'$\bar{\mu}_{pS \to pS}$'
+          pt_pt_momdip_label = r'$\bar{\mu}_{pT \to pT}$'
+          ps_pt_momdip_label = r'$\bar{\mu}_{pS \to pT}$'
+          rp_momdip_label = r'$\bar{\mu}_{p}$'
+
+          # Store the values for this molecule
+
+          rel_momdip.append({
+              "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+              "TAG": yml_sorted[mol_group][mol]['ID']['TAG'],
+              "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
+              gs_ps_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["GS-S"],
+              ps_ps_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["S-S"],
+              pt_pt_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["T-T"],
+              #rp_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["Permanent"],
+              gs_pt_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["GS-T"],
+              ps_pt_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["S-T"]
+              })
+
+          # Average relativistic dipole moments in each direction
+          # =====================================================
+
+          x_momdip_label = r'$\bar{\mu}_{X}$'
+          y_momdip_label = r'$\bar{\mu}_{Y}$'
+          z_momdip_label = r'$\bar{\mu}_{Z}$'
+
+          # Store the values for this molecule
+
+          avg_dir_momdip.append({
+              "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+              "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
+              x_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["X"],
+              y_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["Y"],
+              z_momdip_label : yml_sorted[mol_group][mol]["Average relativistic dipole moments (au)"]["Z"]
+              })
+
+          # Plot the average non relativistic vs relativistic dipole moments pie charts
+          # ===========================================================================
+
+          plt.style.use('seaborn-colorblind')
+
+          fig, ((ax1,ax2),(ax3,ax4)) = plt.subplots(nrows=2, ncols=2, gridspec_kw={'height_ratios': [3, 1]})
+
+          # Define the number of roots (useful for restoring sum of values based on average values)
+
+          nb_roots = len([state for state in yml_sorted[mol_group][mol]["Zero states list"] if state != "S0" and state.startswith("S")])
+
+          # Non relativistic values
+          # ~~~~~~~~~~~~~~~~~~~~~~~
+
+          # Define the non relativistic values (multiply the averages by the number of times the values appear)
+
+          gs_s_sum = yml_sorted[mol_group][mol]["Sum NR dipole moments (au)"]["GS-S"]
+          s_s_sum = yml_sorted[mol_group][mol]["Sum NR dipole moments (au)"]["S-S"]
+          t_t_sum = yml_sorted[mol_group][mol]["Sum NR dipole moments (au)"]["T-T"]
+
+          total_sum = gs_s_sum + s_s_sum + t_t_sum # used to compute the percentages for the label
+
+          y_values = np.array([
+            gs_s_sum,
+            s_s_sum,
+            t_t_sum
+          ])
+
+          # Define the labels
+
+          y_labels = [
+            r'$\sum \mu_{S0 \to S}$' + " - " + np.format_float_positional((gs_s_sum / total_sum) * 100, precision=1, pad_left=3, unique=False) + " %",
+            r'$\sum \mu_{S \to S}$' + "  - " + np.format_float_positional((s_s_sum / total_sum) * 100, precision=1, pad_left=3, unique=False) + " %",
+            r'$\sum \mu_{T \to T}$' + "  - " + np.format_float_positional((t_t_sum / total_sum) * 100, precision=1, pad_left=3, unique=False) + " %"
+          ]
+
+          # Plot the relativistic values
+
+          pie = ax1.pie(y_values, wedgeprops={'linewidth': 1.0, 'edgecolor': 'white'})
+
+          # Add the legend and titles
+
+          ax3.axis("off")
+          ax3.legend(pie[0], y_labels, loc="center")
+
+          # Relativistic values
+          # ~~~~~~~~~~~~~~~~~~~
+
+          # Define the relativistic values (multiply the averages by the number of times the values appear)
+
+          gs_ps_sum = yml_sorted[mol_group][mol]["Sum relativistic dipole moments (au)"]["GS-S"]
+          gs_pt_sum = yml_sorted[mol_group][mol]["Sum relativistic dipole moments (au)"]["GS-T"]
+          ps_ps_sum = yml_sorted[mol_group][mol]["Sum relativistic dipole moments (au)"]["S-S"]
+          pt_pt_sum = yml_sorted[mol_group][mol]["Sum relativistic dipole moments (au)"]["T-T"]
+          ps_pt_sum = yml_sorted[mol_group][mol]["Sum relativistic dipole moments (au)"]["S-T"]
+
+          total_sum = gs_ps_sum + gs_pt_sum + ps_ps_sum + pt_pt_sum + ps_pt_sum # used to compute the percentages for the label
+
+          y_values = np.array([
+            gs_ps_sum,
+            ps_ps_sum,
+            pt_pt_sum,
+            gs_pt_sum,
+            ps_pt_sum
+          ])
+
+          # Define the labels
+
+          y_labels = [
+            r'$\sum \mu_{GS \to pS}$' + " - " + np.format_float_positional((gs_ps_sum / total_sum) * 100, precision=1, pad_left=3, unique=False) + " %",
+            r'$\sum \mu_{pS \to pS}$' + " - " + np.format_float_positional((ps_ps_sum / total_sum) * 100, precision=1, pad_left=3, unique=False) + " %",
+            r'$\sum \mu_{pT \to pT}$' + " - " + np.format_float_positional((pt_pt_sum / total_sum) * 100, precision=1, pad_left=3, unique=False) + " %",
+            r'$\sum \mu_{GS \to pT}$' + " - " + np.format_float_positional((gs_pt_sum / total_sum) * 100, precision=1, pad_left=3, unique=False) + " %",
+            r'$\sum \mu_{pS \to pT}$' + " - " + np.format_float_positional((ps_pt_sum / total_sum) * 100, precision=1, pad_left=3, unique=False) + " %"
+          ]
+
+          # Plot the values
+
+          explosion_values = [0, 0, 0, 0.2, 0.2]
+          pie2 = ax2.pie(y_values, explode = explosion_values, wedgeprops={'linewidth': 1.0, 'edgecolor': 'white'})
+
+          # Add the legend and titles
+
+          ax4.axis("off")
+          ax4.legend(pie2[0], y_labels, loc="center")
+
+          # Set other parameters
+
+          plt.tight_layout()
+
+          params = {'mathtext.default': 'regular' }          
+          plt.rcParams.update(params)
+
+          # Save the file and close the figure
+
+          plt.savefig(os.path.join(out_dir,mol_group,mol,'momdip_pies.png'),dpi=res_dpi)
+          plt.close()  
+
+      # Sort the values by size
+
+      gs_momdip_ind.sort(key=lambda mol: mol['Diamètre (nm)'])
+      gs_soc_ind.sort(key=lambda mol: mol['Diamètre (nm)'])         
+
+      nr_momdip.sort(key=lambda mol: mol['Diamètre (nm)'])
+      soc_results.sort(key=lambda mol: mol['Diamètre (nm)'])
+      mixing_results.sort(key=lambda mol: mol['Diamètre (nm)'])
+      rel_momdip.sort(key=lambda mol: mol['Diamètre (nm)'])
+      avg_dir_momdip.sort(key=lambda mol: mol['Diamètre (nm)'])
+
+      # Compare the values with Si group
+      # ================================
+
+      # Store the values for the Si group
+
+      if mol_group == 'Si':
+        si_nr_momdip = nr_momdip
+        si_rel_momdip = rel_momdip
+        si_soc_results = soc_results
+
+      # Compare the values for the other groups
+
+      else:
+
+        # Difference in transition dipole moments
+
+        diff_nr_momdip = []
+        for group_mol in nr_momdip:
+          for si_mol in si_nr_momdip:
+            if si_mol['TAG'] == group_mol['TAG']:
+              diff_nr_momdip.append({
+                  "Molécule": group_mol["Molécule"],
+                  r"$\Delta$ " + gs_momdip_label : diff_percent(si_mol[gs_momdip_label], group_mol[gs_momdip_label]),
+                  r"$\Delta$ " + ss_momdip_label : diff_percent(si_mol[ss_momdip_label], group_mol[ss_momdip_label]),
+                  r"$\Delta$ " + tt_momdip_label : diff_percent(si_mol[tt_momdip_label], group_mol[tt_momdip_label]),
+                # r"$\Delta$ " + p_momdip_label : diff_percent(si_mol[p_momdip_label], group_mol[p_momdip_label]),
+                  r"$\Delta$ " + all_momdip_label : diff_percent(si_mol[all_momdip_label], group_mol[all_momdip_label])
+                  })
+              break
+
+        # Difference in SOC values
+
+        diff_soc_results = []
+        for group_mol in soc_results:
+          for si_mol in si_soc_results:
+            if si_mol['TAG'] == group_mol['TAG']:
+              diff_soc_results.append({
+                  "Molécule": group_mol["Molécule"],
+                  r"$\Delta$ " + gs_soc_label : diff_percent(si_mol[gs_soc_label], group_mol[gs_soc_label]),
+                  r"$\Delta$ " + st_soc_label : diff_percent(si_mol[st_soc_label], group_mol[st_soc_label]),
+                  r"$\Delta$ " + tt_soc_label : diff_percent(si_mol[tt_soc_label], group_mol[tt_soc_label]),
+                  r"$\Delta$ " + all_soc_label : diff_percent(si_mol[all_soc_label], group_mol[all_soc_label])
+                  })
+              break
+
+        # Difference in relativistic transition dipole moments
+
+        diff_rel_momdip = []
+        for group_mol in rel_momdip:
+          for si_mol in si_rel_momdip:
+            if si_mol['TAG'] == group_mol['TAG']:
+              diff_rel_momdip.append({
+                  "Molécule": group_mol["Molécule"],
+                  r"$\Delta$ " + gs_ps_momdip_label : diff_percent(si_mol[gs_ps_momdip_label], group_mol[gs_ps_momdip_label]),
+                  r"$\Delta$ " + ps_ps_momdip_label : diff_percent(si_mol[ps_ps_momdip_label], group_mol[ps_ps_momdip_label]),
+                  r"$\Delta$ " + pt_pt_momdip_label : diff_percent(si_mol[pt_pt_momdip_label], group_mol[pt_pt_momdip_label]),
+                # r"$\Delta$ " + rp_momdip_label : diff_percent(si_mol[rp_momdip_label], group_mol[rp_momdip_label]),
+                  r"$\Delta$ " + gs_pt_momdip_label : diff_percent(si_mol[gs_pt_momdip_label], group_mol[gs_pt_momdip_label]),
+                  r"$\Delta$ " + ps_pt_momdip_label : diff_percent(si_mol[ps_pt_momdip_label], group_mol[ps_pt_momdip_label])
+                  })
+              break
 
       # Store the values in CSV files
       # =============================
 
-      csv_header = list(charac_results[0].keys())
+      # Ground state values for transition dipole moments
 
-      with open(os.path.join(out_dir,mol_group,'charac_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+      csv_header = list(gs_momdip_ind[0].keys())
+
+      with open(os.path.join(out_dir,mol_group,'gs_momdip_ind.csv'), 'w', newline='', encoding='utf-8') as csvfile:
 
         csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
         csv_writer.writeheader()
 
-        for mol in charac_results:
+        for mol in gs_momdip_ind:
           csv_writer.writerow(mol) 
 
-      csv_header = list(momdip_results[0].keys())
+      # Ground state values for total SOC
 
-      with open(os.path.join(out_dir,mol_group,'momdip_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+      csv_header = list(gs_soc_ind[0].keys())
+
+      with open(os.path.join(out_dir,mol_group,'gs_soc_ind.csv'), 'w', newline='', encoding='utf-8') as csvfile:
 
         csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
         csv_writer.writeheader()
 
-        for mol in momdip_results:
+        for mol in gs_soc_ind:
+          csv_writer.writerow(mol) 
+
+      # Average transition dipole moments
+
+      csv_header = list(nr_momdip[0].keys())
+
+      with open(os.path.join(out_dir,mol_group,'nr_momdip.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+        csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writeheader()
+
+        for mol in nr_momdip:
           csv_writer.writerow(mol)
+
+      # Average SOC values
+
+      csv_header = list(soc_results[0].keys())
+
+      with open(os.path.join(out_dir,mol_group,'soc_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+        csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writeheader()
+
+        for mol in soc_results:
+          csv_writer.writerow(mol)
+
+      # Average mixing percentages
+
+      csv_header = list(mixing_results[0].keys())
+
+      with open(os.path.join(out_dir,mol_group,'mixing_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+        csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writeheader()
+
+        for mol in mixing_results:
+          csv_writer.writerow(mol) 
+
+      # Average relativistic dipole moments
+
+      all_rel_momdip = []
+      for idx, line in enumerate(rel_momdip):
+        all_rel_momdip.append({**line, **avg_dir_momdip[idx]}) # Merge rel_momdip and avg_dir_momdip
+
+      csv_header = list(all_rel_momdip[0].keys())
+
+      with open(os.path.join(out_dir,mol_group,'all_rel_momdip.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+        csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writeheader()
+
+        for mol in all_rel_momdip:
+          csv_writer.writerow(mol) 
+
+      if mol_group not in ["Si","Bonus"]:
+
+        # Difference in transition dipole moments
+
+        csv_header = list(diff_nr_momdip[0].keys())
+
+        with open(os.path.join(out_dir,mol_group,'diff_nr_momdip.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+          csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+          csv_writer.writeheader()
+
+          for mol in diff_nr_momdip:
+            csv_writer.writerow(mol)
+
+        # Difference in SOC values
+
+        csv_header = list(diff_soc_results[0].keys())
+
+        with open(os.path.join(out_dir,mol_group,'diff_soc_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+          csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+          csv_writer.writeheader()
+
+          for mol in diff_soc_results:
+            csv_writer.writerow(mol)
+
+        # Difference in relativistic transition dipole moments
+
+        csv_header = list(diff_rel_momdip[0].keys())
+
+        with open(os.path.join(out_dir,mol_group,'diff_rel_momdip.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+          csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+          csv_writer.writeheader()
+
+          for mol in diff_rel_momdip:
+            csv_writer.writerow(mol)
 
       # Create the LaTeX tables
       # =======================
 
-      df = pd.DataFrame(charac_results)
-      with open(os.path.join(out_dir,mol_group,"charac_results.tex"), 'w+', encoding='utf-8') as f:
-        f.write(df.to_latex(
-          index=False,
-          float_format="%.2f",
-          column_format="lccc",
-          escape=False,
-          na_rep="-"))
+      # Ground state values for transition dipole moments
 
-      df = pd.DataFrame(momdip_results)
-      with open(os.path.join(out_dir,mol_group,"momdip_results.tex"), 'w+', encoding='utf-8') as f:
+      gs_momdip_ind = [{key:data[key] for key in data if key != 'Diamètre (nm)'} for data in gs_momdip_ind]
+
+      df = pd.DataFrame(gs_momdip_ind)
+
+      file_content = df.to_latex(
+          index=False,
+          float_format="%.3f",
+          column_format= r">{\centering\arraybackslash}m{0.15\textwidth}" + r"*{" + str(len(gs_momdip_ind[0])-1) + r"}{>{\centering\arraybackslash}m{0.10\textwidth}}",
+          escape=False,
+          na_rep="-")
+
+      file_content = file_content.splitlines()
+
+      file_content[2] = r"\multirow{2}{*}{Molécule} & \multicolumn{" + str(len(gs_momdip_ind[0])-1) + r"}{c}{Moment dipolaire de transition $|\vec{\mu}_{ij}|$ depuis S0 vers ... (u.a.)}\\"
+      file_content.insert(3, "".join(" & %s" % state for state in list(gs_momdip_ind[0].keys()) if state != "Molécule") + r"\\")
+      file_content.insert(3, r"\cline{2-" + str(len(gs_momdip_ind[0])) + "}")
+
+      with open(os.path.join(out_dir,mol_group,"gs_momdip_ind.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
+
+      # Ground state values for total SOC
+
+      gs_soc_ind = [{key:data[key] for key in data if key != 'Diamètre (nm)'} for data in gs_soc_ind]
+
+      df = pd.DataFrame(gs_soc_ind)
+
+      file_content = df.to_latex(
+          index=False,
+          float_format="%.3f",
+          column_format=r">{\centering\arraybackslash}m{0.15\textwidth}" + r"*{" + str(len(gs_soc_ind[0])-1) + r"}{>{\centering\arraybackslash}m{0.10\textwidth}}",
+          escape=False,
+          na_rep="-")
+
+      file_content = file_content.splitlines()
+
+      file_content[2] = r"\multirow{2}{*}{Molécule} & \multicolumn{" + str(len(gs_soc_ind[0])-1) + r"}{c}{Couplage spin-orbite total de S0 avec ... (cm$^{-1}$)}\\"
+      file_content.insert(3, "".join(" & %s" % state for state in list(gs_soc_ind[0].keys()) if state != "Molécule") + r"\\")
+      file_content.insert(3, r"\cline{2-" + str(len(gs_soc_ind[0])) + "}")
+
+      with open(os.path.join(out_dir,mol_group,"gs_soc_ind.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
+
+      # Average transition dipole moments
+
+      df = pd.DataFrame([{key:data[key] for key in data if key not in ['Diamètre (nm)','TAG']} for data in nr_momdip])
+
+      file_content = df.to_latex(
+          index=False,
+          float_format="%.3f",
+          column_format=r">{\centering\arraybackslash}m{0.15\textwidth}" + r"*{5}{>{\centering\arraybackslash}m{0.12\textwidth}}",
+          escape=False,
+          na_rep="-")
+
+      file_content = file_content.splitlines()
+
+      file_content.insert(2, r"\multirow{2}{*}{Molécule} & \multicolumn{5}{c}{Moyennes des moments dipolaires (u.a.)}\\")
+      file_content[3] = (file_content[3].lstrip()).lstrip("Molécule")
+      file_content.insert(3, r"\cline{2-6}")
+
+      with open(os.path.join(out_dir,mol_group,"nr_momdip.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
+
+      # Average SOC values
+
+      df = pd.DataFrame([{key:data[key] for key in data if key not in ['Diamètre (nm)','TAG']} for data in soc_results])
+
+      file_content = df.to_latex(
+          index=False,
+          float_format="%.3f",
+          column_format=r">{\centering\arraybackslash}m{0.15\textwidth}" + r"*{5}{>{\centering\arraybackslash}m{0.15\textwidth}}",
+          escape=False,
+          na_rep="-")
+
+      file_content = file_content.splitlines()
+
+      file_content.insert(2, r"\multirow{2}{*}{Molécule} & \multicolumn{4}{c}{Moyennes des couplages spin-orbite (cm$^{-1}$)}\\")
+      file_content[3] = (file_content[3].lstrip()).lstrip("Molécule")
+      file_content.insert(3, r"\cline{2-5}")
+
+      with open(os.path.join(out_dir,mol_group,"soc_results.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
+
+      # Average mixing percentages
+
+      mixing_results = [{key:data[key] for key in data if key != 'Diamètre (nm)'} for data in mixing_results]
+
+      df = pd.DataFrame(mixing_results)
+      with open(os.path.join(out_dir,mol_group,"mixing_results.tex"), 'w+', encoding='utf-8') as f:
         f.write(df.to_latex(
           index=False,
-          formatters=[None, format_num(2, "f"), format_num(2, "e"), format_num(2, "e"), format_num(2, "e")],
+          formatters=[None, results_common.format_num(3, "f"), results_common.format_num(2, "f"), results_common.format_num(3, "f"), results_common.format_num(2, "e")],
           column_format="lcccc",
           escape=False,
           na_rep="-"))
 
-      # Plot the momdip graphs
-      # ======================
+      # Average relativistic dipole moments
+
+      df = pd.DataFrame([{key:data[key] for key in data if key not in ['Diamètre (nm)','TAG']} for data in rel_momdip])
+
+      file_content = df.to_latex(
+          index=False,
+          float_format="%.2e",
+          column_format=r">{\centering\arraybackslash}m{0.15\textwidth}" + r"*{5}{>{\centering\arraybackslash}m{0.12\textwidth}}",
+          escape=False,
+          na_rep="-")
+
+      file_content = file_content.splitlines()
+
+      file_content.insert(2, r"\multirow{2}{*}{Molécule} & \multicolumn{5}{c}{Moyennes des moments dipolaires (u.a.)}\\")
+      file_content[3] = (file_content[3].lstrip()).lstrip("Molécule")
+      file_content.insert(3, r"\cline{2-6}")
+
+      with open(os.path.join(out_dir,mol_group,"rel_momdip.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
+
+      if mol_group not in ["Si","Bonus"]:
+
+        # Difference in transition dipole moments
+
+        df = pd.DataFrame(diff_nr_momdip)
+
+        file_content = df.to_latex(
+            index=False,
+            float_format="%.1f",
+            column_format=r">{\centering\arraybackslash}m{0.2\textwidth}" + r"*{4}{>{\centering\arraybackslash}m{0.15\textwidth}}",
+            escape=False,
+            na_rep="-")
+
+        file_content = file_content.splitlines()
+
+        file_content.insert(2, r"\multirow{2}{*}{Molécule} & \multicolumn{4}{c}{Pourcentages d'écart des moyennes (\%)}\\")
+        file_content[3] = (file_content[3].lstrip()).lstrip("Molécule")
+        file_content.insert(3, r"\cline{2-5}")
+
+        with open(os.path.join(out_dir,mol_group,"diff_nr_momdip.tex"), 'w+', encoding='utf-8') as f:
+          f.write("\n".join(file_content))        
+
+        # Difference in SOC values
+
+        df = pd.DataFrame(diff_soc_results)
+
+        file_content = df.to_latex(
+            index=False,
+            float_format="%.1f",
+            column_format=r">{\centering\arraybackslash}m{0.14\textwidth}" + r"*{5}{>{\centering\arraybackslash}m{0.16\textwidth}}",
+            escape=False,
+            na_rep="-")
+
+        file_content = file_content.splitlines()
+
+        file_content.insert(2, r"\multirow{2}{*}{Molécule} & \multicolumn{4}{c}{Pourcentages d'écart des moyennes (\%)}\\")
+        file_content[3] = (file_content[3].lstrip()).lstrip("Molécule")
+        file_content.insert(3, r"\cline{2-5}")
+
+        with open(os.path.join(out_dir,mol_group,"diff_soc_results.tex"), 'w+', encoding='utf-8') as f:
+          f.write("\n".join(file_content))
+
+        # Difference in relativistic dipole moments
+
+        df = pd.DataFrame(diff_rel_momdip)
+
+        file_content = df.to_latex(
+            index=False,
+            float_format="%.1f",
+            column_format=r">{\centering\arraybackslash}m{0.14\textwidth}" + r"*{5}{>{\centering\arraybackslash}m{0.16\textwidth}}",
+            escape=False,
+            na_rep="-")
+
+        file_content = file_content.splitlines()
+
+        file_content.insert(2, r"\multirow{2}{*}{Molécule} & \multicolumn{5}{c}{Pourcentages d'écart des moyennes (\%)}\\")
+        file_content[3] = (file_content[3].lstrip()).lstrip("Molécule")
+        file_content.insert(3, r"\cline{2-6}")
+
+        with open(os.path.join(out_dir,mol_group,"diff_rel_momdip.tex"), 'w+', encoding='utf-8') as f:
+          f.write("\n".join(file_content))
+
+      # Plot the average transition dipole moments graph
+      # ================================================
 
       plt.style.use('seaborn-colorblind')
 
       fig, ax = plt.subplots()
 
+      # Define the values
+
+      barwidth = 0.1
+
+      br1 = np.arange(len(nr_momdip))
+      br2 = [bar + barwidth for bar in br1]
+      br3 = [bar + barwidth for bar in br2]
+      br4 = [bar + barwidth for bar in br3]
+      br5 = [bar + barwidth for bar in br4]
+
+      # Define the X labels and ticks
+
+      xlabels = [mol['Molécule'] for mol in nr_momdip]
+      xticks = [r + barwidth for r in range(len(xlabels))]
+
       # Plot the values
 
-      ax.plot([mol['Diamètre (nm)'] for mol in momdip_results],[mol[r'$\mu_{GS}$' + " médian (u.a.)"] for mol in momdip_results],marker='.',linestyle='-',label=r'$\mu_{GS}$' + " médian")
-      ax.plot([mol['Diamètre (nm)'] for mol in momdip_results],[mol[r'$\mu_{SS}$' + " médian (u.a.)"] for mol in momdip_results],marker='.',linestyle='-',label=r'$\mu_{SS}$' + " médian")
-      ax.plot([mol['Diamètre (nm)'] for mol in momdip_results],[mol[r'$\mu_{TT}$' + " médian (u.a.)"] for mol in momdip_results],marker='.',linestyle='-',label=r'$\mu_{TT}$' + " médian")
+      ax.bar(br1, [mol[gs_momdip_label] for mol in nr_momdip], width = barwidth, edgecolor ='grey', label = gs_momdip_label)
+      ax.bar(br2, [mol[ss_momdip_label] for mol in nr_momdip], width = barwidth, edgecolor ='grey', label = ss_momdip_label)
+      ax.bar(br3, [mol[tt_momdip_label] for mol in nr_momdip], width = barwidth, edgecolor ='grey', label = tt_momdip_label)
+      ax.bar(br4, [mol[p_momdip_label] for mol in nr_momdip], width = barwidth, edgecolor ='grey', label = p_momdip_label)
+      ax.bar(br5, [mol[all_momdip_label] for mol in nr_momdip], width = barwidth, edgecolor ='grey', label = all_momdip_label)
 
       # Add the legend and titles
 
-      #ax.set_title('Ionization potentials for %s clusters' % mol_group)
-      ax.set_xlabel("Diameter of the cluster (nm)")
-      ax.set_ylabel('Transition dipole moments (a.u.)')
+      ax.set_ylabel('Moyenne des moments dipolaires (u.a.)')
       ax.legend()
 
       # Set other parameters
 
-      ax.tick_params(top=False, right=False)
-      ax.xaxis.set_minor_locator(AutoMinorLocator(2))
-      ax.yaxis.set_minor_locator(AutoMinorLocator(2))
-
+      ax.tick_params(top=False, right=False, bottom=False)
+      ax.set_axisbelow(True) # axes and grid beneath the plots
+      plt.xticks(ticks=xticks, labels=xlabels, rotation=-45)
       plt.tight_layout()
-      plt.grid(True,which='both',linestyle='--')
+      plt.grid(True, which='both', axis='y', linestyle='--')
+
+      params = {'mathtext.default': 'regular' }          
+      plt.rcParams.update(params)
 
       # Save the file and close the figure
 
-      plt.savefig(os.path.join(out_dir,mol_group,'momdip_results.png'),dpi=300)
-      plt.close()
+      plt.savefig(os.path.join(out_dir,mol_group,'nr_momdip.png'),dpi=res_dpi)
+      plt.close()  
 
+      # Plot the average SOC values graph
+      # =================================
+
+      plt.style.use('seaborn-colorblind')
+
+      fig, ax = plt.subplots()
+
+      # Define the values
+
+      barwidth = 0.15
+
+      br1 = np.arange(len(soc_results))
+      br2 = [bar + barwidth for bar in br1]
+      br3 = [bar + barwidth for bar in br2]
+      br4 = [bar + barwidth for bar in br3]
+
+      # Define the X labels and ticks
+
+      xlabels = [mol['Molécule'] for mol in soc_results]
+      xticks = [r + barwidth for r in range(len(xlabels))]
+
+      # Plot the values
+
+      ax.bar(br1, [mol[gs_soc_label] for mol in soc_results], width = barwidth, edgecolor ='grey', label = gs_soc_label)
+      ax.bar(br2, [mol[st_soc_label] for mol in soc_results], width = barwidth, edgecolor ='grey', label = st_soc_label)
+      ax.bar(br3, [mol[tt_soc_label] for mol in soc_results], width = barwidth, edgecolor ='grey', label = tt_soc_label)
+      ax.bar(br4, [mol[all_soc_label] for mol in soc_results], width = barwidth, edgecolor ='grey', label = all_soc_label)
+
+      # Add the legend and titles
+
+      ax.set_ylabel('Moyenne des couplages spin-orbite ' + r'(cm$^{-1}$)')
+      ax.legend()
+
+      # Set other parameters
+
+      ax.tick_params(top=False, right=False, bottom=False)
+      ax.set_axisbelow(True) # axes and grid beneath the plots
+      plt.xticks(ticks=xticks, labels=xlabels, rotation=-45)
+      plt.tight_layout()
+      plt.grid(True, which='both', axis='y', linestyle='--')
+
+      params = {'mathtext.default': 'regular' }          
+      plt.rcParams.update(params)
+
+      # Save the file and close the figure
+
+      plt.savefig(os.path.join(out_dir,mol_group,'soc_results.png'),dpi=res_dpi)
+      plt.close() 
+
+      """
       # Plot the mixing percentage graphs
       # =================================
 
@@ -1110,13 +1824,13 @@ def main():
 
       # Plot the values
 
-      ax.plot([mol['Diamètre (nm)'] for mol in charac_results],[mol[r'$\%_{S}$' + " médian (\%)"] for mol in charac_results],marker='.',linestyle='-')
+      ax.plot([mol['Diamètre (nm)'] for mol in mixing_results],[mol[sing_percents_label] for mol in mixing_results],marker='.',linestyle='-')
 
       # Add the legend and titles
 
       #ax.set_title('Ionization potentials for %s clusters' % mol_group)
-      ax.set_xlabel("Diameter of the cluster (nm)")
-      ax.set_ylabel('Singlet mixing percentage (%)')
+      ax.set_xlabel("Diamètre (nm)")
+      ax.set_ylabel("Pourcentage moyen d'états singulets (%)")
 
       # Set other parameters
 
@@ -1129,11 +1843,106 @@ def main():
 
       # Save the file and close the figure
 
-      plt.savefig(os.path.join(out_dir,mol_group,'mixing_percent.png'),dpi=300)
+      plt.savefig(os.path.join(out_dir,mol_group,'mixing_percent.png'),dpi=res_dpi)
       plt.close()
+      """
+
+      # Plot the average relativistic dipole moments graph
+      # ==================================================
+
+      plt.style.use('seaborn-colorblind')
+
+      fig, ax = plt.subplots()
+
+      # Define the values
+
+      barwidth = 0.15
+
+      br1 = np.arange(len(rel_momdip))
+      br2 = [bar + barwidth for bar in br1]
+
+      # Define the X labels and ticks
+
+      xlabels = [mol['Molécule'] for mol in rel_momdip]
+      xticks = [r + barwidth for r in range(len(xlabels))]
+
+      # Plot the values
+
+      ax.bar(br1, [mol[gs_pt_momdip_label] for mol in rel_momdip], width = barwidth, edgecolor ='grey', label = gs_pt_momdip_label)
+      ax.bar(br2, [mol[ps_pt_momdip_label] for mol in rel_momdip], width = barwidth, edgecolor ='grey', label = ps_pt_momdip_label)
+
+      # Add the legend and titles
+
+      ax.set_ylabel('Moyenne des moments dipolaires (u.a.)')
+      ax.legend()
+
+      # Set other parameters
+
+      # ax.set_yscale('log')
+
+      ax.tick_params(top=False, right=False, bottom=False)
+      ax.set_axisbelow(True) # axes and grid beneath the plots
+      plt.xticks(ticks=xticks, labels=xlabels, rotation=-45)
+      plt.tight_layout()
+      plt.grid(True, which='both', axis='y', linestyle='--')
+
+      params = {'mathtext.default': 'regular' }          
+      plt.rcParams.update(params)
+
+      # Save the file and close the figure
+
+      plt.savefig(os.path.join(out_dir,mol_group,'rel_momdip.png'),dpi=res_dpi)
+      plt.close()  
+
+      # Plot the average relativistic dipole moments in each direction
+      # ==============================================================
+
+      plt.style.use('seaborn-colorblind')
+
+      fig, ax = plt.subplots()
+
+      # Define the values
+
+      barwidth = 0.15
+
+      br1 = np.arange(len(avg_dir_momdip))
+      br2 = [bar + barwidth for bar in br1]
+      br3 = [bar + barwidth for bar in br2]
+
+      # Define the X labels and ticks
+
+      xlabels = [mol['Molécule'] for mol in avg_dir_momdip]
+      xticks = [r + barwidth for r in range(len(xlabels))]
+
+      # Plot the values
+
+      ax.bar(br1, [mol[x_momdip_label] for mol in avg_dir_momdip], color='red', width = barwidth, edgecolor ='grey', label = x_momdip_label)
+      ax.bar(br2, [mol[y_momdip_label] for mol in avg_dir_momdip], color='green', width = barwidth, edgecolor ='grey', label = y_momdip_label)
+      ax.bar(br3, [mol[z_momdip_label] for mol in avg_dir_momdip], color='blue', width = barwidth, edgecolor ='grey', label = z_momdip_label)
+
+      # Add the legend and titles
+
+      ax.set_ylabel('Moyenne des moments dipolaires (u.a.)')
+      ax.legend()
+
+      # Set other parameters
+
+      ax.tick_params(top=False, right=False, bottom=False)
+      ax.set_axisbelow(True) # axes and grid beneath the plots
+      plt.xticks(ticks=xticks, labels=xlabels, rotation=-45)
+      plt.tight_layout()
+      plt.grid(True, which='both', axis='y', linestyle='--')
+
+      params = {'mathtext.default': 'regular' }          
+      plt.rcParams.update(params)
+
+      # Save the file and close the figure
+
+      plt.savefig(os.path.join(out_dir,mol_group,'avg_dir_momdip.png'),dpi=res_dpi)
+      plt.close()  
 
       print('%12s' % "[ DONE ]")
-      
+
   # =================================================================== #
   # =================================================================== #
   #                   PLOTTING ALDU PARAMETERS SEARCH                   #
@@ -1153,6 +1962,7 @@ def main():
 
   for mol_group in mol_groups:
 
+    transitions = []
     best_pulses = [] # List of dictionaries containing the data of the best pulses
     dir_sens = []    # List of dictionaries containing the data about the directional sensibility of the best pulses
 
@@ -1164,8 +1974,12 @@ def main():
 
           # Create a subdirectory for the graphs
 
-          aldu_param_dir = os.path.join(out_dir,mol_group,mol,"aldu_param_search")
+          aldu_param_dir = os.path.join(out_dir,mol_group,mol,"aldu_param")
           os.makedirs(aldu_param_dir, exist_ok=True)
+
+          # Initialize a variable for the directional sensibility
+
+          best_perf = 0
 
           # Iterate over each transition
 
@@ -1173,11 +1987,28 @@ def main():
 
             print ("{:<133}".format('\n\tTreating the %s transition ...' % transition), end="")
 
+            trans_dir = os.path.join(aldu_param_dir, transition)
+            os.makedirs(trans_dir, exist_ok=True)
+
+            # Identify the transition
+            # =======================
+
+            init_state = transition.split("_")[1]
+            target_state = transition.split("_")[2]
+            main_polarisation = yml_sorted[mol_group][mol]['Control']['Alpha/duration parameters search'][transition]['Polarisation']
+
+            transitions.append({
+              "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+              "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
+              "Polarisation": main_polarisation,
+              "Etat initial" : init_state,
+              "Etat cible" : target_state
+            })
+
             # Get the values
             # ==============
 
             values_list = yml_sorted[mol_group][mol]['Control']['Alpha/duration parameters search'][transition]['Values']
-            main_orientation = yml_sorted[mol_group][mol]['Control']['Alpha/duration parameters search'][transition]['Orientation']
 
             alpha_list = []
             duration_list = []
@@ -1186,11 +2017,11 @@ def main():
 
             for data in values_list:
 
-              fluence = results_common.energy_unit_conversion(data['Fluence'],'ha','j')/(constants.value('atomic unit of length')**2)
+              data['Fluence (J/m^2)'] = results_common.energy_unit_conversion(data.pop('Fluence'),'ha','j')/(constants.value('atomic unit of length')**2)
 
               alpha_list.append(data['Alpha'])
               duration_list.append(data['Duration (ps)'])
-              fluence_list.append(fluence)
+              fluence_list.append(data['Fluence (J/m^2)'])
               efficiency_list.append(data['Efficiency'])
 
               if data['Best'] == 'True':
@@ -1198,25 +2029,33 @@ def main():
                 best_pulses.append({
                   "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
                   "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
-                  "Orientation": main_orientation,
+                  "Polarisation" : main_polarisation,
                   r'$\alpha_{0}$': data['Alpha'],
                   "Durée (ps)": data['Duration (ps)'],
-                  "Performance": data[main_orientation + '_Projector'],
-                  "Fluence (J/m"+r'$^2$' + ")": fluence
+                  "Performance": data[main_polarisation + '_Projector'],
+                  "Fluence (J/m"+r'$^2$' + ")": data['Fluence (J/m^2)']
                 })
             
                 max_perf = max(data['X_Projector'],data['Y_Projector'],data['Z_Projector'])
                 
-                dir_sens.append({
-                  "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
-                  "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
-                  "Performance (X)": data['X_Projector'],
-                  "Performance rel. (X)": (data['X_Projector'] / max_perf) * 100,
-                  "Performance (Y)": data['Y_Projector'],
-                  "Performance rel. (Y)": (data['Y_Projector'] / max_perf) * 100,
-                  "Performance (Z)": data['Z_Projector'],
-                  "Performance rel. (Z)": (data['Z_Projector'] / max_perf) * 100
-                })
+                if max_perf > best_perf:
+
+                  best_perf = max_perf
+                  old_line = [line for line in dir_sens if line['Molécule'] == yml_sorted[mol_group][mol]['ID']['LateX Name']]
+
+                  if old_line != []:
+                    dir_sens.remove(old_line[0])
+                  
+                  dir_sens.append({
+                    "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+                    "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
+                    "Performance (X)": data['X_Projector'],
+                    "Performance rel. (X)": (data['X_Projector'] / max_perf) * 100,
+                    "Performance (Y)": data['Y_Projector'],
+                    "Performance rel. (Y)": (data['Y_Projector'] / max_perf) * 100,
+                    "Performance (Z)": data['Z_Projector'],
+                    "Performance rel. (Z)": (data['Z_Projector'] / max_perf) * 100
+                  })
 
             # Prepare the data (as shown on https://stackoverflow.com/questions/54437559/numpy-meshgrid-from-unordered-x-y-z-data)
             # ~~~~~~~~~~~~~~~~
@@ -1243,14 +2082,19 @@ def main():
 
             # Add the titles
 
-            ax.set_xlabel('Penalty factor ' + r'$\alpha_{0}$')
-            ax.set_ylabel('Duration of the pulse (ps)')
+            ax.set_xlabel('Facteur de pénalité ' + r'$\alpha_{0}$')
+            ax.set_ylabel('Durée du champ (ps)')
 
             # Set the ticks for alpha (only major ticks corresponding to the data)
 
+            # ax.set_xscale("log")
+            # ax.set_xticks(list(dict.fromkeys(alpha_list)))
+            # ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+            # ax.minorticks_off()
+
             ax.set_xscale("log")
-            ax.set_xticks(list(dict.fromkeys(alpha_list)))
-            ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+            xlabels = ["{:.0f}".format(value) for value in list(dict.fromkeys(alpha_list))]
+            ax.set_xticks(ticks = list(dict.fromkeys(alpha_list)), labels = xlabels, rotation=-30)
             ax.minorticks_off()
 
             # Set other parameters
@@ -1272,7 +2116,7 @@ def main():
 
             plot_filename = "fluence.png"
 
-            plt.savefig(os.path.join(aldu_param_dir,plot_filename),dpi=300)
+            plt.savefig(os.path.join(trans_dir,plot_filename),dpi=res_dpi,bbox_inches='tight')
             plt.close()
 
             # Plot the efficiency score
@@ -1286,14 +2130,19 @@ def main():
 
             # Add the titles
 
-            ax.set_xlabel('Penalty factor ' + r'$\alpha_{0}$')
-            ax.set_ylabel('Duration of the pulse (ps)')
+            ax.set_xlabel('Facteur de pénalité ' + r'$\alpha_{0}$')
+            ax.set_ylabel('Durée du champ (ps)')
 
             # Set the ticks for alpha (only major ticks corresponding to the data)
 
+            # ax.set_xscale("log")
+            # ax.set_xticks(list(dict.fromkeys(alpha_list)))
+            # ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+            # ax.minorticks_off()
+
             ax.set_xscale("log")
-            ax.set_xticks(list(dict.fromkeys(alpha_list)))
-            ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+            xlabels = ["{:.0f}".format(value) for value in list(dict.fromkeys(alpha_list))]
+            ax.set_xticks(ticks = list(dict.fromkeys(alpha_list)), labels = xlabels, rotation=-30)
             ax.minorticks_off()
 
             # Set other parameters
@@ -1301,7 +2150,7 @@ def main():
             ax.set_yticks(list(dict.fromkeys(duration_list)))
 
             cb = fig.colorbar(ScalarMappable(norm=aldu_plot.norm, cmap=aldu_plot.cmap))
-            cb.set_label("Efficiency Score")
+            cb.set_label("Score d'efficacité")
 
             plt.tight_layout()
 
@@ -1314,20 +2163,20 @@ def main():
 
             plot_filename = "efficiency.png"
 
-            plt.savefig(os.path.join(aldu_param_dir,plot_filename),dpi=300)
+            plt.savefig(os.path.join(trans_dir,plot_filename),dpi=res_dpi,bbox_inches='tight')
             plt.close()
 
             # Plot the performance data
             # ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-            # Iterate over each orientation
+            # Iterate over each polarisation
 
-            for orientation in ['X','Y','Z']:
+            for polarisation in ['X','Y','Z']:
 
               overlap_list = []
 
               for data in values_list:
-                overlap_list.append(data[orientation + '_Projector'])
+                overlap_list.append(data[polarisation + '_Projector'])
               
               overlap_array = np.asarray(overlap_list)
 
@@ -1335,28 +2184,32 @@ def main():
 
               fig, ax = plt.subplots()
 
-              vmin=0
               vmax=min(max(overlap_list),1)
 
-              aldu_plot = ax.scatter(alpha_array[idx], duration_array[idx], c=overlap_array[idx], cmap='viridis', vmin=vmin, vmax=vmax)
+              aldu_plot = ax.scatter(alpha_array[idx], duration_array[idx], c=overlap_array[idx], cmap='viridis', vmax=vmax)
 
               # Add the titles
 
               """
-              if orientation == main_orientation:
-                ax.set_title('Parameters search for the %s molecule,\n with a polarization along the %s axis\n' % (yml_sorted[mol_group][mol]['ID']['LateX Name'],orientation))
+              if polarisation == main_polarisation:
+                ax.set_title('Parameters search for the %s molecule,\n with a polarization along the %s axis\n' % (yml_sorted[mol_group][mol]['ID']['LateX Name'],polarisation))
               else:
-                ax.set_title('Parameters search for the %s molecule,\n with an alternate polarization along the %s axis\n' % (yml_sorted[mol_group][mol]['ID']['LateX Name'],orientation)) 
+                ax.set_title('Parameters search for the %s molecule,\n with an alternate polarization along the %s axis\n' % (yml_sorted[mol_group][mol]['ID']['LateX Name'],polarisation)) 
               """
 
-              ax.set_xlabel('Penalty factor ' + r'$\alpha_{0}$')
-              ax.set_ylabel('Duration of the pulse (ps)')
+              ax.set_xlabel('Facteur de pénalité ' + r'$\alpha_{0}$')
+              ax.set_ylabel('Durée du champ (ps)')
 
-              # Set the ticks for alpha (only major ticks corresponding to the data)
+              # Set the ticks for alpha
+
+              # ax.set_xscale("log")
+              # ax.set_xticks(list(dict.fromkeys(alpha_list)))
+              # ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+              # ax.minorticks_off()
 
               ax.set_xscale("log")
-              ax.set_xticks(list(dict.fromkeys(alpha_list)))
-              ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+              xlabels = ["{:.0f}".format(value) for value in list(dict.fromkeys(alpha_list))]
+              ax.set_xticks(ticks = list(dict.fromkeys(alpha_list)), labels = xlabels, rotation=-30)
               ax.minorticks_off()
 
               # Set other parameters
@@ -1366,7 +2219,7 @@ def main():
               #cb = fig.colorbar(ScalarMappable(norm=aldu_plot.norm, cmap=aldu_plot.cmap),ticks=np.linspace(vmin, vmax, num=2))
               cb = fig.colorbar(ScalarMappable(norm=aldu_plot.norm, cmap=aldu_plot.cmap))
              
-              cb.set_label("Performance Index")
+              cb.set_label("Indice de Performance")
 
               plt.tight_layout()
 
@@ -1377,12 +2230,12 @@ def main():
 
               # Save the file and close the figure
 
-              if orientation == main_orientation:
+              if polarisation == main_polarisation:
                 plot_filename = "performance.png"
               else:
-                plot_filename = "performance_alt" + orientation + ".png"
+                plot_filename = "performance_alt" + polarisation + ".png"
 
-              plt.savefig(os.path.join(aldu_param_dir,plot_filename),dpi=300)
+              plt.savefig(os.path.join(trans_dir,plot_filename),dpi=res_dpi,bbox_inches='tight')
               plt.close()
 
             # Store the values in a CSV file
@@ -1390,7 +2243,7 @@ def main():
 
             csv_header = list(values_list[0].keys())
 
-            with open(os.path.join(aldu_param_dir,'%s.csv' % (transition)), 'w', newline='', encoding='utf-8') as csvfile:
+            with open(os.path.join(trans_dir,'aldu_param_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
 
               csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
               csv_writer.writeheader()
@@ -1400,12 +2253,22 @@ def main():
 
             print('%12s' % "[ DONE ]")
 
-
     # Create the LaTeX tables
     # =======================
 
+    transitions.sort(key=lambda mol: mol['Diamètre (nm)']) # Sort the values by size
+    transitions = [{key:data[key] for key in data if key != 'Diamètre (nm)'} for data in transitions]
+    df = pd.DataFrame(transitions)
+
+    with open(os.path.join(out_dir,mol_group,"transitions.tex"), 'w+', encoding='utf-8') as f:
+      f.write(df.to_latex(
+        index=False,
+        column_format="lccc",
+        escape=False,
+        na_rep="-"))
+
     if best_pulses != []:
-   
+
       best_pulses.sort(key=lambda mol: mol['Diamètre (nm)']) # Sort the values by size
       best_pulses = [{key:data[key] for key in data if key != 'Diamètre (nm)'} for data in best_pulses]
       df = pd.DataFrame(best_pulses)
@@ -1413,353 +2276,476 @@ def main():
       with open(os.path.join(out_dir,mol_group,"best_pulses.tex"), 'w+', encoding='utf-8') as f:
         f.write(df.to_latex(
           index=False,
-          formatters=[None, None, format_num(0, "f"), format_num(0, "f"), format_num(3, "f"), format_num(2, "f")],
+          formatters=[None, None, results_common.format_num(0, "f"), results_common.format_num(1, "f"), results_common.format_num(4, "f"), results_common.format_num(2, "f")],
           column_format="lccccc",
           escape=False,
           na_rep="-"))
 
-  """
+    if dir_sens != []:
+   
+      dir_sens.sort(key=lambda mol: mol['Diamètre (nm)']) # Sort the values by size
+      dir_sens = [{key:data[key] for key in data if key != 'Diamètre (nm)'} for data in dir_sens]
+      df = pd.DataFrame(dir_sens)
+
+      with open(os.path.join(out_dir,mol_group,"dir_sens.tex"), 'w+', encoding='utf-8') as f:
+        f.write(df.to_latex(
+          index=False,
+          formatters=[None, results_common.format_num(2, "e"), results_common.format_num(2, "f"), results_common.format_num(2, "e"), results_common.format_num(2, "f"), results_common.format_num(2, "e"), results_common.format_num(2, "f")],
+          column_format="lcccccc",
+          escape=False,
+          na_rep="-"))
+
+    # Plot the data for directional sensibility of the best pulses
+    # ============================================================
+
+    plt.rcParams.update(plt.rcParamsDefault)
+
+    plt.style.use('seaborn-colorblind')
+
+    fig, ax = plt.subplots()
+
+    # Set bars
+
+    barwidth = 0.15
+
+    br1 = np.arange(len(dir_sens))
+    br2 = [bar + barwidth for bar in br1]
+    br3 = [bar + barwidth for bar in br2]
+
+    # Define the X labels and ticks
+
+    xlabels = [mol['Molécule'] for mol in dir_sens]
+    xticks = [r + barwidth for r in range(len(xlabels))]
+
+    # Plot the values
+
+    ax.bar(br1, [mol['Performance (X)'] for mol in dir_sens], color='red', width = barwidth, edgecolor ='grey', label ='X')
+    ax.bar(br2, [mol['Performance (Y)'] for mol in dir_sens], color='green', width = barwidth, edgecolor ='grey', label ='Y')
+    ax.bar(br3, [mol['Performance (Z)'] for mol in dir_sens], color='blue', width = barwidth, edgecolor ='grey', label ='Z')
+
+    # Add the legend and titles
+
+    ax.set_ylabel('Indice de performance')
+    ax.legend()
+
+    # Set other parameters
+
+    ax.tick_params(top=False, right=False, bottom=False)
+    ax.set_axisbelow(True) # axes and grid beneath the plots
+    plt.xticks(ticks=xticks, labels=xlabels, rotation=-45)
+    plt.tight_layout()
+    plt.grid(True,which='both', axis='y', linestyle='--')
+
+    params = {'mathtext.default': 'regular' }          
+    plt.rcParams.update(params)
+
+    # Save the file and close the figure
+
+    plt.savefig(os.path.join(out_dir,mol_group,'dir_sens.png'),dpi=res_dpi)
+    plt.close()    
+
   # =================================================================== #
   # =================================================================== #
-  #                     PLOTTING HIGHEST FIDELITIES                     #
+  #                   PLOTTING CONSTRAINTS VARIATION                    #
   # =================================================================== #
   # =================================================================== #
 
-  section_title = "5. Fidelities"
+  section_count += 1
+  section_title = str(section_count) + ". Constraints variation"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
-  # Treat the values for Si
-  # =======================
-
-  print ("{:<140}".format('\nTreating the values for Si QDs ...'), end="")
-
-  si_fids_all = []
-  si_fids_spgw = []
-  si_fids_mgw = []
-
-  for mol in yml_sorted['Si']:
-    if yml_sorted['Si'][mol].get('Control'):
-
-      # Get the size values
-
-      size = yml_sorted['Si'][mol]['Structure']['Size (nm)']
-
-      # Get the fidelities values for each config and add them to their corresponding lists (separate lists because all sizes are not necessarily represented for each type of config)
-
-      values_spgw = [transition['Fidelity'] for transition in yml_sorted['Si'][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and transition['Config'] == 'opc_filters']
-
-      if values_spgw != []:
-        max_spgw = max(values_spgw)
-        si_fids_spgw.append((size,max_spgw))
-      else:
-        max_spgw = "N/A"
-
-      values_mgw = [transition['Fidelity'] for transition in yml_sorted['Si'][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and transition['Config'] == 'mgw']
-
-      if values_mgw != []:
-        max_mgw = max(values_mgw)
-        si_fids_mgw.append((size,max_mgw))
-      else:
-        max_mgw = "N/A"
-
-      # Store the data for this molecule
-
-      si_fids_all.append({
-        "Molecule": yml_sorted['Si'][mol]['ID']['Name'],
-        "Diameter (nm)": size,
-        "Super Gaussian filter": max_spgw,
-        "Multi Gaussian filter": max_mgw
-        })
-
-      # Sort the values by size
-
-      si_fids_spgw.sort(key=lambda tup: tup[0])
-      si_fids_mgw.sort(key=lambda tup: tup[0])
-
-      si_fids_all.sort(key=lambda mol: mol['Diameter (nm)'])
-
-  # Store the values in a CSV file
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-  csv_header = list(si_fids_all[0].keys())
-
-  with open(os.path.join(out_dir,'Si_fids.csv'), 'w', newline='', encoding='utf-8') as csvfile:
-
-    csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
-    csv_writer.writeheader()
-
-    for mol in si_fids_all:
-      csv_writer.writerow(mol) 
-
-  # Plot the graphs
-  # ~~~~~~~~~~~~~~~
-
-  plt.style.use('seaborn-colorblind')
-
-  fig, ax = plt.subplots()
-
-  ax.plot([mol[0] for mol in si_fids_spgw],[mol[1] for mol in si_fids_spgw],marker='.',linestyle='--',label='Si (Super Gaussian)')
-  ax.plot([mol[0] for mol in si_fids_mgw],[mol[1] for mol in si_fids_mgw],marker='.',linestyle='--',label='Si (Multi Gaussian)')
-
-  # Add the legend and titles
-
-  ax.set_title('Highest fidelities: Si')
-  ax.set_xlabel("Diameter of the QD (nm)")
-  ax.set_ylabel('Fidelity')
-  ax.legend()
-
-  # Set other parameters
-
-  ax.tick_params(top=False, right=False)
-  ax.xaxis.set_minor_locator(AutoMinorLocator(2))
-  ax.yaxis.set_minor_locator(AutoMinorLocator(2))
-
-  plt.tight_layout()
-  plt.grid(True,which='both',linestyle='--')
-
-  # Save the file and close the figure
-
-  plt.savefig(os.path.join(out_dir,'Si_fids.png'),dpi=200)
-  plt.close()
-
-  print('%12s' % "[ DONE ]")
-
-  # Iterate over each molecule group and compare it to Si
-  # ====================================================
+  # Iterate over each molecule
+  # ==========================
 
   for mol_group in mol_groups:
 
-    if mol_group != 'Si':
+    ratio_const = [] # List of dictionaries containing the max and min values for each constraint
 
-      print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_group), end="")
+    for mol in yml_sorted[mol_group]:
+      if yml_sorted[mol_group][mol].get('Control'):
+        if yml_sorted[mol_group][mol]['Control'].get('Constraints variation'):
 
-      # Get the values
-      # ==============
+          print ("{:<140}".format('\nTreating the %s molecule ...' % mol))
 
-      fids_all = []
-      fids_spgw = []
-      fids_mgw = []
+          # Create a subdirectory for the graphs
 
-      for mol in yml_sorted[mol_group]:
-        if yml_sorted[mol_group][mol].get('Control'):
+          const_var_dir = os.path.join(out_dir,mol_group,mol,"const_var")
+          os.makedirs(const_var_dir, exist_ok=True)
 
-          # Get the size values
+          # Iterate over each transition
 
-          size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
+          for transition in yml_sorted[mol_group][mol]['Control']['Constraints variation']:
 
-          # Get the fidelities values for each config and add them to their corresponding lists (separate lists because all sizes are not necessarily represented for each type of config)
+            print ("{:<133}".format('\n\tTreating the %s transition ...' % transition), end="")
 
-          values_spgw = [transition['Fidelity'] for transition in yml_sorted[mol_group][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and transition['Config'] == 'opc_filters']
+            trans_dir = os.path.join(const_var_dir, transition)
+            os.makedirs(trans_dir, exist_ok=True)
 
-          if values_spgw != []:
-            max_spgw = max(values_spgw)
-            fids_spgw.append((size,max_spgw))
-          else:
-            max_spgw = "N/A"
+            # Get the values
+            # ==============
 
-          values_mgw = [transition['Fidelity'] for transition in yml_sorted[mol_group][mol]['Control']['Transitions'] if not transition['Label'].startswith('R_') and transition['Config'] == 'mgw']
+            values_list = yml_sorted[mol_group][mol]['Control']['Constraints variation'][transition]['Values']
 
-          if values_mgw != []:
-            max_mgw = max(values_mgw)
-            fids_mgw.append((size,max_mgw))
-          else:
-            max_mgw = "N/A"
+            if values_list == []:
+              print('empty')
+              continue
 
-          # Store the data for this molecule
+            main_polarisation = yml_sorted[mol_group][mol]['Control']['Constraints variation'][transition]['Polarisation']
+            cent_freq = yml_sorted[mol_group][mol]['Control']['Constraints variation'][transition]['Values'][0]['Central frequency (cm-1)']
 
-          fids_all.append({
-            "Molecule": yml_sorted[mol_group][mol]['ID']['Name'],
-            "Diameter (nm)": size,
-            "Super Gaussian filter": max_spgw,
-            "Multi Gaussian filter": max_mgw
+            fluence_list = []
+            window_list = []
+            overlap_list = []
+
+            for data in values_list:
+
+              window_list.append(data['Window (cm-1)'])
+              fluence_list.append(data['Fluence (J/m^2)'])
+              overlap_list.append(data[main_polarisation + '_Projector'])
+
+            ratio_const.append({
+              "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+              "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
+              "Polarisation" : main_polarisation,
+              "Fréquence centrale (cm" + r"$^{-1}$" + ")" : cent_freq,
+              "Fenêtre optimale (cm" + r"$^{-1}$" + ")" : max(list(dict.fromkeys(window_list))),
+              "Fenêtre idéale (cm" + r"$^{-1}$" + ")" : min(list(dict.fromkeys(window_list))),
+              "Fenêtre rapport" : max(list(dict.fromkeys(window_list))) / min(list(dict.fromkeys(window_list))),
+              "Fluence optimale (J/m"+r'$^2$' + ")":  max(list(dict.fromkeys(fluence_list))),
+              "Fluence idéale (J/m"+r'$^2$' + ")":  min(list(dict.fromkeys(fluence_list))),
+              "Fluence rapport" : max(list(dict.fromkeys(fluence_list))) / min(list(dict.fromkeys(fluence_list)))
             })
 
-          # Sort the values by size
+            # Prepare the data (as shown on https://stackoverflow.com/questions/54437559/numpy-meshgrid-from-unordered-x-y-z-data)
+            # ~~~~~~~~~~~~~~~~
 
-          fids_spgw.sort(key=lambda tup: tup[0])
-          fids_mgw.sort(key=lambda tup: tup[0])
+            fluence_array = np.asarray(fluence_list)
+            window_array = np.asarray(window_list)
+            overlap_array = np.asarray(overlap_list)
 
-          fids_all.sort(key=lambda mol: mol['Diameter (nm)'])
+            # Sort coordinates and reshape in grid
+            
+            len_flu = len(list(dict.fromkeys(fluence_list))) # Remove duplicates (https://www.w3schools.com/python/python_howto_remove_duplicates.asp)
+            len_win = len(list(dict.fromkeys(window_list)))
+            idx = np.lexsort((fluence_array, window_array)).reshape(len_flu, len_win)
 
-      # Store the values in a CSV file
+            # Plot the performance data
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-      csv_header = list(fids_all[0].keys())
+            plt.style.use('ggplot')
 
-      with open(os.path.join(out_dir,'%s_fids.csv' % mol_group), 'w', newline='', encoding='utf-8') as csvfile:
+            fig, ax = plt.subplots()
 
-        csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writeheader()
+            vmax=min(max(overlap_list),1)
 
-        for mol in fids_all:
-          csv_writer.writerow(mol) 
+            convar_plot = ax.scatter(fluence_array[idx], window_array[idx], c=overlap_array[idx], cmap='viridis', vmax=vmax)
 
-      # Plot the graphs
-      # ===============
+            # Add the titles
 
-      plt.style.use('seaborn-colorblind')
+            """
+            ax.set_title('Parameters search for the %s molecule,\n with a polarization along the %s axis\n' % (yml_sorted[mol_group][mol]['ID']['LateX Name'],polarisation))
+            """
 
-      fig, ax = plt.subplots()
+            ax.set_xlabel("Fluence (J/m" + r'$^{2}$' + ")")
+            ax.set_ylabel("Largeur spectrale (cm" + r'$^{-1}$' + ")")
 
-      # Plot the Si values
+            # Set the ticks for alpha
 
-      ax.plot([mol[0] for mol in si_fids_spgw],[mol[1] for mol in si_fids_spgw],marker='.',linestyle='--',label='Si (Super Gaussian)')
-      ax.plot([mol[0] for mol in si_fids_mgw],[mol[1] for mol in si_fids_mgw],marker='.',linestyle='--',label='Si (Multi Gaussian)')
+            ax.set_xscale("log")
+            xlabels = ["{:.2e}".format(value) for value in list(dict.fromkeys(fluence_list))]
+            ax.set_xticks(ticks = list(dict.fromkeys(fluence_list)), labels = xlabels, rotation=-30)
+            ax.minorticks_off()
+            #ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+            #ax.ticklabel_format(axis='x',style='sci',useMathText=True)
 
-      # Plot the specific group value
+            # Set other parameters
 
-      ax.plot([mol[0] for mol in fids_spgw],[mol[1] for mol in fids_spgw],marker='.',linestyle='-',label= mol_group + ' (Super Gaussian)')
-      ax.plot([mol[0] for mol in fids_mgw],[mol[1] for mol in fids_mgw],marker='.',linestyle='-',label= mol_group + ' (Multi Gaussian)')
+            ax.set_yticks(list(dict.fromkeys(window_list)))
 
-      # Add the legend and titles
+            #cb = fig.colorbar(ScalarMappable(norm=convar_plot.norm, cmap=convar_plot.cmap),ticks=np.linspace(vmin, vmax, num=2))
+            cb = fig.colorbar(ScalarMappable(norm=convar_plot.norm, cmap=convar_plot.cmap))
+            
+            cb.set_label("Indice de Performance")
 
-      ax.set_title('Highest fidelities: Si vs %s' % mol_group)
-      ax.set_xlabel("Diameter of the QD (nm)")
-      ax.set_ylabel('Fidelity')
-      ax.legend()
+            plt.tight_layout()
 
-      # Set other parameters
+            params = {'mathtext.default': 'regular' }          
+            plt.rcParams.update(params)
 
-      ax.tick_params(top=False, right=False)
-      ax.xaxis.set_minor_locator(AutoMinorLocator(2))
-      ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+            #♣plt.setp(ax.get_xticklabels(), rotation=-30)
 
-      plt.tight_layout()
-      plt.grid(True,which='both',linestyle='--')
+            # Save the file and close the figure
 
-      # Save the file and close the figure
+            plt.savefig(os.path.join(trans_dir,"performance.png"),dpi=res_dpi)
+            plt.close()
 
-      plt.savefig(os.path.join(out_dir,'%s_fids.png' % mol_group),dpi=200)
-      plt.close()
+            # Store the values in a CSV file
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-      print('%12s' % "[ DONE ]") 
-  
+            csv_header = list(values_list[0].keys())
+
+            with open(os.path.join(trans_dir,'convar_comp_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+              csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+              csv_writer.writeheader()
+
+              for data in values_list:
+                csv_writer.writerow(data) 
+
+            print('%12s' % "[ DONE ]")
+
+    # Create the LaTeX tables
+    # =======================
+
+    if ratio_const != []:
+
+      ratio_const.sort(key=lambda mol: mol['Diamètre (nm)']) # Sort the values by size
+      ratio_const = [{key:data[key] for key in data if key != 'Diamètre (nm)'} for data in ratio_const]
+      df = pd.DataFrame(ratio_const)
+
+      file_content = df.to_latex(
+          index=False,
+          formatters=[None, None, results_common.format_num(0, "f"), results_common.format_num(0, "f"), results_common.format_num(0, "f"), results_common.format_num(0, "f"), results_common.format_num(2, "e"), results_common.format_num(2, "e"), results_common.format_num(2, "e")],
+          column_format=r">{\centering\arraybackslash}m{0.12\textwidth}" + r">{\centering\arraybackslash}m{0.05\textwidth}" + r">{\centering\arraybackslash}m{0.10\textwidth}" + r"*{6}{>{\centering\arraybackslash}m{0.10\textwidth}}",
+          escape=False,
+          na_rep="-")
+
+      file_content = file_content.splitlines()
+
+      file_content[2] = r"\multirow{2}{*}{Molécule} & \multirow{2}{*}{Pol.} & $\omega_0$ & \multicolumn{3}{c}{Largeur spectrale (cm$^{-1}$)} & \multicolumn{3}{c}{Fluence (J/m$^2$)}\\"
+      file_content.insert(3, r"  &  & (cm$^{-1}$) & optim. & idéale & rapport & optim. & idéale & rapport \\")
+      file_content.insert(3, r"\cline{4-9}")
+
+      with open(os.path.join(out_dir,mol_group,"ratio_const.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
+
   # =================================================================== #
   # =================================================================== #
-  #                  PLOTTING TRANSITION DIPOLE MOMENT                  #
+  #                PLOTTING FREQUENCY FILTERS VARIATION                 #
   # =================================================================== #
   # =================================================================== #
 
-  section_title = "6. Transition dipole moments"
+  section_count += 1
+  section_title = str(section_count) + ". Frequency filters variation"
 
   print("")
   print(''.center(len(section_title)+10, '*'))
   print(section_title.center(len(section_title)+10))
   print(''.center(len(section_title)+10, '*'))
 
-  # Iterate over each molecule group
-  # ================================
+  # Iterate over each molecule
+  # ==========================
 
   for mol_group in mol_groups:
 
-      print ("{:<140}".format('\nTreating the values for %s QDs ...' % mol_group), end="")
+    filt_freq_results = []
 
-      # Get the values
-      # ==============
+    for mol in yml_sorted[mol_group]:
+      if yml_sorted[mol_group][mol].get('Control'):
+        if yml_sorted[mol_group][mol]['Control'].get('Frequency filters variation'):
 
-      momdips = []
-      first_momdips = []
-      second_momdips = []
-      third_momdips = []
+          print ("{:<140}".format('\nTreating the %s molecule ...' % mol))
 
-      for mol in yml_sorted[mol_group]:
-        if yml_sorted[mol_group][mol].get('Transition dipole moments (au)'):
+          # Create a subdirectory for the graphs
 
-          # Get the size values
+          filt_freq_dir = os.path.join(out_dir,mol_group,mol,"filt_freq")
+          os.makedirs(filt_freq_dir, exist_ok=True)
 
-          size = yml_sorted[mol_group][mol]['Structure']['Size (nm)']
+          # Iterate over each transition
 
-          # Get the values and convert them from atomic units to Debye (conversion factor from https://link.springer.com/content/pdf/bbm%3A978-3-319-89972-5%2F1.pdf)
-          # Then add them to their corresponding lists (separate lists because some molecules do not have three different values)
+          for transition in yml_sorted[mol_group][mol]['Control']['Frequency filters variation']:
 
-          conv_factor = 2.541746
-          data = yml_sorted[mol_group][mol]['Transition dipole moments (au)']
-          sortedkeys = sorted(data, key=str.lower) # Sort the keys alphabetically to ensure increasing order of states (S1 then S2, then S3, ...)
+            print ("{:<133}".format('\n\tTreating the %s transition ...' % transition), end="")
 
-          first_value = data[sortedkeys[0]] * conv_factor
-          first_momdips.append((size,first_value))
-          second_value = "N/A"
-          third_value = "N/A"
+            trans_dir = os.path.join(filt_freq_dir, transition)
+            os.makedirs(trans_dir, exist_ok=True)
 
-          if len(sortedkeys) >= 2:
-            second_value = data[sortedkeys[1]] * conv_factor
-            second_momdips.append((size,second_value))
-          if len(sortedkeys) >= 3:
-            third_value = data[sortedkeys[2]] * conv_factor
-            third_momdips.append((size,third_value))
-    
-          # Store the data for this molecule
+            # Get the values
+            # ==============
 
-          momdips.append({
-            "Molecule": yml_sorted[mol_group][mol]['ID']['Name'],
-            "Diameter (nm)": size,
-            "First value (D)": first_value,
-            "Second value (D)": second_value,
-            "Third value (D)": third_value,
-            "Comment" : "  ".join(sortedkeys)
+            filt_freq_ind = [] # List of dictionaries containing the results for each frequency filter
+            values_list = yml_sorted[mol_group][mol]['Control']['Frequency filters variation'][transition]['Values']
+
+            if values_list == []:
+              print('empty')
+              continue
+
+            main_polarisation = yml_sorted[mol_group][mol]['Control']['Frequency filters variation'][transition]['Polarisation']
+            cent_freq = yml_sorted[mol_group][mol]['Control']['Frequency filters variation'][transition]['Values'][0]['Central frequency (cm-1)']
+
+            window_label = "Largeur spectrale (cm" + r"$^{-1}$" + ")"
+            perf_label = "Indice de performance"
+            fluence_label = "Fluence (J/m"+r'$^2$' + ")"
+
+            opt_wind = max([data['Window (cm-1)'] for data in values_list])
+            id_wind = min([data['Window (cm-1)'] for data in values_list])
+
+            for data in values_list:
+
+              # Get the data for the individual tables
+
+              data['Fluence (J/m^2)'] = results_common.energy_unit_conversion(data.pop('Fluence'),'ha','j')/(constants.value('atomic unit of length')**2)
+
+              filt_freq_ind.append({
+                window_label : data['Window (cm-1)'],
+                perf_label : data[main_polarisation + '_Projector'],
+                fluence_label :  data['Fluence (J/m^2)']
+              })
+
+              # Get the representative data for the summary tables
+
+              if data['Window (cm-1)'] == opt_wind:
+                opt_flu = data['Fluence (J/m^2)']
+                opt_perf = data[main_polarisation + '_Projector']
+
+              elif data['Window (cm-1)'] == id_wind:
+                id_flu = data['Fluence (J/m^2)']
+                id_perf = data[main_polarisation + '_Projector']
+
+            # Sort the individual values by window size
+
+            filt_freq_ind.sort(key=lambda mol: mol[window_label], reverse=True)
+
+            # Plot the data
+            # =============
+
+            plt.rcParams.update(plt.rcParamsDefault)
+
+            plt.style.use('seaborn-colorblind')
+
+            fig = plt.figure()
+            ax1 = fig.add_subplot(111)
+
+            # Define the X labels and ticks
+
+            xlabels = [str(round(data[window_label])) for data in filt_freq_ind]
+            xticks = range(1,len(xlabels)+1)
+
+            # Plot the values
+
+            plot_1 = ax1.bar(xticks, [data[fluence_label] for data in filt_freq_ind], width = 0.2, color="red", edgecolor ='grey', label = "Fluence")
+            ax1.set_xticks(ticks=xticks, labels=xlabels)
+            ax2 = ax1.twinx() # Two Y axes on the same graph
+            plot_2 = ax2.plot(xticks, [data[perf_label] for data in filt_freq_ind], label = "Performance")
+
+            # Add the legend (https://stackoverflow.com/questions/5484922/secondary-axis-with-twinx-how-to-add-to-legend)
+
+            fig.legend(loc="upper center", ncol=2)
+
+            # Add the titles
+
+            ax1.set_xlabel(window_label)
+            ax1.set_ylabel(fluence_label)
+            ax2.set_ylabel(perf_label)
+
+            # Set other parameters
+
+            #ax1.tick_params(top=False, right=False, bottom=False)
+            ax1.set_axisbelow(True) # axes and grid beneath the plots
+            plt.tight_layout()
+            plt.grid(False)
+
+            plt.tight_layout()
+
+            params = {'mathtext.default': 'regular' }          
+            plt.rcParams.update(params)
+
+            # Save the file and close the figure
+
+            plt.savefig(os.path.join(trans_dir,"perf_vs_flu.png"),dpi=res_dpi)
+            plt.close()
+
+            # Store the values in a CSV file
+            # ==============================
+
+            csv_header = list(values_list[0].keys())
+
+            with open(os.path.join(trans_dir,'filt_freq_comp_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
+
+              csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+              csv_writer.writeheader()
+
+              for data in values_list:
+                csv_writer.writerow(data) 
+
+            # Create the LaTeX table
+            # ======================
+
+            df = pd.DataFrame(filt_freq_ind)
+            with open(os.path.join(trans_dir,"filt_freq_ind.tex"), 'w+', encoding='utf-8') as f:
+              f.write(df.to_latex(
+                index=False,
+                formatters=[results_common.format_num(0, "f"), results_common.format_num(4, "f"), results_common.format_num(2, "f")],
+                column_format="ccc",
+                escape=False,
+                na_rep="-"))
+
+            # Prepare the data for the summary table
+            # ======================================
+
+            filt_freq_results.append({
+              "Molécule": yml_sorted[mol_group][mol]['ID']['LateX Name'],
+              "Diamètre (nm)": yml_sorted[mol_group][mol]['Structure']['Size (nm)'],
+              "Polarisation" : main_polarisation,
+              "Fréquence centrale (cm^-1)" : cent_freq,
+              "Fenêtre optimale (cm^-1)" : opt_wind,
+              "Fluence optimale (J/m^2)":  opt_flu,
+              "Performance optimale" : opt_perf,
+              "Fenêtre idéale (cm^-1)" : id_wind,
+              "Fluence idéale (J/m^2)":  id_flu,
+              "Performance idéale" : id_perf
             })
 
-      # Sort the values by size
+            print('%12s' % "[ DONE ]")
 
-      first_momdips.sort(key=lambda tup: tup[0])
-      second_momdips.sort(key=lambda tup: tup[0])
-      third_momdips.sort(key=lambda tup: tup[0])
+    # Create the csv file for the summary table
+    # =========================================
 
-      momdips.sort(key=lambda mol: mol['Diameter (nm)'])
+    if filt_freq_results != []:
 
-      # Store the values in a CSV file
-      # ==============================
+      filt_freq_results.sort(key=lambda mol: mol['Diamètre (nm)'])
 
-      csv_header = list(momdips[0].keys())
+      # Average mixing percentages
 
-      with open(os.path.join(out_dir,'%s_momdips.csv' % mol_group), 'w', newline='', encoding='utf-8') as csvfile:
+      csv_header = list(filt_freq_results[0].keys())
+
+      with open(os.path.join(out_dir,mol_group,'filt_freq_results.csv'), 'w', newline='', encoding='utf-8') as csvfile:
 
         csv_writer = csv.DictWriter(csvfile, fieldnames=csv_header, delimiter=';', quoting=csv.QUOTE_MINIMAL)
         csv_writer.writeheader()
 
-        for mol in momdips:
+        for mol in filt_freq_results:
           csv_writer.writerow(mol) 
+   
+    # Create the LaTeX summary table
+    # ==============================
 
-      # Plot the graphs
-      # ===============
+    if filt_freq_results != []:
 
-      plt.style.use('seaborn-colorblind')
+      filt_freq_results = [{key:data[key] for key in data if key != 'Diamètre (nm)'} for data in filt_freq_results]
 
-      fig, ax = plt.subplots()
+      df = pd.DataFrame(filt_freq_results)
 
-      # Plot the values
+      file_content = df.to_latex(
+          index=False,
+          formatters=[None, None, results_common.format_num(0, "f"), results_common.format_num(0, "f"), results_common.format_num(2, "e"), results_common.format_num(3, "f"), results_common.format_num(0, "f"), results_common.format_num(2, "e"), results_common.format_num(3, "f")],
+          column_format=r">{\centering\arraybackslash}m{0.12\textwidth}" + r">{\centering\arraybackslash}m{0.05\textwidth}" + r">{\centering\arraybackslash}m{0.10\textwidth}" + r"*{6}{>{\centering\arraybackslash}m{0.10\textwidth}}",
+          escape=False,
+          na_rep="-")
 
-      ax.plot([mol[0] for mol in first_momdips],[mol[1] for mol in first_momdips],marker='.',linestyle='-',label="First singlet")
-      ax.plot([mol[0] for mol in second_momdips],[mol[1] for mol in second_momdips],marker='.',linestyle='-',label="Second singlet")
-      ax.plot([mol[0] for mol in third_momdips],[mol[1] for mol in third_momdips],marker='.',linestyle='-',label="Third singlet")
+      file_content = file_content.splitlines()
 
-      # Add the legend and titles
+      file_content[2] = r"\multirow{3}{*}{Molécule} & \multirow{3}{*}{Pol.} & \multirow{2}{*}{$\omega_0$} & \multicolumn{3}{c}{Largeur optimale} & \multicolumn{3}{c}{Largeur idéale} \\"
+      file_content.insert(3, r"  &  &             & Valeur      & Fluence   & \multirow{2}{*}{Perf.} & Valeur      & Fluence   & \multirow{2}{*}{Perf.} \\")
+      file_content.insert(4, r"  &  & (cm$^{-1}$) & (cm$^{-1}$) & (J/m$^2$) &                        & (cm$^{-1}$) & (J/m$^2$) &                        \\")
+      file_content.insert(3, r"\cline{4-9}")
 
-      ax.set_title('Transition dipole moments for %s QDs' % mol_group)
-      ax.set_xlabel("Diameter of the QD (nm)")
-      ax.set_ylabel("Dipole moment (D)")
-      ax.legend()
-
-      # Set other parameters
-
-      ax.tick_params(top=False, right=False)
-      ax.xaxis.set_minor_locator(AutoMinorLocator(2))
-      ax.yaxis.set_minor_locator(AutoMinorLocator(2))
-
-      plt.tight_layout()
-      plt.grid(True,which='both',linestyle='--')
-
-      # Save the file and close the figure
-
-      plt.savefig(os.path.join(out_dir,'%s_momdips.png' % mol_group),dpi=200)
-      plt.close()
-
-      print('%12s' % "[ DONE ]")
-
-  """
+      with open(os.path.join(out_dir,mol_group,"filt_freq_results.tex"), 'w+', encoding='utf-8') as f:
+        f.write("\n".join(file_content))
 
   print("")
   print("".center(columns,"*"))

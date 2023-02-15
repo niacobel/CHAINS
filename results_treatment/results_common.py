@@ -8,6 +8,7 @@
 ################################################################################################################################################
 
 import os
+from functools import partial
 
 # =================================================================== #
 # =================================================================== #
@@ -208,3 +209,22 @@ def energy_unit_conversion(value:float,init:str,target:str) -> float:
       conv_value = (value / conv_factors_low[init_low]) * conv_factors_low[target_low]
 
     return conv_value
+
+#######################################################################
+
+def format_num(precision, num_format):
+    """This function returns a function which formats numbers according to the specified string operations. Seen on https://stackoverflow.com/questions/67074648/pandas-dataframe-to-latex-formatter-functions.
+
+    Parameters
+    ----------
+    precision : int
+        Accuracy to be shown (e.g. number of decimal places if format type is "f" or "e" or number of significant digits if format type is "g")
+    num_format : str
+        Format type (f, g or e)
+
+    """
+
+    def create_formatter(num, inner_prec, inner_form):
+        return "{:.{}{}}".format(num, inner_prec, inner_form)
+
+    return partial(create_formatter, inner_prec=precision, inner_form=num_format)

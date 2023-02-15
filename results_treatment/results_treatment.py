@@ -195,15 +195,6 @@ def main():
     modelling_fcts = import_path(modelling_fcts_path)
     print('%12s' % "[ DONE ]")
 
-    # CONTROL LAUNCHER's transition_fcts.py file
-    # ==========================================
-
-    transition_fcts_path = os.path.join(chains_path,"control_launcher","transition_fcts.py")
-
-    print ("{:<140}".format("\nImporting CONTROL LAUNCHER's transition_fcts.py file ..."), end="")
-    transition_fcts = import_path(transition_fcts_path)
-    print('%12s' % "[ DONE ]")
-
     # ========================================================= #
     # Check molecule directories                                #
     # ========================================================= #
@@ -292,7 +283,7 @@ def main():
       # ========================================================= #
       # Group (constitutive atoms)                                #
       # ========================================================= #
-
+     
       # Check the optimized geometry file
 
       gaussian_dir = os.path.join(mol_dir, "GAUSSIAN")
@@ -318,7 +309,14 @@ def main():
       atoms.sort()
       atoms.insert(0, atoms.pop(atoms.index("Si")))
 
-      mol_group = ''.join(atoms)
+      if tag.startswith("B"):
+
+        # Special bonus group is indicated by a tag that starts with B
+        mol_group = 'Bonus'
+
+      else:
+
+        mol_group = ''.join(atoms)
 
       # ========================================================= #
       # Total number of atoms                                     #
@@ -846,10 +844,70 @@ def main():
 
         comp_results[mol_name]["Transition dipole moments (au)"].update({
           # Use partition to only keep the 'Tx' part of the 'Tx(ms=y)' labels
-          pair[0]['label'].partition("(")[0] + '-' + pair[1]['label'].partition("(")[0] : momdip
+          pair[0]['label'].partition("(")[0] + '_' + pair[1]['label'].partition("(")[0] : momdip
           })
 
-      print('%12s' % "[ DONE ]")      
+      print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
+      # Fetch permanent dipole moments                            #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching permanent dipole moments ...'), end="")
+
+      # Initialize the dictionary that will contain the values
+
+      comp_results[mol_name]["Permanent dipole moments (au)"] = {}
+
+      # Iterate over the states
+
+      for state in zero_states_list:
+
+        # Compute the module of the permanent dipole moment
+
+        momdip = 0
+        for momdip_key in system['momdip_o_mtx']:
+          momdip += system['momdip_o_mtx'][momdip_key][state['number']][state['number']]**2
+        momdip = math.sqrt(momdip)          
+
+        # Store the value
+
+        comp_results[mol_name]["Permanent dipole moments (au)"].update({
+          # Use partition to only keep the 'Tx' part of the 'Tx(ms=y)' labels
+          state['label'].partition("(")[0] : momdip
+          })
+
+      print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
+      # Fetch spin-orbit couplings                                #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching SOC values ...'), end="")
+
+      # Initialize the dictionary that will contain the values
+
+      comp_results[mol_name]["SOC values (au)"] = {}
+
+      # Iterate over the pairs of states
+
+      pairs = [(zero_states_list[s1], zero_states_list[s2]) for s1 in range(len(zero_states_list)) for s2 in range(s1+1,len(zero_states_list))]
+      pairs = [pair for pair in pairs if pair[0]['label'].startswith('T') or pair[1]['label'].startswith('T')]
+
+      for pair in pairs:
+        
+        # Compute the module of the soc value
+
+        soc = float(np.absolute(system['mime'][pair[0]['number']][pair[1]['number']]))
+    
+        # Store the value
+
+        comp_results[mol_name]["SOC values (au)"].update({
+          # Use partition to only keep the 'Tx' part of the 'Tx(ms=y)' labels
+          pair[0]['label'] + '_' + pair[1]['label'] : soc
+          })
+
+      print('%12s' % "[ DONE ]")
 
       # ========================================================= #
       # Fetch zero states list                                    #
@@ -876,18 +934,49 @@ def main():
 
       for state in min_zero_states_list:
       
-        # Store the value
+        # Define the values
+        # ~~~~~~~~~~~~~~~~~
 
-        comp_results[mol_name]["Zero states list"].update({
-          state['label'].partition("(")[0] : {
-            "Energy (Ha)": state['energy'],
-            "GS transition dipole moment (au)" : {
-              "X" : float(system['momdip_o_mtx']["X"][0][state['number']]) if state['number'] != 0 else None,
-              "Y" : float(system['momdip_o_mtx']["Y"][0][state['number']]) if state['number'] != 0 else None,
-              "Z" : float(system['momdip_o_mtx']["Z"][0][state['number']]) if state['number'] != 0 else None
+        # Define important variables
+
+        zero_state = {}
+        sing_numbers = [state['number'] for state in zero_states_list if state['number'] != 0 and state['label'].startswith('S')]
+
+        # Get the energies
+
+        zero_state["Energy (Ha)"] = state['energy']
+
+        # For singlet excited states, get the GS transition dipole moment
+
+        if state['number'] != 0 and state['label'].startswith('S'):
+
+          zero_state["GS transition dipole moment (au)"] = {
+              "X" : float(system['momdip_o_mtx']["X"][0][state['number']]),
+              "Y" : float(system['momdip_o_mtx']["Y"][0][state['number']]),
+              "Z" : float(system['momdip_o_mtx']["Z"][0][state['number']])
               }
-            }
-          })
+
+        # For triplet excited states, get the SOC values
+
+        if state['label'].startswith('T'):
+
+          # /!\ The order of those values is the same as the order defined in the modelling function (which created the zero_states_list)
+
+          zero_state["GS SOC values (au)"] = {
+              "ms=0" :  float(np.absolute(system['mime'][0][state['number']])),
+              "ms=1" :  float(np.absolute(system['mime'][0][state['number']+1])),
+              "ms=-1" : float(np.absolute(system['mime'][0][state['number']+2]))
+              }
+
+          zero_state["Average singlet SOC values (au)"] = {
+              "ms=0" :  float(np.mean([np.absolute(system['mime'][sing_number][state['number']]) for sing_number in sing_numbers])),
+              "ms=1" :  float(np.mean([np.absolute(system['mime'][sing_number][state['number']+1]) for sing_number in sing_numbers])),
+              "ms=-1" : float(np.mean([np.absolute(system['mime'][sing_number][state['number']+2]) for sing_number in sing_numbers]))
+              }
+
+        # Store the values
+
+        comp_results[mol_name]["Zero states list"].update({state['label'].partition("(")[0] : zero_state})
 
       print('%12s' % "[ DONE ]") 
 
@@ -910,7 +999,9 @@ def main():
         comp_results[mol_name]["Relativistic states list"].update({
           state['label'] : {
             "Energy (Ha)": state['energy'],
+            "GS percentage": float(state['gs_percent']),
             "Singlet percentage": float(state['sing_percent']),
+            "Triplet percentage": float(state['trip_percent']),
             "GS transition dipole moment (au)" : {
               "X" : float(system['momdip_mtx']["X"][0][state['number']]) if state['number'] != 0 else None,
               "Y" : float(system['momdip_mtx']["Y"][0][state['number']]) if state['number'] != 0 else None,
@@ -920,6 +1011,188 @@ def main():
           })
 
       print('%12s' % "[ DONE ]") 
+
+      # ========================================================= #
+      # Compute average and sum of non relavistic dipole moments  #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tComputing average and sum of non relavistic dipole moments ...'), end="")
+
+      # Initialization of the variables
+
+      momdip_gs_s_list = []
+      momdip_s_s_list = []
+      momdip_t_t_list = []
+      momdip_p_list = []
+      
+      # Iterate over the matrix to get the information
+
+      it = np.nditer(system['momdip_o_mtx']['X'], flags=['multi_index'])
+    
+      for momdip in it:
+
+        # Define the pair of states
+
+        state_1 = it.multi_index[0]
+        label_1 = [state['label'] for state in system['zero_states_list'] if state_1 == state['number']][0]
+        energy_1 = [state['energy'] for state in system['zero_states_list'] if state_1 == state['number']][0]
+        state_2 = it.multi_index[1]
+        label_2 = [state['label'] for state in system['zero_states_list'] if state_2 == state['number']][0]
+        energy_2 = [state['energy'] for state in system['zero_states_list'] if state_2 == state['number']][0]
+
+        if state_1 > state_2:
+          continue # No need to treat both triangles of the matrix
+
+        # Compute the total length of the vector
+
+        value = 0
+        for momdip_key in system['momdip_o_mtx']:
+          value += system['momdip_o_mtx'][momdip_key][state_1][state_2]**2
+        value = math.sqrt(value)
+
+        # Add the value to the corresponding list
+
+        if state_1 == state_2:
+          momdip_p_list.append(value)
+        elif label_1.startswith('S0') and label_2.startswith('S'):
+          momdip_gs_s_list.append(value)
+        elif label_1.startswith('S') and label_2.startswith('S'):
+          if energy_1 != energy_2:
+            momdip_s_s_list.append(value)
+        elif label_1.startswith('T') and label_2.startswith('T'):
+          if energy_1 != energy_2:
+            momdip_t_t_list.append(value)
+  
+      # Compute the total matrix
+
+      total_mtx = np.zeros((len(system['zero_states_list']), len(system['zero_states_list'])))
+      for momdip_key in system['momdip_o_mtx']:
+        total_mtx = np.add(total_mtx,np.square(system['momdip_o_mtx'][momdip_key]))
+      total_mtx = np.sqrt(total_mtx)
+
+      # Store the values
+
+      comp_results[mol_name]["Average NR dipole moments (au)"] = {
+        "Permanent" : float(np.mean(momdip_p_list)),
+        "GS-S" : float(np.mean(momdip_gs_s_list)),
+        "S-S" : float(np.mean(momdip_s_s_list)),
+        "T-T" : float(np.mean(momdip_t_t_list)),
+        "Total" : float(total_mtx.mean())
+        }
+
+      comp_results[mol_name]["Sum NR dipole moments (au)"] = {
+        "Permanent" : float(sum(momdip_p_list)),
+        "GS-S" : float(sum(momdip_gs_s_list)),
+        "S-S" : float(sum(momdip_s_s_list)),
+        "T-T" : float(sum(momdip_t_t_list)),
+        "Total" : float(total_mtx.sum())
+        }
+
+      print('%12s' % "[ DONE ]")
+
+      # ========================================================= #
+      # Compute average and sum of relavistic dipole moments      #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tComputing average and sum of relavistic dipole moments ...'), end="")
+
+      # Initialization of the variables
+
+      momdip_gs_s_list = []
+      momdip_gs_t_list = []
+      momdip_s_s_list = []
+      momdip_s_t_list = []
+      momdip_t_t_list = []
+      momdip_p_list = []
+      
+      # Iterate over the matrix to get the information
+
+      it = np.nditer(system['momdip_mtx']['X'], flags=['multi_index'])
+    
+      for momdip in it:
+
+        # Define the pair of states and their dominant multiplicity
+
+        state_1 = it.multi_index[0]
+        if state_1 == 0:
+          multi_1 = 'GS'
+        elif system['states_list'][state_1]['trip_percent'] < 0.5:
+          multi_1 = 'S'
+        else:
+          multi_1 = 'T'
+        
+        state_2 = it.multi_index[1]
+        if state_2 == 0:
+          multi_2 = 'GS'
+        elif system['states_list'][state_2]['trip_percent'] < 0.5:
+          multi_2 = 'S'
+        else:
+          multi_2 = 'T'
+
+        if state_1 > state_2:
+          continue # No need to treat both triangles of the matrix
+
+        # Compute the total length of the vector
+
+        value = 0
+        for momdip_key in system['momdip_mtx']:
+          value += system['momdip_mtx'][momdip_key][state_1][state_2]**2
+        value = math.sqrt(value) 
+
+        # Add the value to the corresponding list
+
+        if state_1 == state_2:
+          momdip_p_list.append(value)
+        elif multi_1 == 'GS' and multi_2 == 'S':
+          momdip_gs_s_list.append(value)
+        elif multi_1 == 'GS' and multi_2 == 'T':
+          momdip_gs_t_list.append(value)
+        elif multi_1 == 'S' and multi_2 == 'S':
+          momdip_s_s_list.append(value)
+        elif multi_1 == 'T' and multi_2 == 'T':
+          momdip_t_t_list.append(value)
+        elif (multi_1 == 'S' and multi_2 == 'T') or (multi_1 == 'T' and multi_2 == 'S'):
+          momdip_s_t_list.append(value)
+
+      # Compute the total matrix
+
+      total_mtx = np.zeros((len(system['states_list']), len(system['states_list'])))
+      for momdip_key in system['momdip_mtx']:
+        total_mtx = np.add(total_mtx,np.square(system['momdip_mtx'][momdip_key]))
+      total_mtx = np.sqrt(total_mtx)
+
+      # Store the values
+
+      comp_results[mol_name]["Average relativistic dipole moments (au)"] = {
+        "Permanent" : float(np.mean(momdip_p_list)),
+        "GS-S" : float(np.mean(momdip_gs_s_list)),
+        "GS-T" : float(np.mean(momdip_gs_t_list)),
+        "S-S" : float(np.mean(momdip_s_s_list)),
+        "S-T" : float(np.mean(momdip_s_t_list)),
+        "T-T" : float(np.mean(momdip_t_t_list)),
+        "Total" : float(total_mtx.mean())
+        }
+
+      comp_results[mol_name]["Sum relativistic dipole moments (au)"] = {
+        "Permanent" : float(sum(momdip_p_list)),
+        "GS-S" : float(sum(momdip_gs_s_list)),
+        "GS-T" : float(sum(momdip_gs_t_list)),
+        "S-S" : float(sum(momdip_s_s_list)),
+        "S-T" : float(sum(momdip_s_t_list)),
+        "T-T" : float(sum(momdip_t_t_list)),
+        "Total" : float(total_mtx.sum())
+        }
+
+      # Add the total average in each direction
+
+      for momdip_key in system['momdip_mtx']:
+        mtx_dir = system['momdip_mtx'][momdip_key]
+        np.fill_diagonal(mtx_dir, 0)
+        comp_results[mol_name]["Average relativistic dipole moments (au)"].update({
+          momdip_key : float(mtx_dir.mean())
+        })
+
+      print('%12s' % "[ DONE ]")
 
     # ========================================================= #
     # Exception handling for the characterization results       #
@@ -963,23 +1236,94 @@ def main():
             }
         })
 
-      # Call the transition function from CONTROL LAUNCHER but without its standard output (https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto)
-
-      with open(os.devnull, 'w') as devnull:
-        with contextlib.redirect_stdout(devnull):
-          transitions_list = transition_fcts.brightest_to_darkest(system)
-
       # Look for directories in the main directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
 
       dir_list_all = [dir.name for dir in os.scandir(aldu_dir) if dir.is_dir()]
 
-      # Only keep the 'transition_config'-type directories
+      # Iterate over the directories
 
-      dir_list = []
+      for dirname in dir_list_all:
+      
+        # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+        try:
 
-      for transition in transitions_list:
+          # Define the '<transition>' regex and apply it to the dirname
 
-        momdip_key = transition["momdip_key"]
+          trans_pattern = re.compile(r"^(?P<key>[XYZ])_(?P<init>[pST0-9-]+)_(?P<target>[pST0-9-]+)_*([a-zA-Z0-9-_]*)$")
+          matching_dir = trans_pattern.match(dirname)
+
+          # If it is a directory named after a transition, collect the data
+
+          if matching_dir is None:
+            continue
+
+          trans_dir = os.path.join(aldu_dir, dirname)
+          momdip_key = matching_dir.group('key')
+
+          print ("{:<126}".format("\n\t\tTreating the '%s' transition ..." % dirname), end="")
+
+          # Create an entry for this transition
+
+          comp_results[mol_name]['Control']['Alpha/duration parameters search'].update({ 
+              dirname : 
+                { "Polarisation" : momdip_key,
+                  "Initial state" : matching_dir.group('init'),
+                  "Target state" : matching_dir.group('target'),
+                  "Values" : []
+                }
+            })
+
+          # Load the CSV file
+
+          aldu_file = results_common.check_abspath(os.path.join(trans_dir,"aldu_comp_results.csv"),"Alpha/duration parameters search compiled results CSV file","file")
+          with open(aldu_file, 'r', newline='') as csv_file:
+            aldu_content = csv.DictReader(csv_file, delimiter=';')
+            aldu_list = list(aldu_content)
+      
+          # Store information specific to this calculation
+
+          for line in aldu_list:
+            for key in line.keys():
+              if key == 'Best':
+                line['Best'] = str(line['Best'])
+              else:
+                line[key] = float(line[key])
+
+            # Add dict(line) in order to ensure line is not an OrderedDict, incompatible with YAML
+            comp_results[mol_name]['Control']['Alpha/duration parameters search'][dirname]['Values'].append(dict(line))
+
+          print('%12s' % "[ DONE ]")
+
+        except results_common.ResultsError as error:
+          print(error)
+          print("Skipping %s directory" % dirname)
+          continue
+
+      # ========================================================= #
+      # Constraints variation                                     #
+      # ========================================================= #
+
+      print ("{:<133}".format('\n\tFetching constraints variation results ...'))      
+
+      try:
+
+        # Check the main directory
+
+        convar_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","const_var"),"Main directory for the constraints variation","directory")
+
+        # Check the data directory
+
+        data_dir = results_common.check_abspath(os.path.join(convar_dir,"data"),"Data directory created by control_launcher.py","directory")
+
+        # Initialize the results dictionary
+
+        comp_results[mol_name]['Control'].update({
+          "Constraints variation" : {}
+          })
+
+        # Look for directories in the main directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
+
+        dir_list_all = [dir.name for dir in os.scandir(convar_dir) if dir.is_dir()]
 
         # Iterate over the directories
 
@@ -990,202 +1334,139 @@ def main():
 
             # Define the '<transition>' regex and apply it to the dirname
 
-            pattern = re.compile(r"^" + re.escape(transition["label"]) + r"$")
-            matching_dir = pattern.match(dirname)
+            trans_pattern = re.compile(r"^(?P<key>[XYZ])_(?P<init>[pST0-9-]+)_(?P<target>[pST0-9-]+)_*([a-zA-Z0-9-_]*)$")
+            matching_dir = trans_pattern.match(dirname)
 
             # If it is a directory named after a transition, collect the data
 
-            if matching_dir is not None:
+            if matching_dir is None:
+              continue
 
-              dir_list.append(dirname)
-              trans_dir = os.path.join(aldu_dir, dirname)
+            trans_dir = os.path.join(convar_dir, dirname)
+            momdip_key = matching_dir.group('key')
 
-              print ("{:<126}".format("\n\t\tTreating the '%s' transition ..." % transition["label"]), end="")
+            print ("{:<126}".format("\n\t\tTreating the '%s' transition ..." % dirname), end="")
 
-              # Create an entry for this transition
+            # Create an entry for this transition
 
-              comp_results[mol_name]['Control']['Alpha/duration parameters search'].update({ 
-                  transition["label"] : 
-                    { "Orientation" : momdip_key,
-                      "Values" : []
-                    }
-                })
+            comp_results[mol_name]['Control']['Constraints variation'].update({ 
+                dirname : 
+                  { "Polarisation" : momdip_key,
+                    "Values" : []
+                  }
+              })
 
-              # Load the CSV file
+            # Load the CSV file
 
-              aldu_file = results_common.check_abspath(os.path.join(trans_dir,"aldu_comp_results.csv"),"Alpha/duration parameters search compiled results CSV file","file")
-              with open(aldu_file, 'r', newline='') as csv_file:
-                aldu_content = csv.DictReader(csv_file, delimiter=';')
-                aldu_list = list(aldu_content)
-          
-             # Store information specific to this calculation
+            convar_file = results_common.check_abspath(os.path.join(trans_dir,"convar_comp_results.csv"),"Constraints variation compiled results CSV file","file")
+            with open(convar_file, 'r', newline='') as csv_file:
+              convar_content = csv.DictReader(csv_file, delimiter=';')
+              convar_list = list(convar_content)
+        
+            # Store information specific to this calculation
 
-              for line in aldu_list:
-                for key in line.keys():
-                  if key == 'Best':
-                    line['Best'] = str(line['Best'])
-                  else:
-                    line[key] = float(line[key])
+            for line in convar_list:
+              for key in line.keys():
+                if key == 'Best':
+                  line['Best'] = str(line['Best'])
+                else:
+                  line[key] = float(line[key])
 
-                # Add dict(line) in order to ensure line is not an OrderedDict, incompatible with YAML
-                comp_results[mol_name]['Control']['Alpha/duration parameters search'][transition["label"]]['Values'].append(dict(line))
+              # Add dict(line) in order to ensure line is not an OrderedDict, incompatible with YAML
+              comp_results[mol_name]['Control']['Constraints variation'][dirname]['Values'].append(dict(line))
 
-              print('%12s' % "[ DONE ]")
+            print('%12s' % "[ DONE ]")
 
           except results_common.ResultsError as error:
             print(error)
             print("Skipping %s directory" % dirname)
             continue
 
-      if dir_list == []:
-        raise results_common.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % aldu_dir)
+      except results_common.ResultsError as error:
+        print(error)
+        print("Skipping constraints variation treatment")
 
+      # ========================================================= #
+      # Frequency filters variation                               #
+      # ========================================================= #
 
-      """
-      # ========================================================= #
-      # Constrained control results                               #
-      # ========================================================= #
+      print ("{:<133}".format('\n\tFetching frequency filters variation results ...'))      
+
+      # Check the main directory
+
+      filt_freq_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","filt_freq"),"Main directory for the frequency filters variation","directory")
 
       # Check the data directory
 
-      data_dir = results_common.check_abspath(os.path.join(mol_dir,"CONTROL","data"),"Data directory created by control_launcher.py","directory")
+      data_dir = results_common.check_abspath(os.path.join(filt_freq_dir,"data"),"Data directory created by control_launcher.py","directory")
 
-      # Load the eigenstates list
-
-      eigenstates_file = results_common.check_abspath(os.path.join(data_dir, "eigenstates.csv"),"Eigenstates file","file")
-
-      with open(eigenstates_file, 'r', newline='') as csv_file:
-
-        eigenstates_content = csv.DictReader(csv_file, delimiter=';')
-        eigenstates_list = list(eigenstates_content)
-
-      # Check the eigenstates list
-
-      required_keys = ['Number','Label','Energy (Ha)']
-      results_common.check_keys(required_keys,eigenstates_list,"Eigenstates list file at %s" % eigenstates_file)
-
-      # Store general information about the control system
+      # Initialize the results dictionary
 
       comp_results[mol_name]['Control'].update({
-        "Nb excited states" : len(eigenstates_list) - 1,
-        "Transitions" : []
+        "Frequency filters variation" : {}
         })
 
-      # Load the transitions list
+      # Look for directories in the main directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
 
-      transitions_file = results_common.check_abspath(os.path.join(data_dir, "transitions.csv"),"Transitions file","file")
+      dir_list_all = [dir.name for dir in os.scandir(filt_freq_dir) if dir.is_dir()]
 
-      with open(transitions_file, 'r', newline='') as csv_file:
+      # Iterate over the directories
 
-        transitions_content = csv.DictReader(csv_file, delimiter=';')
-        transitions_list = list(transitions_content)
+      for dirname in dir_list_all:
+      
+        # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
+        try:
 
-      # Check the transitions list
+          # Define the '<transition>' regex and apply it to the dirname
 
-      required_keys = ['Label','Transition dipole moments matrix','Initial file name','Target file name']
-      results_common.check_keys(required_keys,transitions_list,"Transitions list file at %s" % transitions_file)
+          trans_pattern = re.compile(r"^(?P<key>[XYZ])_(?P<init>[pST0-9-]+)_(?P<target>[pST0-9-]+)_*([a-zA-Z0-9-_]*)$")
+          matching_dir = trans_pattern.match(dirname)
 
-      # Load the transition dipole moment matrices
+          # If it is a directory named after a transition, collect the data
 
-      momdip_es_mtx = {}
-      for momdip_key in system['momdip_o_mtx']:
-        file = results_common.check_abspath(os.path.join(data_dir, "momdip_es_mtx_" + momdip_key),"Transition dipole moment matrix associated with the %s key" % momdip_key,"file")
-        momdip_es_mtx[momdip_key] = np.loadtxt(file)
-
-      # Look for directories in the results CONTROL directory (see https://stackoverflow.com/questions/800197/how-to-get-all-of-the-immediate-subdirectories-in-python for reference).
-
-      control_dir = os.path.join(mol_dir,"CONTROL")
-
-      dir_list_all = [dir.name for dir in os.scandir(control_dir) if dir.is_dir()]
-
-      # Only keep the 'transition_config'-type directories
-
-      dir_list = []
-
-      for transition in transitions_list:
-
-        # Get the initial and target state number
-
-        init_label = transition['Initial file name'][:-2] # [:-2] to remove the trailing "_1"
-        init_number = eigenstates_list.index(next(eigenstate for eigenstate in eigenstates_list if eigenstate['Label'] == init_label))
-
-        target_label = transition['Target file name'][:-2] # [:-2] to remove the trailing "_1"
-        target_number = eigenstates_list.index(next(eigenstate for eigenstate in eigenstates_list if eigenstate['Label'] == target_label))
-
-        # Get the orientation of the laser (momdip_key) and the transition dipole moment of this specific transition
-        
-        momdip_key = transition["Transition dipole moments matrix"]
-        momdip = float(momdip_es_mtx[momdip_key][init_number][target_number])
-
-        # Get the transition energy
-
-        energy = abs(float(eigenstates_list[init_number]['Energy (Ha)']) - float(eigenstates_list[target_number]['Energy (Ha)']))
-
-        # Iterate over the directories
-
-        for dirname in dir_list_all:
-        
-          # For more information on try/except structures, see https://www.tutorialsteacher.com/python/exception-handling-in-python
-          try:
-
-            # Define the 'transition_config' regex and apply it to the dirname
-
-            pattern = re.compile(r"^" + re.escape(transition["Label"]) + r"_(?P<config>.*)$")
-            matching_dir = pattern.match(dirname)
-
-            # If it is a '<transition>_<config>' directory, collect the data
-
-            if matching_dir is not None:
-
-              dir_list.append(dirname)
-              config = pattern.match(dirname).group('config')
-
-              print ("{:<133}".format("\n\tTreating the '%s' transition with the '%s' config ..." % (transition["Label"], config)), end="")
-
-              # Open the PCP results file to get the fidelity of the pulse
-
-              iter_file = results_common.check_abspath(os.path.join(control_dir, dirname, "PCP/obj.res"),"PCP Iterations QOCT-GRAD results file","file")
-
-              with open(iter_file, 'r') as iter_f:
-                iter_content = iter_f.read()
-
-              # Define the expression patterns for the lines of the iterations file
-              # For example "      0     1  1sec |Proba_moy  0.693654D-04 |Fidelity(U)  0.912611D-01 |Chp  0.531396D-04 -0.531399D-04 |Aire -0.202724D-03 |Fluence  0.119552D-03 |Recou(i)  0.693654D-04 |Tr_dist(i) -0.384547D-15 |Tr(rho)(i)  0.100000D+01 |Tr(rho^2)(i)  0.983481D+00 |Projector  0.100000D+01"
-              rx_iter_line = re.compile(r"^\s+\d+\s+\d+\s+\d+sec\s\|Proba_moy\s+\d\.\d+D[+-]\d+\s\|Fidelity\(U\)\s+(?P<fidelity>\d\.\d+D[+-]\d+)\s\|Chp\s+\d\.\d+D[+-]\d+\s+-?\d\.\d+D[+-]\d+\s\|Aire\s+-?\d\.\d+D[+-]\d+\s\|Fluence\s+\d\.\d+D[+-]\d+\s\|Recou\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr_dist\(i\)\s+-?\d\.\d+D[+-]\d+\s\|Tr\(rho\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Tr\(rho\^2\)\(i\)\s+\d\.\d+D[+-]\d+\s\|Projector\s+\d\.\d+D[+-]\d+")
-
-              # Get the fidelity
-
-              iter_data = rx_iter_line.match(iter_content)
-              if iter_data is not None:
-                fidelity_raw = iter_data.group("fidelity")
-                fidelity = float(re.compile(r'(\d*\.\d*)[dD]([-+]?\d+)').sub(r'\1E\2', fidelity_raw)) # Replace the possible d/D from Fortran double precision float format with an "E", understandable by Python)
-              else:
-                raise results_common.ResultsError ("ERROR: Unable to get the fidelity from the file %s" % iter_file) 
-
-              # Store information specific to this transition
-
-              comp_results[mol_name]['Control']['Transitions'].append({
-                "Label" : transition["Label"],
-                "Config" : config,
-                "Initial state" : init_label, 
-                "Target state" : target_label,
-                "Energy (Ha)" : energy,
-                "Orientation" : momdip_key,
-                "Transition dipole moment (a.u.)" : momdip,
-                "Fidelity" : fidelity
-              })
-
-              print('%12s' % "[ DONE ]")
-
-          except results_common.ResultsError as error:
-            print(error)
-            print("Skipping %s directory" % dirname)
+          if matching_dir is None:
             continue
 
-      if dir_list == []:
-        raise results_common.ResultsError ("ERROR: Can't find any '<transition>_<config>' directory in %s" % os.path.join(mol_dir,"CONTROL"))
-   
-      """
+          trans_dir = os.path.join(filt_freq_dir, dirname)
+          momdip_key = matching_dir.group('key')
+
+          print ("{:<126}".format("\n\t\tTreating the '%s' transition ..." % dirname), end="")
+
+          # Create an entry for this transition
+
+          comp_results[mol_name]['Control']['Frequency filters variation'].update({ 
+              dirname : 
+                { "Polarisation" : momdip_key,
+                  "Values" : []
+                }
+            })
+
+          # Load the CSV file
+
+          filt_freq_file = results_common.check_abspath(os.path.join(trans_dir,"filt_freq_comp_results.csv"),"Frequency filters variation compiled results CSV file","file")
+          with open(filt_freq_file, 'r', newline='') as csv_file:
+            filt_freq_content = csv.DictReader(csv_file, delimiter=';')
+            filt_freq_list = list(filt_freq_content)
+      
+          # Store information specific to this calculation
+
+          for line in filt_freq_list:
+            for key in line.keys():
+              if key == 'Best':
+                line['Best'] = str(line['Best'])
+              else:
+                line[key] = float(line[key])
+
+            # Add dict(line) in order to ensure line is not an OrderedDict, incompatible with YAML
+            comp_results[mol_name]['Control']['Frequency filters variation'][dirname]['Values'].append(dict(line))
+
+          print('%12s' % "[ DONE ]")
+
+        except results_common.ResultsError as error:
+          print(error)
+          print("Skipping %s directory" % dirname)
+          continue
+
     # ========================================================= #
     #    Exception handling for the control results             #
     # ========================================================= #
