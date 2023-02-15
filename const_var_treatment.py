@@ -219,6 +219,7 @@ def main():
 
         fluence_pattern = re.compile(r'^\s+fluence\s+=\s+(?P<fluence>\d+\.\d+d[+-]\d+)')
         window_pattern = re.compile(r'^\s+spectral_filter_fwhm\s+=\s+(?P<window>\d+\.\d+d[+-]\d+)')
+        cent_freq_pattern = re.compile(r"^\s*spectral_filter_center\s+=\s+(?P<cent_freq>\d+\.\d+[dD][+-]?\d+)")
 
         for line in param_content:
 
@@ -228,12 +229,16 @@ def main():
           elif window_pattern.match(line): 
             window = float((window_pattern.match(line).group('window')).replace('d','e'))
 
+          elif cent_freq_pattern.match(line): 
+            cent_freq = float((cent_freq_pattern.match(line).group('cent_freq')).replace('d','e'))
+
         # Prepare to store information specific to this calculation
 
         data = {
             "Directory" : dirname,
-            "Fluence" : fluence,
-            "Window (cm-1)" : window
+            "Fluence (J/m^2)" : fluence,
+            "Window (cm-1)" : window,
+            "Central frequency (cm-1)" : cent_freq
         }
 
         # Iterate over all the PCP directories

@@ -16,9 +16,9 @@ qoctra:
   copy_files: True
   control:
     time_step: 5.0                                # Duration of a time step (a.u. of time)
-    max_iter: 250                                 # Maximum number of iterations
+    max_iter: 500                                 # Maximum number of iterations
     threshold: 0.999                              # Quality threshold for the fidelity
-    conv_thresh: 0.0                              # Convergence threshold for the fidelity / projector
+    conv_thresh: 0.05                             # Convergence threshold for the fidelity / projector
     write_freq: 20                                # Number of iterations between each writing of the field
   guess_pulse:
     amplitude: 1.0e7                              # Amplitude of the subpulses (in V/m)

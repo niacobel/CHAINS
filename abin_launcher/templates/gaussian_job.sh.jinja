@@ -201,6 +201,7 @@ cd ${SLURM_SUBMIT_DIR}
 echo -e "\nLaunching energy calculation of the cation in order to compute the ionization potential (IP) of the molecule ...\n\n"
 source "{{ chains_dir }}/load_modules.sh"
 cp "{{ config_file }}.yml" "cation.yml" # Rename the config file in order to name the new job subdirectory {{ mol_name }}_cation instead of {{ mol_name }}_{{ config_file }}
+mv "{{ mol_name }}.log" "{{ mol_name }}_neutral.log" # Change the name of this file so that it does not get erased by ABIN LAUNCHER
 python "{{ chains_dir }}/abin_launcher/abin_launcher.py" -p "gaussian_cation" -o "${SLURM_SUBMIT_DIR}" -m "{{ mol_name }}.xyz" -cf "cation.yml" -kc -km -cl "${CLUSTER_NAME}" > "cation_launch.log"
 mv "cation_launch.log" "${SLURM_SUBMIT_DIR}/{{ mol_name }}_cation/"
 rm "cation.yml"

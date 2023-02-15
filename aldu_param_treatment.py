@@ -203,7 +203,7 @@ def main():
  
       # Define the 'xxx_alphaXXX_durXXX' regex and apply it to the dirname
 
-      pattern = re.compile(r"^\d+_alpha(?P<alpha>\d+)_dur(?P<duration>\d+)$")
+      pattern = re.compile(r"^\d+_alpha(?P<alpha>\d+(\.\d+)?)_dur(?P<duration>\d+(\.\d+)?)$")
       matching_dir = pattern.match(dirname)
 
       # If it matches the regex, collect the data
