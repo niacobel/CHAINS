@@ -2,7 +2,7 @@
 
 {# Parameters for the job scheduler SLURM, see https://support.ceci-hpc.be/doc/_contents/QuickStart/SubmittingJobs/SlurmTutorial.html -#}
 #SBATCH --output=slurm_output_treatment.log
-#SBATCH --job-name={{ source_name }}_{{ transition }}_const_var_treatment
+#SBATCH --job-name={{ source_name }}_{{ transition }}_{{ profile }}_treatment
 #SBATCH --mail-user={{ user_email }}
 #SBATCH --mail-type=FAIL
 #SBATCH --time=0-00:05:00
@@ -27,7 +27,7 @@ scratch_dir="${GLOBALSCRATCH}/{{ source_name }}/{{ profile }}/{{ transition }}_{
 # Treat the data
 echo -e "\nTreating the data from ${scratch_dir} ...\n\n"
 source "{{ chains_dir }}/load_modules.sh"
-python "{{ chains_dir }}/const_var_treatment.py" -r "${scratch_dir}" -o "${SLURM_SUBMIT_DIR}"
+python "{{ chains_dir }}/{{ treatment_pyscript }}.py" -r "${scratch_dir}" -o "${SLURM_SUBMIT_DIR}"
 
 {% if copy_files is sameas true -%}
 # Copy data directory
@@ -40,7 +40,7 @@ cp -rf  "{{ data_dir }}" "${res_dir}"
 trans_dir="${res_dir}/{{ transition }}"
 mkdir -p "${trans_dir}"
 echo -e "\nCopying job files from {{ transition }} to ${trans_dir}."
-cp "{{ job_script }}" "{{ config_name }}.yml" "convar_comp_results.csv" "{{ treatment_script }}" "${trans_dir}"
+cp "{{ job_script }}" "{{ config_name }}.yml" "{{ treatment_csv }}.csv" "{{ treatment_script }}" "${trans_dir}"
 {% for momdip_key in momdip_keys -%}
 cp "{{ momdip_key }}_{{ rendered_param_PCP }}" "${trans_dir}"
 {% endfor %}
