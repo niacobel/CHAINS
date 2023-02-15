@@ -23,3 +23,4 @@ qchem:
     max_scf_cycles: 100
     cis_n_roots: 6
     iqmol_fchk: true
+    cis_ampl_anal: true

@@ -886,7 +886,8 @@ def chains_qchem_render(mendeleev:dict, clusters_cfg:dict, config:dict, file_dat
         "scf_algorithm" : config['qchem']['keywords']['scf_algorithm'],
         "max_scf_cycles" : config['qchem']['keywords']['max_scf_cycles'],
         "cis_n_roots" : config['qchem']['keywords']['cis_n_roots'],
-        "iqmol_fchk":  config['qchem']['keywords']['iqmol_fchk']
+        "iqmol_fchk":  config['qchem']['keywords']['iqmol_fchk'],
+        "cis_ampl_anal":  config['qchem']['keywords']['cis_ampl_anal']
       })
 
     except KeyError as error:
