@@ -21,7 +21,6 @@ source "/CECI/home/ulb/cqp/niacobel/CHAINS/load_modules.sh"
 
 cluster_name=$1
 out_dir=$2
-out_dir_tzvp=$3
 
 # Define the path towards CHAINS' directory (parent directory from the directory of this script)
 
@@ -74,18 +73,6 @@ else
   do
     filename="$(basename -- "${filepath}")"
     MOL_NAME=${filename%.*}
-
-    # Check if the TAG of our molecule asks for a TZVP run or not (see https://stackoverflow.com/questions/2172352/in-bash-how-can-i-check-if-a-string-begins-with-some-value for details)
-    # /!\ Do not archive the geometry file since it is also needed for the standard SVP run
-
-    if  [[ $MOL_NAME == s00-* ]] || [[ $MOL_NAME == s01-* ]] || [[ $MOL_NAME == s02-* ]] || [[ $MOL_NAME == s03-* ]] || [[ $MOL_NAME == s04-* ]] || [[ $MOL_NAME == p01-* ]] ;
-    then
-        mkdir -p "${out_dir_tzvp}"
-        python "${abin_dir}/abin_launcher.py" -p qchem_tzvp -m "${filepath}" -cf "${chains_path}/configs/qchem/TZVP.yml" -o "${out_dir_tzvp}" -cl "${cluster_name}" -ow -kc -km > "${abin_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}_TZVP.log"
-    fi
-
-    # Proceed with standard SVP run
-
     mkdir -p "${out_dir}"
     python "${abin_dir}/abin_launcher.py" -p qchem -m "${filepath}" -cf "${chains_path}/configs/qchem/SVP.yml" -o "${out_dir}" -cl "${cluster_name}" -ow -kc > "${abin_logs}/$(date +"%Y%m%d_%H%M%S")_${MOL_NAME}.log"
 
