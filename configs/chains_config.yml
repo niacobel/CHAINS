@@ -13,6 +13,7 @@ output_gaussian: /CECI/home/ulb/cqp/niacobel/GAUSSIAN_OUT
 output_qchem: /CECI/home/ulb/cqp/niacobel/QCHEM_SVP_OUT
 output_aldu: /CECI/home/ulb/cqp/niacobel/ALDU_OUT
 output_convar: /CECI/home/ulb/cqp/niacobel/CONVAR_OUT
+output_filt_freq: /CECI/home/ulb/cqp/niacobel/FILT_FREQ_OUT
 
 # Define here the path towards the results directory
 # A subdirectory will be created in it for each geometry file (molecule), containing all major output files from the different programs and scripts.
