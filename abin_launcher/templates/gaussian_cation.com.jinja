@@ -1,6 +1,6 @@
 %chk={{ mol_name }}.chk
 %NProcShared={{ job_cores }}
-%mem={{ mem_total }}MB
+%mem={{ mem_total-1000 }}MB
 # {{ method }}/{{ basis_set }} {{ other }}
 
 Single point energy calculation of {{ mol_name }}
@@ -15,7 +15,7 @@ Single point energy calculation of {{ mol_name }}
 %chk={{ mol_name }}_cation.chk
 %NProcShared={{ job_cores }}
 %mem={{ mem_total }}MB
-# {{ method }}/{{ basis_set }} Opt(MaxCycles=250) Geom=Checkpoint
+# {{ method }}/{{ basis_set }} Opt(MaxCycles=250) Geom=Checkpoint Freq
 
 Geometry Optimization of {{ mol_name }} in cation form
 

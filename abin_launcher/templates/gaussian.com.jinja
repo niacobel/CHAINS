@@ -1,6 +1,6 @@
 %chk={{ mol_name }}.chk
 %NProcShared={{ job_cores }}
-%mem={{ mem_total }}MB
+%mem={{ mem_total-1000 }}MB
 # {{ method }}/{{ basis_set }} {{ other }} Opt
 
 Geometry Optimization of {{ mol_name }}
