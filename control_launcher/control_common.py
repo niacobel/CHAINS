@@ -7,7 +7,10 @@
 ##                                   QOCT-RA Input Builder & Job Launcher python script and its subscripts.                                   ##
 ################################################################################################################################################
 
+import math
 import os
+
+import numpy as np
 
 # =================================================================== #
 # =================================================================== #
@@ -238,3 +241,62 @@ def energy_unit_conversion(value:float,init:str,target:str) -> float:
       conv_value = 0
 
     return conv_value
+
+#######################################################################
+
+def is_indistinguishable(energy1:float, energy2:float):
+    """Check if two states can be considered indistinguishable by comparing their energy differences (in cm-1) to the spectral resolution of the pulse shapers associated with their energy domain. The spectral resolutions are fetched from:
+    - the specifications of the DAZZLER ultrafast pulse shapers provided by the FASTLITE company (https://fastlite.com/produits/dazzler-ultrafast-pulse-shaper/)
+    - the Quickshaper IR provided by the PhaseTech company (http://phasetechspectroscopy.com/)
+    - the compact optical parametric amplifier platform from Jakob et al. (https://doi.org/10.1364/oe.27.026979)
+
+    Parameters
+    ----------
+    energy1 : float
+        Energy of the first state in cm-1.
+    energy2 : float
+        Energy of the second state in cm-1.
+
+    Returns
+    -------
+    bool
+        "True" if the two states are indistinguishable, "False" otherwise.
+    """  
+
+    # Define the different energy domains and their associated spectral resolution
+
+    resolutions = {
+      40000: 15.99, # Dazzler Qz-250-400
+      25000: 12.49, # Dazzler Qz-250-400
+      20000:	8.00, # Dazzler WR-460-740
+      14286:	6.12, # Dazzler WR-460-740
+      11111:	6.17, # Dazzler WR-510-950
+      9709:  	4.71, # Dazzler UHR-900-1700
+      6452:	  4.16, # Dazzler UHR-900-1700
+      4762:	  4.53, # Dazzler WB45-1450-3000
+      3846:	  4.43, # Dazzler WB45-1450-3000
+      2857:	  5.70, # Dazzler WB45-2000-3700
+      1818:	  5.00, # Phasetech Quickshape IR
+      926:    1.97  # Jakob et al.
+    }
+
+    # Define the domain of our values (see https://www.geeksforgeeks.org/python-find-closest-number-to-k-in-given-list/)
+
+    domains = np.asarray(list(resolutions.keys()))
+
+    domain1 = domains[(np.abs(domains - energy1)).argmin()]
+    domain2 = domains[(np.abs(domains - energy2)).argmin()]
+
+    # If the domains of the values differ, take the average resolution
+
+    if domain1 != domain2:
+      res = (resolutions[domain1] + resolutions[domain2]) / 2
+    else:
+      res = resolutions[domain1]
+
+    # Check the energy difference of the states and compare it to the spectral resolution
+
+    if math.isclose(energy1, energy2, abs_tol=res):
+      return True
+    else:
+      return False
