@@ -13,7 +13,6 @@ CHAINS' Workflow
 |
 
 .. centered:: 
-   
    *Global overview of CHAINS' workflow (click to zoom in)*
 
 Characterization Phase (Steps 1-3 and 5-6)
