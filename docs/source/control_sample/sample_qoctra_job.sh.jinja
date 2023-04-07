@@ -11,18 +11,18 @@
 #SBATCH --partition={{ partition }}
 {% endif %}
 
-QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
+QOCT_RA_DIR="${CECIHOME}/QOCT-GRAD"
 
-echo -e ">>> Start of QOCT-RA compilation"
+echo -e ">>> Start of QOCT-GRAD compilation"
 
 {{ set_env }}
 gfortran -lopenblas -O3 -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/Sub/Fortran/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
 rm mymod.mod  
 
-echo -e ">>> End of QOCT-RA compilation"
+echo -e ">>> End of QOCT-GRAD compilation"
 
-echo -e "\n================= QOCT-RA execution begins now =================="
+echo -e "\n================= QOCT-GRAD execution begins now =================="
 
 ./Controle.out {{ rendered_param }} $QOCT_RA_DIR
 
-echo -e "\n================= QOCT-RA execution ends now =================="
+echo -e "\n================= QOCT-GRAD execution ends now =================="

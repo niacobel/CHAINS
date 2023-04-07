@@ -2035,7 +2035,7 @@ def filt_freq_variation(clusters_cfg:dict, config:dict, system:dict, data:dict, 
 ######################################################################################################################################
 
 def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the two parameters files (OPM & PCP) associated with the QOCT-RA program in CHAINS.
+    """Renders the job script and the two parameters files (OPM & PCP) associated with the QOCT-GRAD program in CHAINS.
 
     Parameters
     ----------
@@ -2756,7 +2756,7 @@ def chains_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict,
 
 
 def basic_opc_pcp_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the two parameters files (OPC & PCP) associated with the QOCT-RA program in CHAINS.
+    """Renders the job script and the two parameters files (OPC & PCP) associated with the QOCT-GRAD program in CHAINS.
 
     Parameters
     ----------

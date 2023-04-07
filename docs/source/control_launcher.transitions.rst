@@ -44,11 +44,11 @@ proj_ground_to_triplet transition function
 
 The transitions defined by this function are the ones that transfer the whole population from the ground state to each of the triplet states, individually. To identify all the triplet states of the molecule, this function uses the information contained in the additional ``states_list`` key defined in ``system`` by the parsing function.
 
-This function thus creates one initial state file, named ``ground_1``, where the whole population lies in the ground state, and a number of target state files equal to the number of triplets in the molecule, where the whole population lies in one of the triplets. Those target states files are defined as projectors (used by the ``OPM`` operating mode of QOCT-RA) and are named ``projector<triplet_label>_1``, where *<triplet_label>* is the value of the ``label`` key of the triplet state in the ``states_list`` dictionary.  All the files are created as density matrices.
+This function thus creates one initial state file, named ``ground_1``, where the whole population lies in the ground state, and a number of target state files equal to the number of triplets in the molecule, where the whole population lies in one of the triplets. Those target states files are defined as projectors (used by the ``OPM`` operating mode of QOCT-GRAD) and are named ``projector<triplet_label>_1``, where *<triplet_label>* is the value of the ``label`` key of the triplet state in the ``states_list`` dictionary.  All the files are created as density matrices.
 
 .. note::
 
-   Another, dummy file is created by this function, named ``final_1``. This file does not contain any relevant information but is still needed by QOCT-RA in order to run.
+   Another, dummy file is created by this function, named ``final_1``. This file does not contain any relevant information but is still needed by QOCT-GRAD in order to run.
 
 As an example, let's use the |H2O| case presented in the :doc:`control_launcher.modelling` specific documentation. As a reminder, this is the states list of this molecule:
 

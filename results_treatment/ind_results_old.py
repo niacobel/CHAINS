@@ -4,7 +4,7 @@
 ##                                                             Results Treatment                                                              ##
 ##                                                                                                                                            ##
 ##                               This script scans one or more molecule folders containing all the information                                ##
-##                    obtained through CHAINS, ORCA, QCHEM and QOCT-RA and generates the corresponding tables and graphs.                     ##
+##                    obtained through CHAINS, ORCA, QCHEM and QOCT-GRAD and generates the corresponding tables and graphs.                   ##
 ##                                                                                                                                            ##
 ##                    /!\ In order to run, this script requires Python 3.5+ as well as YAML, Jinja2 and GNUplot 5+. /!\                       ##
 ##                                          /!\ Ask your cluster(s) administrator(s) if needed. /!\                                           ##
@@ -297,7 +297,7 @@ for mol_name in mol_inp_list:
     if sorted(proj_files) != sorted(proj_dirs):
       raise errors.ResultsError ("ERROR: The projector files ({}) do not match the projector directories ({}).".format(proj_files,proj_dirs))
 
-    # QOCT-RA results (pulses and populations)
+    # QOCT-GRAD results (pulses and populations)
 
     proj_info = [] # Initialize a list that will host the dictionaries containing all the information related to each projector 
 

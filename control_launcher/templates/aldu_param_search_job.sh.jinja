@@ -20,8 +20,8 @@ echo -e "***********************************************************************
 date
 cd "${SLURM_SUBMIT_DIR}"
 
-# Define the QOCT-RA directory here
-QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
+# Define the QOCT-GRAD directory here
+QOCT_RA_DIR="${CECIHOME}/QOCT-GRAD"
 
 {% if cluster_name == "lyra" -%}
 # Temporary: for Lyra, define the GLOBALSCRATCH as a directory in HOME (empty it regularly)
@@ -69,7 +69,7 @@ echo -e "Creating subdirectory ${subdirname} in the ${SLURM_SUBMIT_DIR} to host 
 mkdir -p "${SLURM_SUBMIT_DIR}/${subdirname}"
 
 echo -e "\n======================================================================="
-echo -e "=========================   Running QOCT-RA   ========================="
+echo -e "=========================   Running QOCT-GRAD   ========================="
 echo -e "=======================================================================\n"
 
 # A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
@@ -92,7 +92,7 @@ cp "${SLURM_SUBMIT_DIR}/{{ prefix_init_pcp }}_{{ momdip_key }}_1" "${SCRATCH}/" 
 {% endfor %}
 
 cd "${SCRATCH}"
-mkdir -p "Verif" # Strangely needed by QOCT-RA
+mkdir -p "Verif" # Strangely needed by QOCT-GRAD
 
 # Load the necessary modules
 
@@ -102,16 +102,16 @@ mkdir -p "Verif" # Strangely needed by QOCT-RA
 
 # Compile the code (cluster dependent)
 
-echo -e ">>> Start of QOCT-RA compilation"
-gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 "${QOCT_RA_DIR}/fft_sub.f" "${QOCT_RA_DIR}/mymod.f" "${QOCT_RA_DIR}/Controle.f90" -o "Controle.out" || { cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the QOCT-RA compilation" && exit $?; }
+echo -e ">>> Start of QOCT-GRAD compilation"
+gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 "${QOCT_RA_DIR}/fft_sub.f" "${QOCT_RA_DIR}/mymod.f" "${QOCT_RA_DIR}/Controle.f90" -o "Controle.out" || { cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the QOCT-GRAD compilation" && exit $?; }
 rm "mymod.mod"  
-echo -e ">>> End of QOCT-RA compilation"
+echo -e ">>> End of QOCT-GRAD compilation"
 
 # First execution to get the optimal pulse
 
-echo -e "\n================= First QOCT-RA execution begins now =================="
-./Controle.out "${param_nml}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the first execution of QOCT-RA" && exit $?; }
-echo -e "\n================= First QOCT-RA execution ends now =================="
+echo -e "\n================= First QOCT-GRAD execution begins now =================="
+./Controle.out "${param_nml}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the first execution of QOCT-GRAD" && exit $?; }
+echo -e "\n================= First QOCT-GRAD execution ends now =================="
 
 # Secondary executions to test the optimal pulse (PCP mode)
 
@@ -123,10 +123,10 @@ mkdir "${pcp_dir}"
 cp "${SCRATCH}/Controle.out" "${pcp_dir}"
 cd "${pcp_dir}"
 
-echo -e "\n================= PCP_{{ momdip_key }} QOCT-RA execution begins now =================="
-./Controle.out "${SCRATCH}/{{ momdip_key }}_{{ rendered_param_PCP }}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the PCP_{{ momdip_key }} execution of QOCT-RA" && exit $?; }
+echo -e "\n================= PCP_{{ momdip_key }} QOCT-GRAD execution begins now =================="
+./Controle.out "${SCRATCH}/{{ momdip_key }}_{{ rendered_param_PCP }}" "${QOCT_RA_DIR}" || { rm -r ${SCRATCH}/Pulse/Pulse_iter* && cp -r ${SCRATCH}/* "${SLURM_SUBMIT_DIR}/${subdirname}" && echo "ERROR: A problem has occurred during the PCP_{{ momdip_key }} execution of QOCT-GRAD" && exit $?; }
 rm "Controle.out"
-echo -e "\n================= PCP_{{ momdip_key }} QOCT-RA execution ends now =================="
+echo -e "\n================= PCP_{{ momdip_key }} QOCT-GRAD execution ends now =================="
 
 {% endfor %}
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #########################################################################################################
-###      This script will be called via a cron task to execute control_launcher.py (with QOCT-RA)     ###
+###      This script will be called via a cron task to execute control_launcher.py (with QOCT-GRAD)   ###
 #########################################################################################################
 
 ####################################

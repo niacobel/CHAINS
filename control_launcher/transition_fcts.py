@@ -17,7 +17,7 @@ import control_common
 # =================================================================== #
 
 def brightest_to_darkest(system:dict):
-    """Determines the content of the files needed by QOCT-RA for the transition going from the brightest state to the darkest state using the transition dipole moments matrix presenting the highest values on average. The brightest and darkest states are identified by their transition dipole moment with the ground state. This function ensures a stimulated emmission controle scheme so the chosen dark state will have a lower energy compared to the chosen bright state (other cases will be skipped).
+    """Determines the content of the files needed by QOCT-GRAD for the transition going from the brightest state to the darkest state using the transition dipole moments matrix presenting the highest values on average. The brightest and darkest states are identified by their transition dipole moment with the ground state. This function ensures a stimulated emmission controle scheme so the chosen dark state will have a lower energy compared to the chosen bright state (other cases will be skipped).
 
     Parameters
     ----------
@@ -303,7 +303,7 @@ def brightest_to_darkest(system:dict):
 #######################################################################
 
 def gs_or_brightests_to_darkests_and_reverse(system:dict):
-    """Determines the content of the files needed by QOCT-RA for the transitions going from either the ground state or one of the first B brightest states to one of the first D darkest states, and vice versa. The brightest states are identified by their transition dipole moment with the ground state while the darkest states are identified by their radiative lifetime. B and D are fixed parameters that can easily be changed at the beginning of the function definition.
+    """Determines the content of the files needed by QOCT-GRAD for the transitions going from either the ground state or one of the first B brightest states to one of the first D darkest states, and vice versa. The brightest states are identified by their transition dipole moment with the ground state while the darkest states are identified by their radiative lifetime. B and D are fixed parameters that can easily be changed at the beginning of the function definition.
 
     Parameters
     ----------
@@ -494,7 +494,7 @@ def gs_or_brightests_to_darkests_and_reverse(system:dict):
 #######################################################################
 
 def dark_zero_order(system:dict):
-    """Determines the transition files needed by QOCT-RA for the transition between the ground state and each dark zero order state, expressed as a linear combination of eigenstates. Note: the handling of degenerated states must be turned off during execution of CONTROL LAUNCHER (the -dt / --degen_tresh command line argument must have a negative value).
+    """Determines the transition files needed by QOCT-GRAD for the transition between the ground state and each dark zero order state, expressed as a linear combination of eigenstates. Note: the handling of degenerated states must be turned off during execution of CONTROL LAUNCHER (the -dt / --degen_tresh command line argument must have a negative value).
 
     Parameters
     ----------

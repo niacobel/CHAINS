@@ -44,7 +44,7 @@ def jinja_render(templates_dir:str, template_file:str, render_vars:dict):
 # =================================================================== #
 
 def sample_qoctra_render(clusters_cfg:dict, config:dict, system:dict, data:dict, job_specs:dict, misc:dict):
-    """Renders the job script and the parameters file associated with the QOCT-RA program.
+    """Renders the job script and the parameters file associated with the QOCT-GRAD program.
 
     Parameters
     ----------

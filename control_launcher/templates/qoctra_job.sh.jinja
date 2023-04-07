@@ -18,11 +18,11 @@ echo -e "***********************************************************************
 
 cd $SLURM_SUBMIT_DIR
 
-# Define the QOCT-RA directory here
-QOCT_RA_DIR="${CECIHOME}/QOCT-RA"
+# Define the QOCT-GRAD directory here
+QOCT_RA_DIR="${CECIHOME}/QOCT-GRAD"
 
 echo -e "======================================================================="
-echo -e "=========================   Running QOCT-RA   ========================="
+echo -e "=========================   Running QOCT-GRAD   ======================="
 echo -e "======================================================================="
 
 # A temporary directory (SCRATCH) is created on the node where the job is running, for handling temporary files. 
@@ -37,7 +37,7 @@ mkdir -p $SCRATCH || exit $?
 cp $SLURM_SUBMIT_DIR/{{ rendered_param }} $SLURM_SUBMIT_DIR/{{ rendered_param_PCP }} $SLURM_SUBMIT_DIR/{{ guess_pulse }} $SCRATCH/ || exit $?
 
 cd $SCRATCH
-mkdir -p Verif # Strangely needed by QOCT-RA
+mkdir -p Verif # Strangely needed by QOCT-GRAD
 
 # Load the necessary modules
 
@@ -47,16 +47,16 @@ mkdir -p Verif # Strangely needed by QOCT-RA
 
 # Compile the code (cluster dependent)
 
-echo -e ">>> Start of QOCT-RA compilation"
+echo -e ">>> Start of QOCT-GRAD compilation"
 gfortran -lopenblas -O3 -march=native -ffast-math -funroll-loops -fwhole-program -flto -fexternal-blas -fdefault-integer-8 -m64 $QOCT_RA_DIR/fft_sub.f $QOCT_RA_DIR/mymod.f $QOCT_RA_DIR/Controle.f90 -o Controle.out
 rm mymod.mod  
-echo -e ">>> End of QOCT-RA compilation"
+echo -e ">>> End of QOCT-GRAD compilation"
 
 # First execution to get the optimal pulse
 
-echo -e "\n================= First QOCT-RA execution begins now =================="
-./Controle.out {{ rendered_param }} $QOCT_RA_DIR || { rm -r $SCRATCH/Pulse/Pulse_iter* && cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "ERROR: A problem has occcured during the first execution of QOCT-RA" && exit $?; }
-echo -e "\n================= First QOCT-RA execution ends now =================="
+echo -e "\n================= First QOCT-GRAD execution begins now =================="
+./Controle.out {{ rendered_param }} $QOCT_RA_DIR || { rm -r $SCRATCH/Pulse/Pulse_iter* && cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "ERROR: A problem has occcured during the first execution of QOCT-GRAD" && exit $?; }
+echo -e "\n================= First QOCT-GRAD execution ends now =================="
 
 # If the Pulse_best file does not exist, simply create it by copying the initial pulse
 
@@ -71,10 +71,10 @@ mkdir $SCRATCH/PCP
 mv Controle.out $SCRATCH/PCP/
 cd $SCRATCH/PCP/
 
-echo -e "\n================= PCP QOCT-RA execution begins now =================="
-./Controle.out $SCRATCH/{{ rendered_param_PCP }} $QOCT_RA_DIR || { rm -r $SCRATCH/Pulse/Pulse_iter* && cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "ERROR: A problem has occcured during the PCP execution of QOCT-RA" && exit $?; }
+echo -e "\n================= PCP QOCT-GRAD execution begins now =================="
+./Controle.out $SCRATCH/{{ rendered_param_PCP }} $QOCT_RA_DIR || { rm -r $SCRATCH/Pulse/Pulse_iter* && cp -r $SCRATCH/* $SLURM_SUBMIT_DIR/ && echo "ERROR: A problem has occcured during the PCP execution of QOCT-GRAD" && exit $?; }
 rm Controle.out
-echo -e "\n================= PCP QOCT-RA execution ends now =================="
+echo -e "\n================= PCP QOCT-GRAD execution ends now =================="
 
 echo -e "\nCopying output files to the submit directory."
 rm -r $SCRATCH/Pulse/Pulse_iter*

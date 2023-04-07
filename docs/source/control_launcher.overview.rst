@@ -5,13 +5,13 @@ Overview
 What is CONTROL LAUNCHER?
 =========================
 
-The **QOCT-RA Input Builder and Job Launcher**, named ``CONTROL LAUNCHER``, is a script that creates input files for the QOCT-RA_ scripts, and then submits (or "launches") the corresponding calculations on a job scheduler. For a given source file (that describes the needed molecular properties), it can operate with one or more set of QOCT-RA parameters (the configuration files). ``CONTROL LAUNCHER`` is the second main script of CHAINS and is used to execute the second phase of CHAINS' methodology, which consists in evaluating the efficiency of the control procedure and the controllability of the electrons in the molecule.  
+The **QOCT-GRAD Input Builder and Job Launcher**, named ``CONTROL LAUNCHER``, is a script that creates input files for the QOCT-GRAD_ scripts, and then submits (or "launches") the corresponding calculations on a job scheduler. For a given source file (that describes the needed molecular properties), it can operate with one or more set of QOCT-GRAD parameters (the configuration files). ``CONTROL LAUNCHER`` is the second main script of CHAINS and is used to execute the second phase of CHAINS' methodology, which consists in evaluating the efficiency of the control procedure and the controllability of the electrons in the molecule.  
 
-However, ``CONTROL LAUNCHER`` can be used in an autonomous way and does not depend on CHAINS. It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent QOCT-RA calculations, and can be adapted to deal with other similar problematics. As such, this specific part of the documentation only explains how ``CONTROL LAUNCHER`` works in and of itself, and its integration into CHAINS is explained :doc:`elsewhere <chains.control_profile>`.
+However, ``CONTROL LAUNCHER`` can be used in an autonomous way and does not depend on CHAINS. It does not need any files outside the ones present in its own directory. It can be extracted and used to launch independent QOCT-GRAD calculations, and can be adapted to deal with other similar problematics. As such, this specific part of the documentation only explains how ``CONTROL LAUNCHER`` works in and of itself, and its integration into CHAINS is explained :doc:`elsewhere <chains.control_profile>`.
 
 .. Caution::
 
-   Keep in mind that QOCT-RA is in constant development at SQUARES_ and might evolve independently of ``CONTROL LAUNCHER``. Even if most of the script will probably remain unchanged, it is possible that some little portions of the code will need to be reworked to match the latest developments.
+   Keep in mind that QOCT-GRAD is in constant development at SQUARES_ and might evolve independently of ``CONTROL LAUNCHER``. Even if most of the script will probably remain unchanged, it is possible that some little portions of the code will need to be reworked to match the latest developments.
 
 .. _control_directory:
 
@@ -51,8 +51,8 @@ In CHAINS' case, the ``templates`` directory structure is:
 
 where
 
-- ``param.nml.jinja`` is the Jinja template for the QOCT-RA parameters file.
-- ``qoctra_job.sh.jinja`` is the Jinja template for the QOCT-RA job script. It contains all the commands that will be executed through the job scheduler to perform the calculation.
+- ``param.nml.jinja`` is the Jinja template for the QOCT-GRAD parameters file.
+- ``qoctra_job.sh.jinja`` is the Jinja template for the QOCT-GRAD job script. It contains all the commands that will be executed through the job scheduler to perform the calculation.
 
 .. _control_arguments:
 
@@ -85,7 +85,7 @@ There are two main input files for ``CONTROL LAUNCHER``:
 
 - :guilabel:`-cf / \\--config`, the **configuration files**.
 
-   The YAML files containing the parameters specific to your QOCT-RA calculation (number of time steps, number of iterations, etc.). Those files must have the .yml or .yaml extension. You can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple configuration files, ``CONTROL LAUNCHER`` will process each transition-configuration combination. For example, if you have 4 possible transitions and 3 configuration files, you will end up with 12 launched jobs on your cluster.
+   The YAML files containing the parameters specific to your QOCT-GRAD calculation (number of time steps, number of iterations, etc.). Those files must have the .yml or .yaml extension. You can either indicate a specific file in the command line, or point towards a directory where there are multiple of those files. If you specify multiple configuration files, ``CONTROL LAUNCHER`` will process each transition-configuration combination. For example, if you have 4 possible transitions and 3 configuration files, you will end up with 12 launched jobs on your cluster.
 
 By default, every input file will remain where it is after the execution of ``CONTROL LAUNCHER``. If you wish to **archive** those files, you can use the :guilabel:`-as / \\--arch_src` and/or :guilabel:`-ac / \\--arch_cf` optional arguments. The files will then be placed inside a ``launched`` directory created in the same directory as the input files. Note that if a problem occurs when processing a particular configuration, both the source file and the configuration file will be kept in place.
 
@@ -117,7 +117,7 @@ There are also some optional arguments that can be used to adapt to some specifi
 First step: System modelling
 ----------------------------
 
-``CONTROL LAUNCHER`` begins by generating some data files that will be used by QOCT-RA to model the system that needs to be controlled. This step involves parsing the source file to extract all the needed values from it, then manipulating those values to build an effective Hamiltonian describing the molecule. 
+``CONTROL LAUNCHER`` begins by generating some data files that will be used by QOCT-GRAD to model the system that needs to be controlled. This step involves parsing the source file to extract all the needed values from it, then manipulating those values to build an effective Hamiltonian describing the molecule. 
 
 For more details on how this modelling process is performed, consult the :doc:`control_launcher.modelling` specific documentation.
 
@@ -161,7 +161,7 @@ where
 - ``<delay_command>`` is an optional command that can delay the submission of a particular job, which can prove useful if you want to prioritize certain job sizes (consult the :doc:`control_launcher.job_scale` specific documentation for details). In SLURM's case, this is covered by the ``--begin`` argument.
 - ``<job script>`` is the name of the file that will be created through the :doc:`rendering process <control_launcher.rendering>`. It contains the commands needed by the job scheduler to run the calculation on the cluster.
 
-For example, if we want to run a QOCT-RA calculation on a SLURM cluster, but delay the submission of this job by 60 seconds, the command executed by ``CONTROL LAUNCHER`` might look like:
+For example, if we want to run a QOCT-GRAD calculation on a SLURM cluster, but delay the submission of this job by 60 seconds, the command executed by ``CONTROL LAUNCHER`` might look like:
 
 .. code-block:: console
 
@@ -219,4 +219,4 @@ where
 .. Hyperlink targets
 
 .. _SQUARES: https://www2.ulb.ac.be/cpm/index.html
-.. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA
+.. _QOCT-GRAD: https://gitlab.com/dynaq.cqp/QOCT-GRAD

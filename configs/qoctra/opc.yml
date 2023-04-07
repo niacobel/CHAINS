@@ -7,11 +7,11 @@ general:
   mail_type: FAIL
 
 # ========================================================= #
-#                    QOCT-RA Information                    #
+#                    QOCT-GRAD Information                  #
 # ========================================================= #
 
-# QOCT-RA PARAMETERS
-# They will be used "as-is" in the QOCT-RA parameters file
+# QOCT-GRAD PARAMETERS
+# They will be used "as-is" in the QOCT-GRAD parameters file
 
 qoctra:
   process: OPC                                    # Nature of the process: [OPC] Optimal control, [OPM] Optimal control with multiple constraints; [PCP] Post-control with pulse [PCL] Free post-control

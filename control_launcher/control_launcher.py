@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 ########################################################################################################################################################
-##                                                        QOCT-RA Input Builder & Job Launcher                                                        ##
+##                                                        QOCT-GRAD Input Builder & Job Launcher                                                      ##
 ##                                                                                                                                                    ##
-##                                    This script prepares the input files needed to run the QOCT-RA program by extracting                            ##
+##                                    This script prepares the input files needed to run the QOCT-GRAD program by extracting                          ##
 ##                                  information from a given source file and launches the corresponding jobs on the cluster.                          ##
 ##                                      Extended documentation is available at https://chains-ulb.readthedocs.io/                                     ##
 ##                                                                                                                                                    ##
@@ -39,7 +39,7 @@ import transition_fcts
 
 # Define the arguments needed for the script (here they are defined as named arguments rather than positional arguments, check https://stackoverflow.com/questions/24180527/argparse-required-arguments-listed-under-optional-arguments for more info).
 
-parser = argparse.ArgumentParser(add_help=False, description="This script prepares the input files needed to run the QOCT-RA program by extracting information from a given source file and launches the corresponding jobs on the cluster.")
+parser = argparse.ArgumentParser(add_help=False, description="This script prepares the input files needed to run the QOCT-GRAD program by extracting information from a given source file and launches the corresponding jobs on the cluster.")
 
 required = parser.add_argument_group('Required arguments')
 required.add_argument("-s","--source", type=str, help="Path to the source file containing all the necessary information that needs to be processed.", required=True)
@@ -89,7 +89,7 @@ def main():
 
     print("".center(columns,"*"))
     print("")
-    print("EXECUTION OF THE QOCT-RA INPUT BUILDER & JOB LAUNCHER BEGINS NOW".center(columns))
+    print("EXECUTION OF THE QOCT-GRAD INPUT BUILDER & JOB LAUNCHER BEGINS NOW".center(columns))
     print("")
     print("".center(columns,"*"))
 

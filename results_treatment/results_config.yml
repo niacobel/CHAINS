@@ -23,7 +23,7 @@ gnuplot_scripts:
 
 # Define here any additionnal info
 other:
-  gabor: /CECI/home/ulb/cqp/niacobel/QOCT-RA/Sub/xfrog84                        # Script used for the gabor transform
-  fft: /CECI/home/ulb/cqp/niacobel/QOCT-RA/Sub/FFT/analyse_champ.script         # Script used for the FFT
+  gabor: /CECI/home/ulb/cqp/niacobel/QOCT-GRAD/Sub/xfrog84                        # Script used for the gabor transform
+  fft: /CECI/home/ulb/cqp/niacobel/QOCT-GRAD/Sub/FFT/analyse_champ.script         # Script used for the FFT
   quality_treshold: 0                                         # Minimum fidelity value to consider plotting graphs and writing tables
   nb_points: 1000                                             # Max number of points to be plotted by gnuplot scripts

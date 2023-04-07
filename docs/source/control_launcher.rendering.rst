@@ -5,7 +5,7 @@ Rendering the templates
 What is rendering?
 ==================
 
-Rendering the templates consists in creating the parameters file and job script for our QOCT-RA calculations, based on their Jinja templates. The Jinja language offers a relatively easy and intuitive way of creating those templates and allows for more flexibility and adaptability in ``CONTROL LAUNCHER``.
+Rendering the templates consists in creating the parameters file and job script for our QOCT-GRAD calculations, based on their Jinja templates. The Jinja language offers a relatively easy and intuitive way of creating those templates and allows for more flexibility and adaptability in ``CONTROL LAUNCHER``.
 
 The rendering process makes use of three main elements:
 

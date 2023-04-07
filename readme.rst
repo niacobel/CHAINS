@@ -25,10 +25,10 @@ CHAINS is a group of scripts developed at the Spectroscopy, Quantum Chemistry an
 This methodology includes three big phases:
 
 #. The **characterization** phase makes use of ab initio calculations performed by programs such as GAUSSIAN_ and Q-CHEM_, in order to build a matrix Hamiltonian describing our molecule. 
-#. The **control** phase consists in using this Hamiltonian to apply the quantum optimal control theory through the QOCT-RA_ scripts, also developed at SQUARES.
+#. The **control** phase consists in using this Hamiltonian to apply the quantum optimal control theory through the QOCT-GRAD_ scripts, also developed at SQUARES.
 #. The **results** phase involves treating the results of all calculations and compiling them into graphs and tables.
 
-CHAINS can assist this whole methodology by automatically preparing the input files and launching the GAUSSIAN_, Q-CHEM_ and QOCT-RA_ calculations for each molecule, allowing the user to treat a big number of molecules much faster, thus making the scanning more efficient. It can also work with multiple clusters, in order to split the workload. In our case, all those calculations (jobs) are performed on the different clusters provided by the *Consortium des Équipements de Calcul Intensif* (CECI_). 
+CHAINS can assist this whole methodology by automatically preparing the input files and launching the GAUSSIAN_, Q-CHEM_ and QOCT-GRAD_ calculations for each molecule, allowing the user to treat a big number of molecules much faster, thus making the scanning more efficient. It can also work with multiple clusters, in order to split the workload. In our case, all those calculations (jobs) are performed on the different clusters provided by the *Consortium des Équipements de Calcul Intensif* (CECI_). 
 
 .. Important::
    Although the global development has been aimed at a specific problematic, **each individual script can easily be adapted** to deal with other similar problems, programs and clusters, as will be explained in each of the different sections of the documentation.
@@ -51,7 +51,8 @@ Languages and Dependencies
     :alt: Languages used in CHAINS
     :figclass: align-center
     
-The main language of CHAINS is **Python 3.5+** but it also uses YAML_ files and Jinja2_ templates, as well as some Shell scripts. If you want to customize CHAINS however, there is no need for an in-depth knowledge of anything but Python, as we only use the basic features of the other languages (consult the "What you need to know" section of the documentation for details).
+|
+The main language of CHAINS is **Python 3.5+** but it also uses YAML_ files and Jinja2_ templates, as well as some Bash scripts. If you want to customize CHAINS however, there is no need for an in-depth knowledge of anything but Python, as we only use the basic features of the other languages (consult the "What you need to know" section of the documentation for details).
 
 If your Python distribution does not include them, you can install the needed Python libraries by entering the following command in your terminal:
 
@@ -92,7 +93,7 @@ License
 .. _Matplotlib: https://matplotlib.org/
 .. _Pandas: https://pandas.pydata.org/
 .. _Q-CHEM: https://www.q-chem.com/
-.. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA
+.. _QOCT-GRAD: https://gitlab.com/dynaq.cqp/QOCT-GRAD
 .. _SciPy: https://scipy.org/
 .. _SQUARES: https://www2.ulb.ac.be/cpm/index.html
 .. _ULB: https://www.ulb.be/

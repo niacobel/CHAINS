@@ -442,7 +442,7 @@ def main():
 
               # Check key files
 
-              iter_file = results_common.check_abspath(os.path.join(pulse_dir, "obj.res"),"Iterations QOCT-RA results file","file")
+              iter_file = results_common.check_abspath(os.path.join(pulse_dir, "obj.res"),"Iterations QOCT-GRAD results file","file")
               guess_pulse_file = results_common.check_abspath(os.path.join(pulse_dir, "Pulse", "Pulse_init"),"Guess pulse file","file")
               pulse_file = results_common.check_abspath(os.path.join(pulse_dir, "Pulse", "Pulse_best"),"Best pulse file","file")
               pop_file = results_common.check_abspath(os.path.join(pulse_dir, "PCP_%s" % momdip_key, "pop1"),"PCP relativistic populations file","file")

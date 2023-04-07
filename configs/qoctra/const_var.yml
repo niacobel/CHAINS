@@ -7,10 +7,10 @@ general:
   mail_type: END,FAIL
 
 # ========================================================= #
-#                    QOCT-RA Information                    #
+#                    QOCT-GRAD Information                  #
 # ========================================================= #
 
-# QOCT-RA PARAMETERS
+# QOCT-GRAD PARAMETERS
 
 qoctra:
   copy_files: True

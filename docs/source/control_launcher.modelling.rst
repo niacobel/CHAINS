@@ -2,7 +2,7 @@
 System modelling
 ****************
 
-``CONTROL LAUNCHER`` begins by modelling the system on which the control procedure will be performed. In order to do so, it must parse the source file to extract all the needed values from it and build the Matrix Image of the MoleculE (MIME), as well as the transition dipole moments matrix. The MIME can act as an effective Hamiltonian describing the molecule. Once it has been determined, it is then diagonalized in order to build the eigenstates basis set needed by QOCT-RA to perform the control procedure.
+``CONTROL LAUNCHER`` begins by modelling the system on which the control procedure will be performed. In order to do so, it must parse the source file to extract all the needed values from it and build the Matrix Image of the MoleculE (MIME), as well as the transition dipole moments matrix. The MIME can act as an effective Hamiltonian describing the molecule. Once it has been determined, it is then diagonalized in order to build the eigenstates basis set needed by QOCT-GRAD to perform the control procedure.
 
 .. _parsing_fcts:
 
@@ -195,7 +195,7 @@ Example with the |H2O| output file:
 Eigenstates basis set
 =====================
 
-Once the MIME and the transition dipole moments matrix have been recovered from the source file, it is time to build the eigenstates basis set that will be used by QOCT-RA. In order to do so, the MIME needs to be diagonalized, this is done with the NumPy_ package, through the linalg.eig_ function.
+Once the MIME and the transition dipole moments matrix have been recovered from the source file, it is time to build the eigenstates basis set that will be used by QOCT-GRAD. In order to do so, the MIME needs to be diagonalized, this is done with the NumPy_ package, through the linalg.eig_ function.
 
 .. code-block:: python
 

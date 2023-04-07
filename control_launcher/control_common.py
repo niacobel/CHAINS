@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 ################################################################################################################################################
-##                                   Common functions and exceptions of QOCT-RA Input Builder & Job Launcher                                  ##
+##                                   Common functions and exceptions of QOCT-GRAD Input Builder & Job Launcher                                ##
 ##                                                                                                                                            ##
 ##                                 This script contains all the custom exceptions and functions common to the                                 ##
-##                                   QOCT-RA Input Builder & Job Launcher python script and its subscripts.                                   ##
+##                                   QOCT-GRAD Input Builder & Job Launcher python script and its subscripts.                                 ##
 ################################################################################################################################################
 
 import math
