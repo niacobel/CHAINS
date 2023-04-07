@@ -3,13 +3,16 @@ CHAINS' Workflow
 ****************
 
 .. figure:: figures/workflow.png
-    :scale: 65%
+    :width: 100%
     :align: center
     :alt: CHAINS workflow
     :figclass: align-center
 
-    ".."
-    Global overview of CHAINS' workflow (click to zoom in)
+    ..
+
+.. class:: center
+
+Global overview of CHAINS' workflow (click to zoom in)
 
 Characterization Phase (Steps 1-3 and 5-6)
 ==========================================
@@ -24,7 +27,7 @@ Characterization Phase (Steps 1-3 and 5-6)
 .. note:: 
    The reason this characterization phase is split in two jobs is because the Q-CHEM_ program is locked by license on a single cluster, and we want to make the most use out of this cluster. Since the geometry optimization can be handled by another program, we have separated it from the rest in order to free some resources and gain some time.
 
-Control Phase (Steps 8-9 et 11-12)
+Control Phase (Steps 8-9 and 11-12)
 ==================================
 
 *This phase is covered by the second main script of CHAINS, named* ``CONTROL LAUNCHER``. *Consult its* :doc:`specific documentation <control_launcher.overview>` *for details*.
