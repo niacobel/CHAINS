@@ -4,7 +4,7 @@ System modelling
 
 ``CONTROL LAUNCHER`` begins by modelling the system on which the control procedure will be performed. In order to do so, it must parse the source file to extract all the needed values from it and build the Matrix Image of the MoleculE (MIME), as well as the transition dipole moments matrix. The MIME can act as an effective Hamiltonian describing the molecule. Once it has been determined, it is then diagonalized in order to build the eigenstates basis set needed by QOCT-GRAD to perform the control procedure.
 
-.. _parsing_fcts:
+.. _modelling_fcts:
 
 Parsing the source file
 =======================

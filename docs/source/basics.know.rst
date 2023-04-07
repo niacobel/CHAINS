@@ -86,7 +86,7 @@ With that, you know everything you need to know about YAML in order to use CHAIN
 About Jinja2
 ============
 
-"Jinja_ is a modern and designer-friendly templating language for Python, modelled after Django’s templates. It is fast, widely used and secure with the optional sandboxed template execution environment" (quote from the official website). We use the Jinja language to create templates for the input files needed by ORCA_, Q-CHEM_ and QOCT-RA_. We also use it for the job scripts, containing all instructions for the job scheduler (SLURM_ for the CECI_ clusters).
+"Jinja_ is a modern and designer-friendly templating language for Python, modelled after Django’s templates. It is fast, widely used and secure with the optional sandboxed template execution environment" (quote from the official website). We use the Jinja language to create templates for the input files needed by Gaussian_, Q-CHEM_ and QOCT-GRAD_. We also use it for the job scripts, containing all instructions for the job scheduler (SLURM_ for the CECI_ clusters).
 
 Here is a small YouTube tutorial made by Jason Rigden that will cover the basics of the Jinja2 templating engine:
 
@@ -99,14 +99,14 @@ Here is a small YouTube tutorial made by Jason Rigden that will cover the basics
 |
 | You can also find a written version of that video `here <https://medium.com/@jasonrigden/jinja2-templating-engine-tutorial-4bd31fb4aea3>`_. 
 
-With that, you know everything you need to know about Jinja2 in order to use CHAINS! As you may have seen in the video, the Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as Gaussian_ or Molpro_, and any other job scheduler such as Torque_.
+With that, you know everything you need to know about Jinja2 in order to use CHAINS! As you may have seen in the video, the Jinja language offers a relatively easy and intuitive way of creating those templates, which makes it easier to adapt the templates to pretty much any input files for any ab initio program such as ORCA_ or Molpro_, and any other job scheduler such as Torque_.
 
 .. _regex:
 
 About Regular Expressions
 =========================
 
-`Regular Expressions`_ (or regexes) are a powerful tool that can define search patterns to look for specific information in text. You don't need to know how they work to simply use ``ABIN LAUNCHER`` or ``CONTROL LAUNCHER``, but they are used in the results treatment part of CHAINS. If you want to customize the treatment of your results, or if you want to define new :doc:`scanning functions <abin_launcher.scan>` for geometry files (in ``ABIN LAUNCHER``) or new :ref:`parsing functions <parsing_fcts>` for source files (in ``CONTROL LAUNCHER``), it is probably a good idea to take a look at how they work.
+`Regular Expressions`_ (or regexes) are a powerful tool that can define search patterns to look for specific information in text. You don't need to know how they work to simply use ``ABIN LAUNCHER`` or ``CONTROL LAUNCHER``, but they are used in the results treatment part of CHAINS. If you want to customize the treatment of your results, or if you want to define new :doc:`scanning functions <abin_launcher.scan>` for geometry files (in ``ABIN LAUNCHER``) or new :ref:`modelling functions <modelling_fcts>` for source files (in ``CONTROL LAUNCHER``), it is probably a good idea to take a look at how they work.
 
 Regular Expressions can present themselves as incredibly unintuitive but their versatility certainly makes up for that. Here is a YouTube tutorial made by Corey Schafer that will cover how regexes work and how they can be used in Python:
 
@@ -124,7 +124,7 @@ About Crontab and Cron tasks
 
 In order to link the different clusters and to automate certain parts of CHAINS, we need to periodically execute some commands. This is done through cron_ tasks established via the ``crontab`` command. 
 
-You don't really need to know anything about them prior to reading this documentation as the exact commands will be explicitly given each time you will need to use them. Nonetheless, if you prefer to know what you are dealing with, here is a small YouTube tutorial made by Corey Schafer explaining what cron tasks are:
+You don't really need to know anything about them prior to reading this documentation, as the exact commands will be explicitly given each time you will need to use them. Nonetheless, if you prefer to know what you are dealing with, here is a small YouTube tutorial made by Corey Schafer explaining what cron tasks are:
 
 .. raw:: html
 
@@ -143,7 +143,7 @@ You don't really need to know anything about them prior to reading this document
 .. _Python: https://www.python.org/
 .. _PyYAML: https://pyyaml.org/
 .. _Q-CHEM: https://www.q-chem.com/
-.. _QOCT-RA: https://gitlab.com/dynaq.cqp/QOCT-RA
+.. _QOCT-GRAD: https://gitlab.com/dynaq.cqp/QOCT-GRAD
 .. _`Regular Expressions`: https://www.regular-expressions.info/
 .. _SLURM: https://slurm.schedmd.com/documentation.html
 .. _Torque: https://github.com/adaptivecomputing/torque
